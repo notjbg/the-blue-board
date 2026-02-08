@@ -898,9 +898,7 @@ function toggleWeather() {
 async function refreshFlights() {
   document.getElementById('btn-refresh').textContent = '⏳ Loading...';
   try {
-    const res = await fetch('https://data-cloud.flightradar24.com/zones/fcgi/feed.js?airline=UAL', {
-      headers: { 'Accept': 'application/json' }
-    });
+    const res = await fetch('/api/fr24-feed?airline=UAL');
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
     allFlights = [];
@@ -1878,11 +1876,7 @@ async function fetchSchedulePage(hub, dir, timestamp, page) {
   if (schedCache[cacheKey]) return schedCache[cacheKey];
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${hub}&plugin[]=schedule&plugin-setting[schedule][mode]=${dir}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
   const resp = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'Origin': 'https://www.flightradar24.com',
-      'Referer': 'https://www.flightradar24.com/'
-    }
+    headers: { 'Accept': 'application/json' }
   });
   if (!resp.ok) throw new Error(`FR24 ${resp.status}`);
   const data = await resp.json();
