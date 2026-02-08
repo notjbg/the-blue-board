@@ -101,8 +101,8 @@ All sources are public. No API keys required.
 ## Local Development
 
 ```bash
-git clone https://github.com/notjbg/united-noc.git
-cd united-noc
+git clone https://github.com/notjbg/the-blue-board.git
+cd the-blue-board
 
 # Install Vercel CLI
 npm i -g vercel
@@ -140,7 +140,7 @@ vercel --prod
 
 ## Contributing
 
-Feature ideas? Bug reports? [Open an issue](https://github.com/notjbg/united-noc/issues) — contributions welcome.
+Feature ideas? Bug reports? [Open an issue](https://github.com/notjbg/the-blue-board/issues) — contributions welcome.
 
 Want to support the project? [Buy me a WiFi day pass ☕](https://buymeacoffee.com/notjbg)
 
