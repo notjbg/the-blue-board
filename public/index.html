@@ -2387,6 +2387,7 @@ function hideDisclaimer() {
       </ul>
       <p style="margin-bottom:12px"><strong>Data Accuracy:</strong> All flight data is provided for informational purposes only and may be delayed, incomplete, or inaccurate. <strong style="color:var(--ua-red)">Do not use this dashboard for operational or safety-critical decisions.</strong> Always verify flight status directly with <a href="https://www.united.com" target="_blank" style="color:var(--ua-accent)">united.com</a> or your airline.</p>
       <p style="margin-bottom:12px"><strong>Open Source:</strong> This project is open source. <a href="https://github.com/notjbg/united-noc" target="_blank" style="color:var(--ua-accent)">View on GitHub →</a></p>
+      <p style="margin-bottom:12px"><strong>Support:</strong> Like what you see? <a href="https://buymeacoffee.com/theblueboard" target="_blank" style="color:var(--ua-accent)">Buy me a WiFi day pass ($8) →</a> Because we all know the real turbulence is paying for inflight internet. ✈️📶</p>
     </div>
     <button onclick="hideDisclaimer()" style="margin-top:16px;background:var(--ua-blue);color:white;border:none;padding:8px 24px;font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:4px;width:100%">Got it</button>
   </div>
@@ -2395,7 +2396,10 @@ function hideDisclaimer() {
 <!-- SITE FOOTER -->
 <div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:9px;color:var(--ua-muted)">
   <div>The Blue Board · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="#" onclick="showDisclaimer();return false" style="color:var(--ua-accent);text-decoration:none">About & Disclaimer</a></div>
-  <div>Data: <a href="https://www.flightradar24.com" target="_blank" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" style="color:var(--ua-muted);text-decoration:none">FAA</a></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span>Data: <a href="https://www.flightradar24.com" target="_blank" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
+    <a href="https://buymeacoffee.com/theblueboard" target="_blank" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Buy me a WiFi day pass</a>
+  </div>
 </div>
 
 <script defer src="/_vercel/insights/script.js"></script>
