@@ -350,9 +350,44 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .sched-load-more{background:none;border:1px solid var(--ua-border);color:var(--ua-blue);padding:6px 16px;font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:3px;margin:4px;transition:all .2s}
 .sched-load-more:hover{background:rgba(0,93,170,.1);border-color:var(--ua-blue)}
 .sched-load-more:disabled{opacity:.4;cursor:default}
+
+/* Onboarding Overlay */
+#onboarding-overlay{position:fixed;inset:0;background:rgba(10,14,20,.85);z-index:10000;display:flex;align-items:center;justify-content:center;opacity:0;animation:obFadeIn .4s ease forwards;backdrop-filter:blur(4px)}
+#onboarding-overlay.ob-hidden{opacity:0;pointer-events:none;transition:opacity .3s ease}
+#onboarding-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:12px;max-width:480px;width:90%;padding:32px;text-align:center;box-shadow:0 0 60px rgba(0,93,170,.15)}
+#onboarding-card h2{font-size:20px;color:#fff;margin-bottom:6px;letter-spacing:.5px}
+.onboarding-subtitle{color:var(--ua-muted);font-size:12px;margin-bottom:24px}
+.onboarding-features{text-align:left;display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.onboarding-feature{display:flex;align-items:flex-start;gap:12px;font-size:12px;line-height:1.5}
+.onboarding-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.onboarding-feature strong{color:var(--ua-accent);display:block}
+.onboarding-desc{color:var(--ua-muted);display:block}
+.onboarding-footer{color:var(--ua-muted);font-size:10px;margin-bottom:20px;opacity:.7}
+#onboarding-dismiss{background:var(--ua-blue);color:#fff;border:none;padding:10px 28px;border-radius:6px;font-family:var(--mono);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:.5px;transition:background .2s}
+#onboarding-dismiss:hover{background:#0070cc}
+#onboarding-help{background:none;border:1px solid var(--ua-border);color:var(--ua-muted);width:22px;height:22px;border-radius:50%;font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;padding:0;line-height:1}
+#onboarding-help:hover{border-color:var(--ua-blue);color:var(--ua-accent)}
+@keyframes obFadeIn{from{opacity:0}to{opacity:1}}
+@media(max-width:500px){#onboarding-card{padding:24px 18px}#onboarding-card h2{font-size:17px}}
 </style>
 </head>
 <body>
+<!-- ONBOARDING OVERLAY -->
+<div id="onboarding-overlay">
+  <div id="onboarding-card">
+    <h2>Welcome to The Blue Board ✈️</h2>
+    <p class="onboarding-subtitle">An unofficial real-time operations dashboard for United Airlines</p>
+    <div class="onboarding-features">
+      <div class="onboarding-feature"><span class="onboarding-icon">📡</span><div><strong>Live Map</strong><span class="onboarding-desc">Track 600+ United flights in real time across all 7 hubs</span></div></div>
+      <div class="onboarding-feature"><span class="onboarding-icon">📅</span><div><strong>Schedules</strong><span class="onboarding-desc">Departures &amp; arrivals for every UA hub, with on-time stats</span></div></div>
+      <div class="onboarding-feature"><span class="onboarding-icon">✈️</span><div><strong>Fleet</strong><span class="onboarding-desc">Full database of 1,200+ aircraft with WiFi, config, and Starlink status</span></div></div>
+      <div class="onboarding-feature"><span class="onboarding-icon">🌦</span><div><strong>Weather</strong><span class="onboarding-desc">METAR observations, NEXRAD radar, and FAA delay alerts</span></div></div>
+      <div class="onboarding-feature"><span class="onboarding-icon">📊</span><div><strong>Analytics</strong><span class="onboarding-desc">Fleet composition, utilization, and performance breakdowns</span></div></div>
+    </div>
+    <p class="onboarding-footer">Built by a fellow United flyer. Not affiliated with United Airlines.</p>
+    <button id="onboarding-dismiss">Let's Go ✈️</button>
+  </div>
+</div>
 <div id="offline-banner">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
 <noscript>
 <div style="background:#111827;color:#e2e8f0;padding:40px;text-align:center;font-family:monospace">
@@ -374,6 +409,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <span><span class="status-dot live" id="status-dot"></span><span id="status-text">LIVE</span></span>
     <span id="countdown">--:--</span>
     <span id="clock" style="color:var(--ua-muted)"></span>
+    <button id="onboarding-help" title="About this dashboard" aria-label="About this dashboard">?</button>
   </div>
 </div>
 
@@ -2404,4 +2440,17 @@ function hideDisclaimer() {
 
 <script defer src="/_vercel/insights/script.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
+<script>
+(function(){
+  var overlay=document.getElementById('onboarding-overlay');
+  var btn=document.getElementById('onboarding-dismiss');
+  var helpBtn=document.getElementById('onboarding-help');
+  function hideOverlay(){overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
+  function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';overlay.offsetHeight;overlay.style.animation='obFadeIn .4s ease forwards'}
+  if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
+  btn.addEventListener('click',hideOverlay);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
+  helpBtn.addEventListener('click',showOverlay);
+})();
+</script>
 </body></html>

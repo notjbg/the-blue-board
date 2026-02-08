@@ -1,33 +1,37 @@
-# ✈️ United Airlines NOC Dashboard
+# ✈️ The Blue Board
 
-A real-time Network Operations Center dashboard for United Airlines, built as a single-page application with live data from public aviation APIs.
+**An unofficial, real-time operations dashboard for United Airlines — built by flyers, for flyers.**
 
-**[→ Live Dashboard](https://united-noc-vercel.vercel.app)**
+**[→ Live Dashboard](https://united-noc-vercel.vercel.app)** · **[Buy Me a WiFi Day Pass ☕](https://buymeacoffee.com/notjbg)**
+
+![The Blue Board — Live Operations Map](https://united-noc-vercel.vercel.app/og-image.png)
 
 ---
 
-## Overview
+## What Is This?
 
-Bloomberg-terminal-inspired operations dashboard tracking United's mainline fleet across seven hub airports. All data is fetched live from public sources — no API keys, no authentication, no scraping.
+The Blue Board is a fan-built operations dashboard that lets you see United Airlines like an ops center would — live flight positions, hub schedules, fleet data, weather, and analytics, all in one dark, data-dense interface.
 
-### Tabs
+**Not affiliated with United Airlines, Inc.** This is an independent project by aviation enthusiasts.
 
-| Tab | What it does |
-|-----|-------------|
-| **Live Ops** | Real-time flight map (OpenSky), hub status sidebar, flight phase breakdown, ticker alerts |
-| **Fleet** | Full aircraft database (1,175+ mainline), searchable/sortable, Starlink status, live airborne tracking |
-| **Weather** | NEXRAD radar overlay, METAR observations with plain-English explainers, FAA delay/ground stop status |
-| **Analytics** | Fleet composition breakdown by type, seat configuration analysis, WiFi/IFE coverage stats |
-| **Sources** | Attribution and freshness indicators for all data sources |
+---
 
-### Key Features
+## Features
 
-- **Interactive hub filtering** — click any hub (ORD, DEN, IAH, EWR, SFO, IAD, LAX) to filter the map and stats
-- **Flight phase filtering** — filter by Ground / Climb / Cruise / Descent / Approach, composable with hub filter
-- **Live fleet matching** — correlates OpenSky transponder data with the fleet database via ICAO24→N-number conversion
-- **METAR decoder** — translates raw aviation weather into dispatcher-style briefings (wind, visibility, ceiling, phenomena)
-- **Unified weather cards** — each hub shows radar context, current METAR, FAA status, and plain-English explainer in one card
-- **Starlink tracker** — 258 aircraft equipped, sourced from [@martinamps](https://github.com/martinamps/ua-starlink-tracker)
+### 📡 Live Ops
+Real-time map tracking 600+ United flights. Filter by hub, flight phase, or search by flight number, tail, or route. Hub status sidebar shows departures/arrivals and identifies the busiest hub.
+
+### 📅 Schedule
+Departure and arrival schedules for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX). Filter by status, aircraft type, or search. On-time performance stats. All times displayed in airport local timezone.
+
+### ✈️ Fleet
+Complete database of 1,200+ mainline aircraft — searchable by type, registration, config, WiFi, and IFE. Starlink tracker for 258+ equipped aircraft. Live fleet status correlates airborne flights with the database.
+
+### 🌦 Weather
+METAR observations with plain-English explainers, NEXRAD radar overlay, and FAA NAS delay/ground stop alerts for every hub. Each hub gets a unified weather card with conditions, visibility, wind, and ceiling.
+
+### 📊 Analytics
+Fleet composition by aircraft type, seat configuration analysis, WiFi/IFE coverage stats, and utilization metrics.
 
 ---
 
@@ -37,102 +41,123 @@ Bloomberg-terminal-inspired operations dashboard tracking United's mainline flee
 ┌─────────────────────────────────────────────────────┐
 │                    Browser (SPA)                     │
 │                                                      │
-│  public/index.html — single-file, ~290KB             │
+│  public/index.html — single-file dark NOC dashboard  │
 │  ├── Leaflet map + OpenStreetMap tiles               │
 │  ├── NEXRAD radar tile overlay                       │
-│  ├── Inline fleet database (FLEET_DB, STARLINK_DB)   │
-│  └── Direct API calls (OpenSky, Google Sheets)       │
-└──────────────┬──────────────────┬────────────────────┘
-               │                  │
-    ┌──────────▼──────┐  ┌───────▼────────┐
-    │  /api/metar.js  │  │   /api/faa.js  │
-    │  (CORS proxy)   │  │ (CORS + XML→   │
-    │  AWC → JSON     │  │  JSON proxy)   │
-    └─────────────────┘  └────────────────┘
+│  ├── Inline fleet database (1,200+ aircraft)         │
+│  └── All API calls go through server-side proxies    │
+└──────────────┬──────────────────────────────────────┘
+               │
+    ┌──────────▼──────────────────────────────┐
+    │        Vercel Serverless Functions       │
+    │                                          │
+    │  /api/schedule  — FR24 schedule proxy    │
+    │                   (cached, rate-limited, │
+    │                    UA-filtered)          │
+    │  /api/fr24-feed — Live flight positions  │
+    │  /api/metar     — AWC weather proxy      │
+    │  /api/faa       — FAA NAS status proxy   │
+    │  /api/opensky   — OpenSky proxy          │
+    │  /api/fleet     — Fleet data proxy       │
+    └─────────────────────────────────────────┘
 ```
 
-**Why server-side proxies?** AWC (Aviation Weather Center) and FAA NAS don't send CORS headers, so browsers block direct requests. OpenSky and Google Sheets both serve `Access-Control-Allow-Origin: *`, so those go direct from the browser.
+### Why Server-Side Proxies?
 
-**Why client-side UAL filtering?** OpenSky's `operator=UAL` parameter is unreliable — it returns ~4,000 flights with only ~110 actual United. We filter client-side with `callsign.startsWith('UAL')` to get clean data.
+- **Rate limiting** — One server fetches data for all users, not 500 browsers hammering APIs independently
+- **Caching** — Schedule data cached 60s (live) / 5min (historical), reducing upstream load by 90%+
+- **UA filtering** — Server filters to United flights only, shrinking payloads dramatically
+- **CORS** — Some sources (AWC, FAA) don't allow direct browser requests
 
 ---
 
 ## Data Sources
 
-| Source | Endpoint | Freshness | Proxy? |
-|--------|----------|-----------|--------|
-| [OpenSky Network](https://opensky-network.org) | `/api/states/all` | ~15s | No (CORS ✓) |
-| [Aviation Weather Center](https://aviationweather.gov) | `/api/data/metar` | ~5min | Yes (`/api/metar`) |
-| [FAA NAS Status](https://nasstatus.faa.gov) | `/api/airport-status-information` | ~5min | Yes (`/api/faa`) |
-| [United Fleet Site](https://sites.google.com/site/unitedfleetsite/mainline-fleet-tracking) | Google Sheets export | Daily | No (CORS ✓) |
-| [Starlink Tracker](https://unitedstarlinktracker.com) | Embedded dataset | Daily | No (embedded) |
-| [Iowa State NEXRAD](https://mesonet.agron.iastate.edu) | Tile server | ~5min | No (direct tiles) |
+| Source | Data | Freshness | Notes |
+|--------|------|-----------|-------|
+| [Flightradar24](https://flightradar24.com) | Live positions + schedules | ~15s / ~60s | Server-side proxy with caching |
+| [Aviation Weather Center](https://aviationweather.gov) | METAR observations | ~5min | NOAA/CORS proxy |
+| [FAA NAS Status](https://nasstatus.faa.gov) | Delays & closures | ~5min | XML→JSON proxy |
+| [United Fleet Site](https://sites.google.com/site/unitedfleetsite/) | Fleet database | Daily | Community-maintained |
+| [Starlink Tracker](https://unitedstarlinktracker.com) | WiFi-equipped aircraft | Daily | [@martinamps](https://github.com/martinamps/ua-starlink-tracker) |
+| [Iowa State NEXRAD](https://mesonet.agron.iastate.edu) | Radar imagery | ~5min | Direct tile server |
 
-All sources are public, free, and require no API keys.
-
----
-
-## Deployment
-
-Deployed on [Vercel](https://vercel.com) with automatic deploys from this repo.
-
-### Manual Deploy
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
-```
-
-### Project Structure
-
-```
-united-noc-vercel/
-├── public/
-│   └── index.html          # The entire dashboard (single file)
-├── api/
-│   ├── faa.js              # FAA NAS status proxy (XML → JSON)
-│   ├── metar.js            # AWC METAR proxy
-│   ├── opensky.js          # OpenSky proxy (fallback, not used by default)
-│   └── fleet.js            # Google Sheets proxy (fallback, not used by default)
-├── vercel.json             # Vercel routing + CORS headers
-├── package.json
-└── README.md
-```
-
-### Utility Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `rebuild-fleet.cjs` | Fetches latest fleet data from Google Sheets and rebuilds the inline `FLEET_DB` array |
-| `fix-fleet.cjs` | One-time data cleanup for fleet entries |
+All sources are public. No API keys required.
 
 ---
 
 ## Tech Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS (no framework, no build step)
+- **Frontend:** Vanilla HTML/CSS/JS — no framework, no build step, single file
 - **Map:** [Leaflet](https://leafletjs.com) + OpenStreetMap
-- **Radar:** Iowa State NEXRAD tile server
-- **Font:** JetBrains Mono
-- **Hosting:** Vercel (serverless functions for CORS proxies)
-- **Design:** Dark theme, Bloomberg terminal aesthetic
+- **Radar:** Iowa State NEXRAD WMS tiles
+- **Font:** [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
+- **Hosting:** [Vercel](https://vercel.com) (serverless functions + edge CDN)
+- **Analytics:** Vercel Web Analytics
+- **Design:** Dark NOC theme, inspired by Bloomberg terminals and airline ops centers
 
 ---
 
-## Credits
+## Local Development
 
-- Fleet data: [United Fleet Site](https://sites.google.com/site/unitedfleetsite/mainline-fleet-tracking) (community-maintained)
-- Starlink data: [@martinamps](https://github.com/martinamps/ua-starlink-tracker) / [unitedstarlinktracker.com](https://unitedstarlinktracker.com)
-- Flight tracking: [OpenSky Network](https://opensky-network.org)
-- Weather: [NOAA Aviation Weather Center](https://aviationweather.gov)
-- Airport status: [FAA NAS Status](https://nasstatus.faa.gov)
-- Radar imagery: [Iowa State Mesonet](https://mesonet.agron.iastate.edu)
+```bash
+git clone https://github.com/notjbg/united-noc.git
+cd united-noc
+
+# Install Vercel CLI
+npm i -g vercel
+
+# Run locally (serves static files + serverless functions)
+vercel dev
+
+# Deploy to production
+vercel --prod
+```
+
+---
+
+## Project Structure
+
+```
+├── public/
+│   ├── index.html       # The entire dashboard (~330KB single file)
+│   ├── og-image.png     # Social media preview image
+│   ├── robots.txt       # Search engine directives
+│   └── sitemap.xml      # Sitemap
+├── api/
+│   ├── schedule.js      # FR24 schedule proxy (cached, rate-limited, UA-filtered)
+│   ├── fr24-feed.js     # FR24 live flight feed proxy
+│   ├── metar.js         # AWC METAR weather proxy
+│   ├── faa.js           # FAA NAS status proxy (XML → JSON)
+│   ├── opensky.js       # OpenSky flight data proxy
+│   └── fleet.js         # Fleet data proxy
+├── vercel.json          # Vercel config + headers
+├── rebuild-fleet.cjs    # Utility: rebuild inline fleet database from Google Sheets
+└── fix-fleet.cjs        # Utility: one-time fleet data cleanup
+```
+
+---
+
+## Contributing
+
+Feature ideas? Bug reports? [Open an issue](https://github.com/notjbg/united-noc/issues) — contributions welcome.
+
+Want to support the project? [Buy me a WiFi day pass ☕](https://buymeacoffee.com/notjbg)
+
+---
+
+## Disclaimer
+
+**The Blue Board is not affiliated with, endorsed by, or connected to United Airlines, Inc.** "United Airlines" and the United logo are trademarks of United Airlines, Inc.
+
+All flight data is provided for informational purposes only and may be delayed, incomplete, or inaccurate. **Do not use this dashboard for operational or safety-critical decisions.** Always verify flight status directly with [united.com](https://www.united.com).
 
 ---
 
 ## License
 
-Private project. Not for redistribution.
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+*Built with ✈️ by [Jonah Berg](https://github.com/notjbg)*
