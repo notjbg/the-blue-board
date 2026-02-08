@@ -21,12 +21,12 @@
 <meta name="twitter:title" content="The Blue Board — Unofficial United Airlines Flight Tracker">
 <meta name="twitter:description" content="Fan-built operations dashboard tracking every UA flight in real time. Live map, hub schedules, fleet, weather, and analytics. Not affiliated with United Airlines.">
 <meta name="twitter:image" content="https://theblueboard.co/og-image.png">
-<link rel="canonical" href="https://theblueboard.co/">
-<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="canonical" href="https://theblueboard.co">
 <link rel="dns-prefetch" href="https://unpkg.com">
 <link rel="dns-prefetch" href="https://mesonet.agron.iastate.edu">
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://va.vercel-scripts.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com https://unpkg.com 'unsafe-inline'; font-src https://fonts.gstatic.com; img-src 'self' https://*.tile.openstreetmap.org https://mesonet.agron.iastate.edu data: blob:; connect-src 'self' https://va.vercel-scripts.com https://vitals.vercel-insights.com;">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -47,8 +47,8 @@
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--mono:'JetBrains Mono',monospace}
@@ -395,7 +395,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 <p>The Blue Board is an unofficial, fan-built operations dashboard for United Airlines flights. It features live flight tracking on an interactive map, airport departure/arrival schedules for all UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet data for 1200+ mainline aircraft, METAR weather observations, FAA delay alerts, and operational analytics. Not affiliated with United Airlines, Inc. JavaScript is required to use this dashboard.</p>
 </div>
 </noscript>
-<div class="sr-only" aria-hidden="true">The Blue Board is an unofficial, fan-built operations dashboard for tracking United Airlines flights. Not affiliated with United Airlines, Inc. Features: live flight map with positions updated every 30 seconds, departure and arrival schedules for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet database of 1200+ aircraft with seat configs and WiFi status, METAR weather and NEXRAD radar for hub airports, FAA NAS delay monitoring, and on-time performance analytics.</div>
+<div class="sr-only">The Blue Board is an unofficial, fan-built operations dashboard for tracking United Airlines flights. Not affiliated with United Airlines, Inc. Features: live flight map with positions updated every 30 seconds, departure and arrival schedules for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet database of 1200+ aircraft with seat configs and WiFi status, METAR weather and NEXRAD radar for hub airports, FAA NAS delay monitoring, and on-time performance analytics.</div>
 <!-- TICKER -->
 <div class="ticker-wrap">
   <span class="ticker-label">▌ALERTS</span>
@@ -414,17 +414,17 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB BAR -->
-<nav id="tab-bar" aria-label="Dashboard navigation">
-  <button class="tab-btn active" data-tab="tab-live">📡 LIVE OPS</button>
-  <button class="tab-btn" data-tab="tab-schedule">📅 SCHEDULE</button>
-  <button class="tab-btn" data-tab="tab-fleet">✈️ FLEET</button>
-  <button class="tab-btn" data-tab="tab-weather">🌦 WEATHER</button>
-  <button class="tab-btn" data-tab="tab-analytics">📊 ANALYTICS</button>
-  <button class="tab-btn" data-tab="tab-sources">ℹ️ SOURCES</button>
+<nav id="tab-bar" aria-label="Dashboard navigation" role="tablist">
+  <button class="tab-btn active" data-tab="tab-live" role="tab" aria-selected="true" aria-controls="tab-live"><span aria-hidden="true">📡</span> LIVE OPS</button>
+  <button class="tab-btn" data-tab="tab-schedule" role="tab" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
+  <button class="tab-btn" data-tab="tab-fleet" role="tab" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
+  <button class="tab-btn" data-tab="tab-weather" role="tab" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> WEATHER</button>
+  <button class="tab-btn" data-tab="tab-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics"><span aria-hidden="true">📊</span> ANALYTICS</button>
+  <button class="tab-btn" data-tab="tab-sources" role="tab" aria-selected="false" aria-controls="tab-sources"><span aria-hidden="true">ℹ️</span> SOURCES</button>
 </nav>
 
 <!-- TAB 1: LIVE OPS -->
-<main><div class="tab-content active" id="tab-live" aria-label="Live flight operations map">
+<main><div class="tab-content active" id="tab-live" role="tabpanel" aria-label="Live flight operations map">
   <div class="ops-layout">
     <div class="sidebar" id="sidebar">
       <h3>🏢 Hub Operations</h3>
@@ -469,7 +469,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 2: SCHEDULE -->
-<div class="tab-content" id="tab-schedule" aria-label="Flight schedule">
+<div class="tab-content" id="tab-schedule" role="tabpanel" aria-label="Flight schedule">
   <div class="card" style="margin-bottom:0;padding:12px 16px">
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:12px">
@@ -543,7 +543,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 3: FLEET -->
-<div class="tab-content" id="tab-fleet" aria-label="Fleet information">
+<div class="tab-content" id="tab-fleet" role="tabpanel" aria-label="Fleet information">
   <div class="live-fleet-panel" id="live-fleet-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">🛩 Live Fleet Status</h3>
@@ -603,7 +603,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 3: WEATHER -->
-<div class="tab-content" id="tab-weather" aria-label="Weather conditions">
+<div class="tab-content" id="tab-weather" role="tabpanel" aria-label="Weather conditions">
   <div class="wx-hero">
     <h3 id="radar-title">🌧 NEXRAD Radar</h3>
     <div id="radar-map"></div>
@@ -618,7 +618,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 4: ANALYTICS -->
-<div class="tab-content" id="tab-analytics" aria-label="Analytics and statistics">
+<div class="tab-content" id="tab-analytics" role="tabpanel" aria-label="Analytics and statistics">
   <div class="metric-row" id="analytics-metrics"></div>
   <div class="two-col">
     <div class="card">
@@ -637,7 +637,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 5: SOURCES -->
-<div class="tab-content" id="tab-sources" aria-label="Data sources and credits">
+<div class="tab-content" id="tab-sources" role="tabpanel" aria-label="Data sources and credits">
   <h2 style="font-size:16px;margin-bottom:16px;color:var(--ua-accent)">📋 Data Sources & Credits</h2>
 
   <div class="source-item">
@@ -825,9 +825,10 @@ let refreshTimer = null, countdown = 30;
 // ═══ TAB SWITCHING ═══
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
     document.getElementById(btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'tab-live' && map) map.invalidateSize();
     if (btn.dataset.tab === 'tab-schedule') initScheduleTab();

@@ -4,6 +4,8 @@ const MAX_CACHE_SIZE = 200;
 let lastFR24Request = 0;
 const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between FR24 requests
 
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://theblueboard.co';
+
 function cacheGet(key) {
   const entry = cache.get(key);
   if (!entry) return null;
@@ -35,10 +37,8 @@ async function rateLimitedFetch(url) {
     const resp = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Origin': 'https://www.flightradar24.com',
-        'Referer': 'https://www.flightradar24.com/'
+        'User-Agent': 'TheBlueBoardDashboard/1.0 (https://theblueboard.co)',
+        'Accept': 'application/json'
       }
     });
     clearTimeout(timeout);
@@ -60,6 +60,10 @@ async function fetchOnePage(hub, dir, timestamp, page) {
 }
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const { hub, dir = 'departures', timestamp, page } = req.query;
     if (!hub || !timestamp) {
@@ -68,16 +72,27 @@ export default async function handler(req, res) {
     if (!['departures', 'arrivals'].includes(dir)) {
       return res.status(400).json({ error: 'dir must be departures or arrivals' });
     }
+    // Validate hub: 3-4 letter IATA/ICAO code
+    if (!/^[A-Z]{3,4}$/i.test(hub)) {
+      return res.status(400).json({ error: 'Invalid hub code' });
+    }
 
-    const ts = parseInt(timestamp);
+    const ts = parseInt(timestamp, 10);
     const now = Math.floor(Date.now() / 1000);
+    // Validate timestamp: must be a number, within reasonable range
+    if (isNaN(ts) || ts < now - 86400 * 7 || ts > now + 86400 * 7) {
+      return res.status(400).json({ error: 'Invalid timestamp' });
+    }
     // If timestamp is >24h old, use longer cache
     const isOld = (now - ts) > 86400;
     const ttl = isOld ? 300000 : 60000; // 5 min or 1 min
 
     // If single page requested, serve just that page (backward compat)
     if (page !== undefined) {
-      const pageNum = parseInt(page) || 1;
+      const pageNum = parseInt(page, 10) || 1;
+      if (pageNum < 1 || pageNum > 100) {
+        return res.status(400).json({ error: 'Invalid page number' });
+      }
       const cacheKey = `sched:${hub}:${dir}:${ts}:${pageNum}`;
       const cached = cacheGet(cacheKey);
       if (cached) {
@@ -106,7 +121,6 @@ export default async function handler(req, res) {
     let totalFetched = 0;
 
     while (pageNum <= totalPages && pageNum <= MAX_PAGES) {
-      // Check if we're approaching the 10s Vercel timeout (leave 1.5s buffer)
       const sched = await fetchOnePage(hub, dir, ts, pageNum);
       totalPages = sched.page?.total || 1;
       if (!sched.data || sched.data.length === 0) break;
@@ -142,7 +156,8 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', `s-maxage=${Math.floor(ttl / 1000)}, stale-while-revalidate=60`);
     return res.status(200).json(result);
   } catch (e) {
-    if (e.name === 'AbortError') return res.status(504).json({ error: 'FR24 timeout' });
-    return res.status(500).json({ error: e.message });
+    console.error('Schedule API error:', e);
+    if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
+    return res.status(502).json({ error: 'Upstream service unavailable' });
   }
 }

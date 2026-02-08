@@ -1,4 +1,8 @@
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
@@ -6,7 +10,7 @@ export default async function handler(req, res) {
       signal: controller.signal
     });
     clearTimeout(timeout);
-    if (!upstream.ok) return res.status(upstream.status).json({ error: `FAA returned ${upstream.status}` });
+    if (!upstream.ok) return res.status(502).json({ error: 'Upstream service unavailable' });
     const xml = await upstream.text();
 
     // Parse XML to structured JSON
@@ -27,6 +31,8 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json(delays);
   } catch (e) {
-    return res.status(502).json({ error: e.message });
+    console.error('FAA API error:', e);
+    if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
+    return res.status(502).json({ error: 'Upstream service unavailable' });
   }
 }
