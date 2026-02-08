@@ -226,6 +226,26 @@ tbody td{padding:5px 8px;white-space:nowrap}
 /* Animations */
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .tab-content.active{animation:fadeIn .2s ease}
+/* Schedule Tab */
+.sched-day-btn{background:none;border:1px solid var(--ua-border);color:var(--ua-muted);padding:3px 10px;font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:3px;transition:all .2s}
+.sched-day-btn:hover{color:var(--ua-text);border-color:var(--ua-blue)}
+.sched-day-btn.active{background:var(--ua-blue);color:white;border-color:var(--ua-blue)}
+#sched-table th{position:sticky;top:0;background:var(--bg-card);z-index:2;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--ua-muted);padding:8px 10px;border-bottom:1px solid var(--ua-border);white-space:nowrap}
+#sched-table td{padding:6px 10px;font-size:11px;border-bottom:1px solid rgba(51,65,85,.3);white-space:nowrap}
+#sched-table tr:hover{background:rgba(0,93,170,.06)}
+.sched-status{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.3px}
+.sched-status.on-time,.sched-status.scheduled,.sched-status.estimated{background:rgba(34,197,94,.12);color:#22c55e}
+.sched-status.landed{background:rgba(59,130,246,.12);color:#3b82f6}
+.sched-status.departed,.sched-status.enroute{background:rgba(14,165,233,.12);color:#0ea5e9}
+.sched-status.delayed{background:rgba(245,158,11,.15);color:#f59e0b}
+.sched-status.canceled,.sched-status.diverted{background:rgba(239,68,68,.15);color:#ef4444}
+.sched-status.unknown{background:rgba(100,116,139,.12);color:#94a3b8}
+.sched-fleet-match{font-size:9px;color:var(--ua-green)}
+.sched-fleet-miss{font-size:9px;color:var(--ua-muted)}
+.sched-time-actual{font-size:9px;color:#f59e0b;margin-top:1px}
+.sched-load-more{background:none;border:1px solid var(--ua-border);color:var(--ua-blue);padding:6px 16px;font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:3px;margin:4px;transition:all .2s}
+.sched-load-more:hover{background:rgba(0,93,170,.1);border-color:var(--ua-blue)}
+.sched-load-more:disabled{opacity:.4;cursor:default}
 </style>
 </head>
 <body>
@@ -248,6 +268,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 <!-- TAB BAR -->
 <div id="tab-bar">
   <button class="tab-btn active" data-tab="tab-live">📡 LIVE OPS</button>
+  <button class="tab-btn" data-tab="tab-schedule">📅 SCHEDULE</button>
   <button class="tab-btn" data-tab="tab-fleet">✈️ FLEET</button>
   <button class="tab-btn" data-tab="tab-weather">🌦 WEATHER</button>
   <button class="tab-btn" data-tab="tab-analytics">📊 ANALYTICS</button>
@@ -299,7 +320,81 @@ tbody td{padding:5px 8px;white-space:nowrap}
   </div>
 </div>
 
-<!-- TAB 2: FLEET -->
+<!-- TAB 2: SCHEDULE -->
+<div class="tab-content" id="tab-schedule">
+  <div class="card" style="margin-bottom:0;padding:12px 16px">
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">📅 Flight Schedule</h3>
+        <div id="sched-day-btns" style="display:flex;gap:4px">
+          <button class="sched-day-btn" data-day="-1">Yesterday</button>
+          <button class="sched-day-btn active" data-day="0">Today</button>
+          <button class="sched-day-btn" data-day="1">Tomorrow</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select id="sched-hub" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Hubs</option>
+          <option value="ORD">ORD — Chicago O'Hare</option>
+          <option value="DEN">DEN — Denver</option>
+          <option value="IAH">IAH — Houston</option>
+          <option value="EWR">EWR — Newark</option>
+          <option value="SFO">SFO — San Francisco</option>
+          <option value="IAD">IAD — Washington Dulles</option>
+          <option value="LAX">LAX — Los Angeles</option>
+        </select>
+        <select id="sched-dir" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="departures">Departures</option>
+          <option value="arrivals">Arrivals</option>
+        </select>
+        <select id="sched-status" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Status</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="estimated">Estimated</option>
+          <option value="departed">Departed</option>
+          <option value="enroute">En Route</option>
+          <option value="landed">Landed</option>
+          <option value="delayed">Delayed</option>
+          <option value="canceled">Canceled</option>
+          <option value="diverted">Diverted</option>
+        </select>
+        <select id="sched-aircraft" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Aircraft</option>
+        </select>
+        <input type="text" id="sched-search" placeholder="Flight, city, reg..." style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px;width:140px">
+        <button id="sched-refresh-btn" onclick="loadScheduleData()" style="background:var(--ua-blue);color:white;border:none;padding:4px 10px;font-family:var(--mono);font-size:10px;border-radius:3px;cursor:pointer">↻ Refresh</button>
+      </div>
+    </div>
+  </div>
+  <div id="sched-stats" class="metric-row" style="margin:8px 0"></div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div id="sched-loading" style="text-align:center;padding:40px;color:var(--ua-muted);font-size:12px">
+      <div style="font-size:24px;margin-bottom:8px">📅</div>
+      Select a hub and click Refresh to load schedule data
+    </div>
+    <div class="fleet-table-wrap" style="max-height:calc(100vh - 260px);display:none" id="sched-table-wrap">
+      <table id="sched-table">
+        <thead>
+          <tr>
+            <th data-sort="time" style="cursor:pointer;min-width:100px">Time ↕</th>
+            <th data-sort="flight" style="cursor:pointer">Flight ↕</th>
+            <th data-sort="route" style="cursor:pointer;min-width:140px">Route</th>
+            <th data-sort="aircraft" style="cursor:pointer">Aircraft</th>
+            <th data-sort="reg" style="cursor:pointer">Reg</th>
+            <th>Gate</th>
+            <th data-sort="status" style="cursor:pointer;min-width:130px">Status ↕</th>
+            <th>Fleet</th>
+          </tr>
+        </thead>
+        <tbody id="sched-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="sched-pagination" style="display:none;text-align:center;padding:8px;font-size:10px;color:var(--ua-muted)"></div>
+  <div style="font-size:9px;color:var(--ua-muted);text-align:center;padding:6px 0">Schedule data via <a href="https://www.flightradar24.com" target="_blank" style="color:var(--ua-green)">Flightradar24</a> · United flights only · Times in local airport timezone</div>
+</div>
+
+<!-- TAB 3: FLEET -->
 <div class="tab-content" id="tab-fleet">
   <div class="live-fleet-panel" id="live-fleet-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -403,6 +498,15 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <div class="source-name">Flight Data — OpenSky Network <span class="freshness fresh-live">LIVE</span></div>
       <div class="source-desc">Real-time ADS-B aircraft state vectors. Updates every 30 seconds.</div>
       <a class="source-link" href="https://opensky-network.org" target="_blank">opensky-network.org →</a>
+    </div>
+  </div>
+
+  <div class="source-item">
+    <div class="source-icon">📅</div>
+    <div>
+      <div class="source-name">Flight Schedule — Flightradar24 <span class="freshness fresh-live">LIVE</span></div>
+      <div class="source-desc">Airport departure/arrival schedules with status, gate, terminal, and aircraft info.</div>
+      <a class="source-link" href="https://www.flightradar24.com" target="_blank">flightradar24.com →</a>
     </div>
   </div>
 
@@ -578,6 +682,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'tab-live' && map) map.invalidateSize();
+    if (btn.dataset.tab === 'tab-schedule') initScheduleTab();
     if (btn.dataset.tab === 'tab-fleet') updateLiveFleetPanel();
     if (btn.dataset.tab === 'tab-weather') initWeatherTab();
     if (btn.dataset.tab === 'tab-analytics') updateAnalytics();
@@ -1644,6 +1749,407 @@ function explainFAAStatus(airportCode, delays, rawData) {
   });
 
   return explanations.join(' ');
+}
+
+// ═══ SCHEDULE TAB ═══
+const SCHED_HUBS = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX'];
+const SCHED_HUB_ICAO = {ORD:'KORD',DEN:'KDEN',IAH:'KIAH',EWR:'KEWR',SFO:'KSFO',IAD:'KIAD',LAX:'KLAX'};
+const SCHED_HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles'};
+let schedCache = {}; // key: "hub-dir-day-page"
+let schedAllFlights = []; // current filtered UA flights
+let schedRawByHub = {}; // key: "hub-dir-day" → [pages of UA flights]
+let schedCurrentDay = 0;
+let schedCurrentHub = '';
+let schedCurrentDir = 'departures';
+let schedInitialized = false;
+let schedSortCol = 'time';
+let schedSortAsc = true;
+let schedLoading = false;
+
+function initScheduleTab() {
+  if (!schedInitialized) {
+    schedInitialized = true;
+    // Day buttons
+    document.querySelectorAll('.sched-day-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sched-day-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        schedCurrentDay = parseInt(btn.dataset.day);
+        loadScheduleData();
+      });
+    });
+    // Filters
+    document.getElementById('sched-hub').addEventListener('change', () => { schedCurrentHub = document.getElementById('sched-hub').value; loadScheduleData(); });
+    document.getElementById('sched-dir').addEventListener('change', () => { schedCurrentDir = document.getElementById('sched-dir').value; loadScheduleData(); });
+    document.getElementById('sched-status').addEventListener('change', renderScheduleTable);
+    document.getElementById('sched-aircraft').addEventListener('change', renderScheduleTable);
+    document.getElementById('sched-search').addEventListener('input', renderScheduleTable);
+    // Sort headers
+    document.querySelectorAll('#sched-table th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.sort;
+        if (schedSortCol === col) schedSortAsc = !schedSortAsc;
+        else { schedSortCol = col; schedSortAsc = true; }
+        renderScheduleTable();
+      });
+    });
+    // Auto-load if hub already selected
+    if (!schedCurrentHub) {
+      document.getElementById('sched-hub').value = 'ORD';
+      schedCurrentHub = 'ORD';
+    }
+    loadScheduleData();
+  }
+}
+
+function getSchedDayTimestamp(dayOffset) {
+  const now = new Date();
+  const target = new Date(now);
+  target.setDate(target.getDate() + dayOffset);
+  target.setHours(0, 0, 0, 0);
+  return Math.floor(target.getTime() / 1000);
+}
+
+function getSchedDayLabel(dayOffset) {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+async function fetchSchedulePage(hub, dir, timestamp, page) {
+  const cacheKey = `${hub}-${dir}-${timestamp}-${page}`;
+  if (schedCache[cacheKey]) return schedCache[cacheKey];
+  const url = `https://api.flightradar24.com/common/v1/airport.json?code=${hub}&plugin[]=schedule&plugin-setting[schedule][mode]=${dir}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
+  const resp = await fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'Origin': 'https://www.flightradar24.com',
+      'Referer': 'https://www.flightradar24.com/'
+    }
+  });
+  if (!resp.ok) throw new Error(`FR24 ${resp.status}`);
+  const data = await resp.json();
+  const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
+  if (!sched) throw new Error('No schedule data');
+  schedCache[cacheKey] = sched;
+  return sched;
+}
+
+function classifySchedStatus(flight) {
+  const s = flight.status;
+  if (!s) return { text: 'Unknown', cls: 'unknown', key: 'unknown' };
+  const generic = s.generic?.status;
+  const txt = s.text || '';
+  const statusText = generic?.text || '';
+  const diverted = generic?.diverted;
+  const txtLower = txt.toLowerCase();
+  if (diverted) return { text: 'Diverted', cls: 'diverted', key: 'diverted' };
+  if (statusText === 'canceled' || txtLower.includes('cancel')) return { text: txt || 'Canceled', cls: 'canceled', key: 'canceled' };
+  if (statusText === 'landed' || txtLower.includes('landed')) return { text: txt || 'Landed', cls: 'landed', key: 'landed' };
+  if (statusText === 'departed' || txtLower.startsWith('departed')) return { text: txt || 'Departed', cls: 'departed', key: 'departed' };
+  if (statusText === 'en-route' || txtLower.includes('en route') || (s.live === true && statusText !== 'estimated')) return { text: txt || 'En Route', cls: 'enroute', key: 'enroute' };
+  if (statusText === 'scheduled') return { text: txt || 'Scheduled', cls: 'scheduled', key: 'scheduled' };
+  if (statusText === 'estimated') {
+    const schedTime = flight.time?.scheduled?.departure || flight.time?.scheduled?.arrival;
+    const estTime = flight.time?.estimated?.departure || flight.time?.estimated?.arrival;
+    if (schedTime && estTime && estTime > schedTime + 900) return { text: txt, cls: 'delayed', key: 'estimated' };
+    return { text: txt, cls: 'estimated', key: 'estimated' };
+  }
+  if (txtLower.includes('delay')) return { text: txt, cls: 'delayed', key: 'delayed' };
+  return { text: txt || 'Unknown', cls: 'unknown', key: 'unknown' };
+}
+
+async function loadScheduleData() {
+  if (schedLoading) return;
+  if (!schedCurrentHub) {
+    document.getElementById('sched-loading').style.display = 'block';
+    document.getElementById('sched-loading').innerHTML = '<div style="font-size:24px;margin-bottom:8px">📅</div>Select a hub to load schedule data';
+    document.getElementById('sched-table-wrap').style.display = 'none';
+    return;
+  }
+  schedLoading = true;
+  const loadEl = document.getElementById('sched-loading');
+  const tableWrap = document.getElementById('sched-table-wrap');
+  loadEl.style.display = 'block';
+  tableWrap.style.display = 'none';
+  loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${schedCurrentHub} ${schedCurrentDir} for ${getSchedDayLabel(schedCurrentDay)}...<br><span style="font-size:10px">Fetching from FlightRadar24</span>`;
+  const btn = document.getElementById('sched-refresh-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading...';
+
+  try {
+    const timestamp = getSchedDayTimestamp(schedCurrentDay);
+    const dayEnd = timestamp + 86400;
+    const hubKey = `${schedCurrentHub}-${schedCurrentDir}-${schedCurrentDay}`;
+    let allUAFlights = [];
+    let page = 1;
+    let totalPages = 1;
+    let fetched = 0;
+    const MAX_PAGES = 20;
+
+    while (page <= totalPages && page <= MAX_PAGES) {
+      loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${schedCurrentHub} ${schedCurrentDir}...<br><span style="font-size:10px">Page ${page}${totalPages > 1 ? ' of ' + Math.min(totalPages, MAX_PAGES) : ''} · ${allUAFlights.length} UA flights found</span>`;
+      const sched = await fetchSchedulePage(schedCurrentHub, schedCurrentDir, timestamp, page);
+      totalPages = sched.page?.total || 1;
+      if (!sched.data || sched.data.length === 0) break;
+
+      for (const entry of sched.data) {
+        const fl = entry.flight;
+        if (!fl) continue;
+        const airline = fl.airline;
+        if (!airline || airline.code?.iata !== 'UA') continue;
+        // Check if flight is within our day window
+        const schedDep = fl.time?.scheduled?.departure;
+        const schedArr = fl.time?.scheduled?.arrival;
+        const flightTime = schedCurrentDir === 'departures' ? schedDep : schedArr;
+        if (flightTime && flightTime >= dayEnd) { page = MAX_PAGES + 1; break; } // Past our day, stop
+        allUAFlights.push(fl);
+      }
+      fetched += sched.data.length;
+      page++;
+      // Small delay to avoid rate limiting
+      if (page <= totalPages && page <= MAX_PAGES) await new Promise(r => setTimeout(r, 300));
+    }
+
+    schedAllFlights = allUAFlights;
+    schedRawByHub[hubKey] = allUAFlights;
+    populateAircraftFilter();
+    loadEl.style.display = 'none';
+    tableWrap.style.display = 'block';
+    renderScheduleTable();
+    renderScheduleStats();
+  } catch (err) {
+    console.error('Schedule load error:', err);
+    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${err.message}<br><span style="font-size:10px">Try again in a moment (rate limiting)</span>`;
+  } finally {
+    schedLoading = false;
+    btn.disabled = false;
+    btn.textContent = '↻ Refresh';
+  }
+}
+
+function populateAircraftFilter() {
+  const sel = document.getElementById('sched-aircraft');
+  const current = sel.value;
+  const types = {};
+  schedAllFlights.forEach(fl => {
+    const code = fl.aircraft?.model?.code;
+    const name = fl.aircraft?.model?.text;
+    if (code) types[code] = name || code;
+  });
+  const sorted = Object.entries(types).sort((a, b) => a[0].localeCompare(b[0]));
+  sel.innerHTML = '<option value="">All Aircraft</option>' + sorted.map(([code, name]) => `<option value="${code}">${code} — ${name}</option>`).join('');
+  if (current && types[current]) sel.value = current;
+}
+
+function formatSchedTime(utcTimestamp, hub) {
+  if (!utcTimestamp) return '—';
+  const tz = SCHED_HUB_TZ[hub] || 'America/Chicago';
+  const d = new Date(utcTimestamp * 1000);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz });
+}
+
+function getFilteredScheduleFlights() {
+  const statusFilter = document.getElementById('sched-status').value;
+  const aircraftFilter = document.getElementById('sched-aircraft').value;
+  const searchFilter = document.getElementById('sched-search').value.toLowerCase().trim();
+
+  return schedAllFlights.filter(fl => {
+    // Status filter
+    if (statusFilter) {
+      const s = classifySchedStatus(fl);
+      if (s.key !== statusFilter) return false;
+    }
+    // Aircraft filter
+    if (aircraftFilter && fl.aircraft?.model?.code !== aircraftFilter) return false;
+    // Search filter
+    if (searchFilter) {
+      const flNum = fl.identification?.number?.default?.toLowerCase() || '';
+      const callsign = fl.identification?.callsign?.toLowerCase() || '';
+      const reg = fl.aircraft?.registration?.toLowerCase() || '';
+      const destName = (fl.airport?.destination?.name || '').toLowerCase();
+      const destCode = (fl.airport?.destination?.code?.iata || '').toLowerCase();
+      const origName = (fl.airport?.origin?.name || '').toLowerCase();
+      const origCode = (fl.airport?.origin?.code?.iata || '').toLowerCase();
+      const acType = (fl.aircraft?.model?.code || '').toLowerCase();
+      const haystack = `${flNum} ${callsign} ${reg} ${destName} ${destCode} ${origName} ${origCode} ${acType}`;
+      if (!haystack.includes(searchFilter)) return false;
+    }
+    return true;
+  });
+}
+
+function sortScheduleFlights(flights) {
+  const dir = schedSortAsc ? 1 : -1;
+  return [...flights].sort((a, b) => {
+    switch (schedSortCol) {
+      case 'time': {
+        const tA = (schedCurrentDir === 'departures' ? a.time?.scheduled?.departure : a.time?.scheduled?.arrival) || 0;
+        const tB = (schedCurrentDir === 'departures' ? b.time?.scheduled?.departure : b.time?.scheduled?.arrival) || 0;
+        return (tA - tB) * dir;
+      }
+      case 'flight': return ((a.identification?.number?.default || '') .localeCompare(b.identification?.number?.default || '')) * dir;
+      case 'route': {
+        const rA = schedCurrentDir === 'departures' ? (a.airport?.destination?.code?.iata || '') : (a.airport?.origin?.code?.iata || '');
+        const rB = schedCurrentDir === 'departures' ? (b.airport?.destination?.code?.iata || '') : (b.airport?.origin?.code?.iata || '');
+        return rA.localeCompare(rB) * dir;
+      }
+      case 'aircraft': return ((a.aircraft?.model?.code || '').localeCompare(b.aircraft?.model?.code || '')) * dir;
+      case 'reg': return ((a.aircraft?.registration || '').localeCompare(b.aircraft?.registration || '')) * dir;
+      case 'status': {
+        const sA = classifySchedStatus(a).key;
+        const sB = classifySchedStatus(b).key;
+        return sA.localeCompare(sB) * dir;
+      }
+      default: return 0;
+    }
+  });
+}
+
+function renderScheduleTable() {
+  const filtered = getFilteredScheduleFlights();
+  const sorted = sortScheduleFlights(filtered);
+  const tbody = document.getElementById('sched-tbody');
+  const hub = schedCurrentHub;
+
+  // Update sort indicators
+  document.querySelectorAll('#sched-table th[data-sort]').forEach(th => {
+    const arrow = th.dataset.sort === schedSortCol ? (schedSortAsc ? ' ↑' : ' ↓') : ' ↕';
+    th.textContent = th.textContent.replace(/\s[↑↓↕]$/, '') + arrow;
+  });
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--ua-muted)">No United flights match your filters</td></tr>`;
+    renderScheduleStats(filtered);
+    return;
+  }
+
+  const rows = sorted.map(fl => {
+    const ident = fl.identification?.number?.default || '—';
+    const schedTime = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
+    const actualTime = schedCurrentDir === 'departures' ? (fl.time?.real?.departure || fl.time?.estimated?.departure) : (fl.time?.real?.arrival || fl.time?.estimated?.arrival);
+    const timeStr = formatSchedTime(schedTime, hub);
+    let timeExtra = '';
+    if (actualTime && schedTime && actualTime !== schedTime) {
+      const diff = Math.round((actualTime - schedTime) / 60);
+      const actualStr = formatSchedTime(actualTime, hub);
+      if (diff > 5) timeExtra = `<div class="sched-time-actual">→ ${actualStr} (+${diff}m)</div>`;
+      else if (diff < -5) timeExtra = `<div class="sched-time-actual" style="color:#22c55e">→ ${actualStr} (${diff}m)</div>`;
+    }
+
+    const dest = fl.airport?.destination;
+    const orig = fl.airport?.origin;
+    let routeStr;
+    if (schedCurrentDir === 'departures') {
+      routeStr = `${hub} → ${dest?.code?.iata || '?'}`;
+      if (dest?.name) routeStr += `<div style="font-size:9px;color:var(--ua-muted)">${dest.name.replace(/ Airport| International/g, '').substring(0, 30)}</div>`;
+    } else {
+      routeStr = `${orig?.code?.iata || '?'} → ${hub}`;
+      if (orig?.name) routeStr += `<div style="font-size:9px;color:var(--ua-muted)">${orig.name.replace(/ Airport| International/g, '').substring(0, 30)}</div>`;
+    }
+
+    const acCode = fl.aircraft?.model?.code || '—';
+    const acText = fl.aircraft?.model?.text || '';
+    const acShort = acText ? acText.replace(/Boeing |Airbus |Embraer /g, '').substring(0, 20) : '';
+    const reg = fl.aircraft?.registration || '—';
+
+    const gate = schedCurrentDir === 'departures'
+      ? (orig?.info?.gate ? `${orig.info.terminal || ''}${orig.info.gate}` : (orig?.info?.terminal ? `T${orig.info.terminal}` : '—'))
+      : (dest?.info?.gate ? `${dest.info.terminal || ''}${dest.info.gate}` : (dest?.info?.terminal ? `T${dest.info.terminal}` : '—'));
+
+    const status = classifySchedStatus(fl);
+
+    // Fleet match
+    let fleetMatch = '';
+    if (reg && reg !== '—') {
+      const regClean = reg.replace('-', '');
+      const match = FLEET_BY_REG[regClean] || FLEET_BY_REG[reg];
+      if (match) {
+        const isStar = STARLINK_TAILS.has(regClean) || STARLINK_TAILS.has(reg);
+        fleetMatch = `<span class="sched-fleet-match">${isStar ? '⚡' : '✓'} ${match.c || match.t}</span>`;
+      } else {
+        fleetMatch = `<span class="sched-fleet-miss">—</span>`;
+      }
+    }
+
+    return `<tr>
+      <td>${timeStr}${timeExtra}</td>
+      <td style="font-weight:600;color:var(--ua-accent)">${ident}</td>
+      <td>${routeStr}</td>
+      <td title="${acText}">${acCode}${acShort ? `<div style="font-size:9px;color:var(--ua-muted)">${acShort}</div>` : ''}</td>
+      <td style="font-family:var(--mono);font-size:10px">${reg}</td>
+      <td>${gate}</td>
+      <td><span class="sched-status ${status.cls}">${status.text}</span></td>
+      <td>${fleetMatch}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+  renderScheduleStats(filtered);
+}
+
+function renderScheduleStats(filtered) {
+  if (!filtered) filtered = getFilteredScheduleFlights();
+  const showing = filtered.length;
+  const statuses = {};
+  filtered.forEach(fl => {
+    const s = classifySchedStatus(fl);
+    statuses[s.key] = (statuses[s.key] || 0) + 1;
+  });
+
+  // OTP: only count flights with real departure/arrival data (actually operated)
+  let depOnTime = 0;
+  let depDelayed = 0;
+  let scheduled = 0;
+  let canceled = statuses.canceled || 0;
+  filtered.forEach(fl => {
+    const status = classifySchedStatus(fl);
+    const hasOperated = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
+    if (!hasOperated) {
+      if (status.key === 'scheduled' || status.key === 'estimated') scheduled++;
+      return;
+    }
+    const schedT = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
+    const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
+    const actT = realT || (schedCurrentDir === 'departures' ? fl.time?.estimated?.departure : fl.time?.estimated?.arrival);
+    if (schedT && actT && actT > schedT + 900) depDelayed++;
+    else depOnTime++;
+  });
+
+  const totalOperated = depOnTime + depDelayed;
+  const otp = totalOperated > 0 ? Math.round((depOnTime / totalOperated) * 100) : (showing > 0 ? '—' : 0);
+  const otpColor = typeof otp === 'number' ? (otp >= 80 ? '#22c55e' : otp >= 60 ? '#f59e0b' : '#ef4444') : 'var(--ua-muted)';
+  const otpStr = typeof otp === 'number' ? otp + '%' : otp;
+
+  const dayLabel = getSchedDayLabel(schedCurrentDay);
+  const dirLabel = schedCurrentDir === 'departures' ? 'DEP' : 'ARR';
+
+  document.getElementById('sched-stats').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-value" style="color:var(--ua-blue)">${showing}</div>
+      <div class="metric-label">UA ${dirLabel} · ${dayLabel}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" style="color:${otpColor}">${otpStr}</div>
+      <div class="metric-label">OTP (${totalOperated} operated)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" style="color:#22c55e">${depOnTime}</div>
+      <div class="metric-label">On Time (±15m)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" style="color:#f59e0b">${depDelayed}</div>
+      <div class="metric-label">Late (&gt;15m)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" style="color:#ef4444">${canceled}</div>
+      <div class="metric-label">Canceled</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value" style="color:#94a3b8">${scheduled}</div>
+      <div class="metric-label">Upcoming</div>
+    </div>
+  `;
 }
 
 // ═══ INIT ═══
