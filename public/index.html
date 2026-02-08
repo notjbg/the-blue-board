@@ -3,8 +3,44 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>United Airlines — Network Operations Center</title>
+<title>United Airlines Operations Center — Live Flight Tracker, Schedule, Fleet & Weather | United NOC</title>
+<meta name="description" content="Real-time United Airlines operations dashboard — live flight tracking, schedule data, fleet information, weather, and analytics for all UA hubs. Fan-built, not affiliated with United Airlines.">
+<meta name="keywords" content="United Airlines, flight tracker, operations center, NOC, live flights, schedule, fleet, aviation, UA">
+<meta name="author" content="United NOC Project">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="United Airlines Operations Center — Live Flight Tracker">
+<meta property="og:description" content="Real-time dashboard tracking every United Airlines flight. Live map, schedules, fleet data, weather, and analytics for all UA hubs.">
+<meta property="og:url" content="https://united-noc-vercel.vercel.app">
+<meta property="og:site_name" content="United NOC">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="United Airlines Operations Center — Live Flight Tracker">
+<meta name="twitter:description" content="Real-time dashboard tracking every United Airlines flight. Live map, schedules, fleet, weather, and analytics.">
+<link rel="canonical" href="https://united-noc-vercel.vercel.app/">
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://unpkg.com">
+<link rel="dns-prefetch" href="https://mesonet.agron.iastate.edu">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "United Airlines Operations Center",
+  "alternateName": "United NOC",
+  "description": "Real-time operations dashboard for United Airlines flights. Includes live flight map, airport schedules, fleet tracking, weather conditions, and operational analytics across all United hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX).",
+  "url": "https://united-noc-vercel.vercel.app",
+  "applicationCategory": "Transportation",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+  "creator": {"@type": "Person", "name": "Jonah Berg-Ganzarain", "url": "https://github.com/notjbg"},
+  "featureList": ["Live flight tracking map with real-time positions","Airport departure and arrival schedules","Fleet configuration and aircraft details","METAR weather observations for all hubs","FAA NAS delay and closure alerts","On-time performance analytics","Dark NOC-style interface"],
+  "isAccessibleForFree": true,
+  "browserRequirements": "Requires JavaScript",
+  "softwareVersion": "1.0",
+  "sourceOrganization": {"@type": "Organization", "name": "United NOC Project", "url": "https://github.com/notjbg/united-noc"}
+}
+</script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -223,9 +259,72 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .wx-explainer{background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.15);border-radius:4px;padding:8px 10px;margin:4px 0 8px;font-size:10px;line-height:1.5;color:var(--ua-text)}
 .wx-explainer .icon{font-size:12px;margin-right:4px}
 
+/* Offline Banner */
+#offline-banner{display:none;background:var(--ua-red);color:#fff;text-align:center;padding:8px 16px;font-size:11px;font-weight:600;letter-spacing:.5px;z-index:9999}
+#offline-banner.show{display:block}
+
+/* Error/Empty States */
+.error-state,.empty-state{text-align:center;padding:40px 20px;color:var(--ua-muted);font-size:12px}
+.error-state .error-icon,.empty-state .empty-icon{font-size:32px;margin-bottom:10px}
+.retry-btn{background:var(--ua-blue);color:#fff;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:600;margin-top:12px;transition:background .2s}
+.retry-btn:hover{background:#0070cc}
+
+/* Visually Hidden (for screen readers / LLMs) */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
 /* Animations */
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .tab-content.active{animation:fadeIn .2s ease}
+
+/* ═══ MOBILE RESPONSIVE ═══ */
+@media(max-width:768px){
+  body{font-size:13px}
+  #header{flex-direction:column;gap:6px;padding:8px 12px;text-align:center}
+  #header h1{font-size:13px;letter-spacing:1px}
+  #header-right{font-size:10px;gap:10px;justify-content:center}
+  #tab-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #tab-bar::-webkit-scrollbar{display:none}
+  .tab-btn{flex:none;padding:12px 14px;font-size:10px;min-width:max-content;min-height:44px}
+  #tab-live{height:auto;min-height:calc(100vh - 140px)}
+  #tab-live .ops-layout{flex-direction:column}
+  #tab-live .sidebar{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--ua-border)}
+  #tab-live .map-area{height:50vh;min-height:300px}
+  #tab-live #map{height:100%}
+  #tab-live #controls{top:6px;right:6px;gap:3px}
+  .ctrl-btn{padding:8px 12px;font-size:11px;min-height:44px}
+  #stats-bar{padding:8px 10px;gap:6px;justify-content:center;flex-wrap:wrap}
+  .stat-sep{display:none}
+  .stat-item{min-width:60px;text-align:center;flex-direction:column;gap:1px}
+  .stat-val{font-size:14px}
+  .stat-label{font-size:9px}
+  /* Schedule tab mobile */
+  #tab-schedule .card:first-child > div{flex-direction:column;gap:8px}
+  #tab-schedule .card:first-child > div > div{flex-direction:column;gap:6px;width:100%}
+  #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:13px!important;padding:8px 10px!important}
+  #tab-schedule button{min-height:44px}
+  #sched-stats.metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  .fleet-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:600px}
+  /* Fleet tab mobile */
+  #tab-fleet{padding:10px}
+  .fleet-chips{grid-template-columns:repeat(3,1fr)}
+  .fleet-controls{flex-direction:column}
+  .fleet-controls select,.fleet-controls input{width:100%;min-height:44px;font-size:13px}
+  .two-col{grid-template-columns:1fr}
+  /* Weather tab mobile */
+  #radar-map{height:300px}
+  .hub-cards{grid-template-columns:1fr;padding:10px}
+  /* Analytics mobile */
+  .metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  .metric-val{font-size:22px}
+  /* General touch targets */
+  .sched-day-btn{min-height:44px;padding:8px 14px;font-size:12px}
+  .hub-row{padding:10px 12px}
+  .phase-row{padding:8px 6px}
+  .search-result{padding:10px 12px}
+  /* Footer mobile */
+  #disclaimer-modal > div{margin:10px;padding:16px}
+}
 /* Schedule Tab */
 .sched-day-btn{background:none;border:1px solid var(--ua-border);color:var(--ua-muted);padding:3px 10px;font-family:var(--mono);font-size:10px;cursor:pointer;border-radius:3px;transition:all .2s}
 .sched-day-btn:hover{color:var(--ua-text);border-color:var(--ua-blue)}
@@ -249,6 +348,14 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </style>
 </head>
 <body>
+<div id="offline-banner">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
+<noscript>
+<div style="background:#111827;color:#e2e8f0;padding:40px;text-align:center;font-family:monospace">
+<h1>United Airlines Operations Center</h1>
+<p>This is a real-time operations dashboard for United Airlines flights, built by aviation enthusiasts. It features live flight tracking on an interactive map, airport departure/arrival schedules for all UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet data for 1200+ mainline aircraft, METAR weather observations, FAA delay alerts, and operational analytics. JavaScript is required to use this dashboard.</p>
+</div>
+</noscript>
+<div class="sr-only" aria-hidden="true">United Airlines Operations Center (United NOC) is a fan-built, real-time dashboard for tracking United Airlines operations. Features: live flight map with positions updated every 30 seconds, departure and arrival schedules for all 7 UA hubs, fleet database of 1200+ aircraft with seat configs and WiFi status, METAR weather and NEXRAD radar for hub airports, FAA NAS delay monitoring, and on-time performance analytics. Not affiliated with United Airlines, Inc.</div>
 <!-- TICKER -->
 <div class="ticker-wrap">
   <span class="ticker-label">▌ALERTS</span>
@@ -266,17 +373,17 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB BAR -->
-<div id="tab-bar">
+<nav id="tab-bar" aria-label="Dashboard navigation">
   <button class="tab-btn active" data-tab="tab-live">📡 LIVE OPS</button>
   <button class="tab-btn" data-tab="tab-schedule">📅 SCHEDULE</button>
   <button class="tab-btn" data-tab="tab-fleet">✈️ FLEET</button>
   <button class="tab-btn" data-tab="tab-weather">🌦 WEATHER</button>
   <button class="tab-btn" data-tab="tab-analytics">📊 ANALYTICS</button>
   <button class="tab-btn" data-tab="tab-sources">ℹ️ SOURCES</button>
-</div>
+</nav>
 
 <!-- TAB 1: LIVE OPS -->
-<div class="tab-content active" id="tab-live">
+<main><div class="tab-content active" id="tab-live" aria-label="Live flight operations map">
   <div class="ops-layout">
     <div class="sidebar" id="sidebar">
       <h3>🏢 Hub Operations</h3>
@@ -321,7 +428,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 2: SCHEDULE -->
-<div class="tab-content" id="tab-schedule">
+<div class="tab-content" id="tab-schedule" aria-label="Flight schedule">
   <div class="card" style="margin-bottom:0;padding:12px 16px">
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
       <div style="display:flex;align-items:center;gap:12px">
@@ -395,7 +502,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 3: FLEET -->
-<div class="tab-content" id="tab-fleet">
+<div class="tab-content" id="tab-fleet" aria-label="Fleet information">
   <div class="live-fleet-panel" id="live-fleet-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">🛩 Live Fleet Status</h3>
@@ -455,7 +562,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 3: WEATHER -->
-<div class="tab-content" id="tab-weather">
+<div class="tab-content" id="tab-weather" aria-label="Weather conditions">
   <div class="wx-hero">
     <h3 id="radar-title">🌧 NEXRAD Radar</h3>
     <div id="radar-map"></div>
@@ -470,7 +577,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 4: ANALYTICS -->
-<div class="tab-content" id="tab-analytics">
+<div class="tab-content" id="tab-analytics" aria-label="Analytics and statistics">
   <div class="metric-row" id="analytics-metrics"></div>
   <div class="two-col">
     <div class="card">
@@ -489,7 +596,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 5: SOURCES -->
-<div class="tab-content" id="tab-sources">
+<div class="tab-content" id="tab-sources" aria-label="Data sources and credits">
   <h2 style="font-size:16px;margin-bottom:16px;color:var(--ua-accent)">📋 Data Sources & Credits</h2>
 
   <div class="source-item">
@@ -926,11 +1033,24 @@ async function refreshFlights() {
 
     document.getElementById('status-dot').className = 'status-dot live';
     document.getElementById('status-text').textContent = 'LIVE';
+    const errOverlay = document.getElementById('map-error-overlay');
+    if (errOverlay) errOverlay.remove();
   } catch (e) {
     console.error('FR24 error:', e);
     document.getElementById('status-dot').className = 'status-dot';
     document.getElementById('status-dot').style.background = '#ff9800';
     document.getElementById('status-text').textContent = 'ERROR';
+    if (allFlights.length === 0) {
+      const mapEl = document.getElementById('map');
+      if (!document.getElementById('map-error-overlay')) {
+        const overlay = document.createElement('div');
+        overlay.id = 'map-error-overlay';
+        overlay.style.cssText = 'position:absolute;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:rgba(10,14,20,.85);pointer-events:auto';
+        overlay.innerHTML = '<div class="error-state"><div class="error-icon">📡</div><div style="color:var(--ua-text);font-size:13px;margin-bottom:4px">Live data temporarily unavailable</div><div style="color:var(--ua-muted);font-size:11px">Could not reach flight data server</div><button class="retry-btn" onclick="this.parentElement.parentElement.remove();refreshFlights()">↻ Retry</button></div>';
+        mapEl.parentElement.style.position = 'relative';
+        mapEl.parentElement.appendChild(overlay);
+      }
+    }
   }
   countdown = 30;
   document.getElementById('btn-refresh').textContent = '🔄 Refresh';
@@ -1554,6 +1674,9 @@ async function initWeatherTab() {
     }
   });
 
+  if (!cardsHtml) {
+    cardsHtml = '<div class="error-state" style="grid-column:1/-1"><div class="error-icon">🌦</div><div style="color:var(--ua-text)">Weather data unavailable</div><div style="color:var(--ua-muted);font-size:11px">Could not load METAR observations</div><button class="retry-btn" onclick="weatherInitialized=false;initWeatherTab()">↻ Retry</button></div>';
+  }
   document.getElementById('hub-cards').innerHTML = cardsHtml;
 }
 
@@ -2082,7 +2205,7 @@ function renderScheduleTable() {
   });
 
   if (sorted.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--ua-muted)">No United flights match your filters</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--ua-muted)"><div style="font-size:24px;margin-bottom:8px">🔍</div>No flights match your filters<br><span style="font-size:10px">Try adjusting hub, status, or search criteria</span></td></tr>`;
     renderScheduleStats(filtered);
     return;
   }
@@ -2215,6 +2338,19 @@ function renderScheduleStats(filtered) {
   `;
 }
 
+// ═══ OFFLINE DETECTION ═══
+function updateOnlineStatus() {
+  const banner = document.getElementById('offline-banner');
+  if (!navigator.onLine) {
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
 // ═══ INIT ═══
 initMap();
 initFleetTab();
@@ -2230,6 +2366,7 @@ function hideDisclaimer() {
 }
 </script>
 
+</main>
 <!-- DISCLAIMER MODAL -->
 <div id="disclaimer-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)hideDisclaimer()">
   <div style="background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;max-width:600px;width:100%;padding:24px;max-height:80vh;overflow-y:auto">

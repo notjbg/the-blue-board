@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://united-noc-vercel.vercel.app/sitemap.xml
