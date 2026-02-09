@@ -432,7 +432,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <h3 style="margin-top:4px">🔍 Search</h3>
       <div style="padding:8px 12px">
         <input type="text" id="search-input-side" placeholder="Flight #, tail, airport..." style="width:100%;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 8px;border-radius:4px;font-family:var(--mono);font-size:10px">
-        <div id="search-results-side" style="max-height:200px;overflow-y:auto;margin-top:4px"></div>
+        <div id="search-results-side" style="max-height:400px;overflow-y:auto;margin-top:4px"></div>
       </div>
       <h3>📊 Phase Breakdown</h3>
       <div id="phase-stats" style="padding:8px 12px"></div>
@@ -1421,18 +1421,31 @@ document.getElementById('search-input-side').addEventListener('input', function(
   const results = document.getElementById('search-results-side');
   if (q.length < 2) { results.innerHTML = ''; return; }
 
-  const matches = allFlights.filter(f => {
+  const allMatches = allFlights.filter(f => {
     const cs = (f.callsign || '').toUpperCase();
     const flt = (f.flightIATA || '').toUpperCase();
     const reg = (f.reg || '').toUpperCase();
     const routeStr = ((f.origin || '') + (f.dest || '')).toUpperCase();
     return cs.includes(q) || flt.includes(q) || reg.includes(q) || routeStr.includes(q);
-  }).slice(0, 15);
+  });
+  const matches = allMatches.slice(0, 50);
 
-  results.innerHTML = matches.map(f => {
-    const routeStr = (f.origin || '???') + '→' + (f.dest || '???');
-    return `<div class="search-result" onclick="focusFlight('${escapeHtml(f.icao24)}')">${escapeHtml(f.flightIATA || f.callsign || f.icao24)} <span style="color:var(--ua-muted)">${escapeHtml(routeStr)} ${escapeHtml(f.reg || '')}</span></div>`;
-  }).join('') || '<div style="padding:6px 12px;color:var(--ua-muted);font-size:10px">No matches</div>';
+  // Check if query matches a hub code — suggest hub filter
+  const isHub = HUB_CODES.includes(q);
+  const hubHint = isHub ? `<div style="padding:6px 12px;font-size:10px;background:rgba(0,93,170,.1);border-bottom:1px solid var(--ua-border);cursor:pointer" onclick="toggleHubFilter('${q}')"><span style="color:var(--ua-accent)">🏢 Filter map to ${q}</span> <span style="color:var(--ua-muted)">(${allMatches.length} flights)</span></div>` : '';
+  const countHeader = `<div style="padding:4px 12px;font-size:9px;color:var(--ua-muted);border-bottom:1px solid var(--ua-border)">${allMatches.length} flight${allMatches.length !== 1 ? 's' : ''} found${allMatches.length > 50 ? ' (showing 50)' : ''}</div>`;
+
+  if (allMatches.length === 0) {
+    results.innerHTML = `<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px;line-height:1.5">
+      <div style="margin-bottom:4px">No flights matching "${escapeHtml(q)}"</div>
+      <div style="font-size:9px">✈️ Flights at the gate or boarding may not appear until after pushback. Check the <strong style="color:var(--ua-accent);cursor:pointer" onclick="document.querySelector('[data-tab=tab-schedule]').click()">Schedule</strong> tab for gate status.</div>
+    </div>`;
+  } else {
+    results.innerHTML = hubHint + countHeader + matches.map(f => {
+      const routeStr = (f.origin || '???') + '→' + (f.dest || '???');
+      return `<div class="search-result" onclick="focusFlight('${escapeHtml(f.icao24)}')">${escapeHtml(f.flightIATA || f.callsign || f.icao24)} <span style="color:var(--ua-muted)">${escapeHtml(routeStr)} ${escapeHtml(f.reg || '')}</span></div>`;
+    }).join('');
+  }
 });
 
 function focusFlight(icao24) {
