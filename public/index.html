@@ -5,23 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0e14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
-<title>The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs</title>
-<meta name="description" content="The Blue Board — an unofficial, fan-built United Airlines operations dashboard. Real-time flight tracking, hub schedules, fleet data, weather, and analytics for all UA hubs. Not affiliated with United Airlines.">
-<meta name="keywords" content="United Airlines, flight tracker, operations center, NOC, live flights, schedule, fleet, aviation, UA">
+<title>The Blue Board — United Airlines Flight Tracker & Live Status | Delays, Fleet, Schedules</title>
+<meta name="description" content="Track every United Airlines flight in real time. Live flight map, delay alerts, hub status for ORD DEN IAH EWR SFO IAD LAX, Starlink WiFi checker, fleet database, schedules, and weather. Free, unofficial ops dashboard built by a United flyer.">
+<meta name="keywords" content="United Airlines flight status, United flight tracker, United Airlines delays today, UA flight tracker, United Airlines live map, United hub delays, United Airlines ORD delays, United Airlines DEN delays, United Airlines EWR delays, United Airlines IAH delays, United Airlines SFO delays, is my United flight on time, United Airlines cancellations, United Starlink WiFi, United fleet tracker, United Airlines aircraft, United Airlines schedule, United Airlines weather delays, aviation dashboard, flight tracker map, United Airlines operations, UA delays, United Airlines ground stops, MileagePlus flight tracker, United Airlines disruptions">
 <meta name="author" content="The Blue Board">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs">
-<meta property="og:description" content="Live operations dashboard for United Airlines — every flight tracked in real time, fleet database, hub schedules, weather, IRROPS alerts, and more. Built by a flyer, for flyers. Not affiliated with United Airlines.">
+<meta property="og:title" content="The Blue Board — Live United Airlines Flight Tracker & Delay Alerts">
+<meta property="og:description" content="Real-time United Airlines dashboard — track every flight, check delays at all 7 hubs, see if your plane has Starlink WiFi, and monitor weather disruptions. Free and updated every 30 seconds.">
 <meta property="og:url" content="https://theblueboard.co">
 <meta property="og:site_name" content="The Blue Board">
 <meta property="og:image" content="https://theblueboard.co/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Blue Board dashboard showing 600+ United Airlines flights tracked in real time across a dark map of the United States">
+<meta property="og:image:alt" content="The Blue Board — live United Airlines flight tracker showing 600+ flights on a dark operations map of the United States with hub delay status">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs">
-<meta name="twitter:description" content="Live operations dashboard for United Airlines — every flight tracked in real time, fleet database, hub schedules, weather, IRROPS alerts, and more. Built by a flyer, for flyers. Not affiliated with United Airlines.">
+<meta name="twitter:title" content="The Blue Board — Live United Airlines Flight Tracker & Delay Alerts">
+<meta name="twitter:description" content="Track every United flight in real time. Delays, cancellations, Starlink WiFi, fleet data, hub schedules — free ops dashboard updated every 30 seconds.">
 <meta name="twitter:image" content="https://theblueboard.co/og-image.png">
 <link rel="canonical" href="https://theblueboard.co">
 <link rel="dns-prefetch" href="https://unpkg.com">
@@ -34,18 +34,73 @@
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "The Blue Board",
-  "alternateName": "Unofficial United Airlines Operations Dashboard",
-  "description": "Live United Airlines operations dashboard — every flight tracked in real time, fleet database, hub schedules, weather, IRROPS alerts, and more. Built by a flyer, for flyers. Not affiliated with United Airlines, Inc.",
+  "alternateName": ["Unofficial United Airlines Flight Tracker", "United Airlines Operations Dashboard", "UA Flight Status Tracker"],
+  "description": "Track every United Airlines flight in real time. Live flight map updated every 30 seconds, delay and cancellation alerts across all 7 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), Starlink WiFi aircraft checker, full fleet database of 1,175+ aircraft, departure and arrival schedules, weather radar, and operational analytics. Free and unofficial — built by a United flyer.",
   "url": "https://theblueboard.co",
   "applicationCategory": "Transportation",
   "operatingSystem": "Web",
   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
   "creator": {"@type": "Person", "name": "Jonah Berg", "url": "https://github.com/notjbg"},
-  "featureList": ["Live flight tracking map with real-time positions","Airport departure and arrival schedules","Fleet configuration and aircraft details","METAR weather observations for all hubs","FAA NAS delay and closure alerts","On-time performance analytics","Dark NOC-style interface"],
+  "featureList": [
+    "Real-time United Airlines flight tracking map with 600+ flights updated every 30 seconds",
+    "Live delay and cancellation alerts for all 7 United hubs",
+    "Ground stop and FAA NAS status monitoring",
+    "Departure and arrival schedules for ORD, DEN, IAH, EWR, SFO, IAD, LAX",
+    "Equipment swap detection and alerts",
+    "On-time performance statistics by hub",
+    "Starlink WiFi aircraft checker — see if your plane has fast internet",
+    "Full United Airlines fleet database with 1,175+ aircraft, seat configs, and IFE details",
+    "NEXRAD weather radar overlay on live map",
+    "METAR weather conditions for all hub airports",
+    "Hub-to-hub traffic flow and route analytics",
+    "Flight search by flight number, tail number, or route",
+    "Flight watch with browser push notifications on status changes",
+    "Dark operations center interface optimized for mobile and desktop"
+  ],
   "isAccessibleForFree": true,
   "browserRequirements": "Requires JavaScript",
-  "softwareVersion": "1.0",
+  "softwareVersion": "2.0",
   "sourceOrganization": {"@type": "Organization", "name": "The Blue Board", "url": "https://github.com/notjbg/the-blue-board"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I check if my United Airlines flight is on time?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Blue Board shows real-time status for every United Airlines flight. Use the search bar to look up your flight number (e.g., UA 1234) and see its current position, delays, and estimated arrival. The hub health bar at the top shows at-a-glance delay conditions at all 7 United hubs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which United Airlines planes have Starlink WiFi?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Blue Board tracks 258+ United Airlines aircraft equipped with Starlink satellite WiFi. Go to the Fleet tab and check the Starlink section to search by tail number, aircraft type, or fleet. You can also see WiFi status when looking up a specific flight."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there delays at United Airlines hubs today?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Blue Board monitors delays, cancellations, and ground stops at all 7 United hubs (Chicago O'Hare, Denver, Houston, Newark, San Francisco, Dulles, and Los Angeles) in real time. The hub health bar shows on-time performance, and the IRROPS monitor breaks down disruption types at each hub."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is The Blue Board?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Blue Board is a free, unofficial real-time operations dashboard for United Airlines flights. It tracks every United flight on a live map, shows delays and cancellations at all hubs, provides fleet and aircraft data, weather conditions, and operational analytics. Built by a United frequent flyer — not affiliated with United Airlines, Inc."
+      }
+    }
+  ]
 }
 </script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -457,11 +512,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
 <div id="offline-banner">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
 <noscript>
 <div style="background:#111827;color:#e2e8f0;padding:40px;text-align:center;font-family:monospace">
-<h1>The Blue Board — Unofficial United Airlines Dashboard</h1>
-<p>The Blue Board is an unofficial, fan-built operations dashboard for United Airlines flights. It features live flight tracking on an interactive map, airport departure/arrival schedules for all UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet data for 1200+ mainline aircraft, METAR weather observations, FAA delay alerts, and operational analytics. Not affiliated with United Airlines, Inc. JavaScript is required to use this dashboard.</p>
+<h1>The Blue Board — United Airlines Flight Tracker & Live Status</h1>
+<p>Track every United Airlines flight in real time with The Blue Board — a free, unofficial operations dashboard. See live flight positions on an interactive map updated every 30 seconds. Check delays, cancellations, and ground stops at all 7 United hubs: Chicago O'Hare (ORD), Denver (DEN), Houston (IAH), Newark (EWR), San Francisco (SFO), Washington Dulles (IAD), and Los Angeles (LAX). Look up any flight by number to see status, aircraft type, and route. Browse the full United fleet database of 1,175+ aircraft and check which planes have Starlink WiFi. View departure and arrival schedules with on-time performance stats and equipment swap alerts. Monitor weather conditions with radar, METAR observations, and FAA NAS alerts. Explore fleet utilization, route analytics, and hub-to-hub traffic patterns. Built by a United frequent flyer. Not affiliated with United Airlines, Inc. JavaScript is required.</p>
 </div>
 </noscript>
-<div class="sr-only">The Blue Board is an unofficial, fan-built operations dashboard for tracking United Airlines flights. Not affiliated with United Airlines, Inc. Features: live flight map with positions updated every 30 seconds, departure and arrival schedules for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX), fleet database of 1200+ aircraft with seat configs and WiFi status, METAR weather and NEXRAD radar for hub airports, FAA NAS delay monitoring, and on-time performance analytics.</div>
+<div class="sr-only">The Blue Board is a free, unofficial United Airlines flight tracker and operations dashboard. Track every United flight in real time on a live map updated every 30 seconds. Check if your United flight is on time, delayed, or cancelled. Monitor delays and ground stops at all 7 United hubs: Chicago O'Hare ORD, Denver DEN, Houston IAH, Newark EWR, San Francisco SFO, Washington Dulles IAD, and Los Angeles LAX. Search flights by number, tail number, or route. Check which United planes have Starlink WiFi. Browse the full fleet database of 1,175+ aircraft with seat configurations and IFE details. View departure and arrival schedules with on-time performance and equipment swap alerts. Weather radar, METAR conditions, and FAA delay alerts for all hub airports. Fleet utilization analytics, hub-to-hub route flow, and network health stats. Built by a United frequent flyer. Not affiliated with United Airlines, Inc.</div>
 <!-- TICKER -->
 <div class="ticker-wrap">
   <span class="ticker-label">▌ALERTS</span>
