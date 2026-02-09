@@ -1375,6 +1375,27 @@ async function refreshFlights() {
   }
 }
 
+const AIRPORT_COORDS = {};
+AIRPORTS.forEach(a => { AIRPORT_COORDS[a.iata] = a; });
+
+function haversineNm(lat1, lon1, lat2, lon2) {
+  const R = 3440.065; // Earth radius in nautical miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function isLonghaulFlight(f) {
+  // Use airport coords to calculate distance; >2500nm = longhaul
+  const orig = AIRPORT_COORDS[f.origin];
+  const dest = AIRPORT_COORDS[f.dest];
+  if (orig && dest) return haversineNm(orig.lat, orig.lon, dest.lat, dest.lon) > 2500;
+  // Fallback: old flight number heuristic (sub-100) for flights without matched airports
+  const num = parseInt((f.callsign || '').replace(/^UAL/, ''));
+  return num > 0 && num < 100;
+}
+
 function createPlaneIcon(hdg, isLonghaul, phase) {
   const color = isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa');
   const size = isLonghaul ? 14 : 10;
@@ -1421,8 +1442,7 @@ function updateMarkers() {
   });
 
   filtered.forEach(f => {
-    const flightNum = f.callsign.replace(/^UAL/, '');
-    const isLonghaul = showLonghaul && parseInt(flightNum) > 0 && parseInt(flightNum) < 100;
+    const isLonghaul = showLonghaul && isLonghaulFlight(f);
     const phaseInfo = getPhase(f.alt, f.vr, f.spd);
     const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase);
 
