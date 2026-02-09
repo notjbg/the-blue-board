@@ -81,16 +81,14 @@ function computeMetrics(flightsByHub) {
       if (status === 'canceled' || status === 'cancelled') { hubMetrics[hub].cancellations++; continue; }
       if (status === 'diverted') hubMetrics[hub].diversions++;
 
-      // Only count flights that have actually departed or landed for OTP
-      const hasOperated = status === 'departed' || status === 'en-route' || status === 'landed' || status === 'diverted';
+      // Only count flights with a real departure time for OTP (not estimated)
       const realDep = fl.time?.real?.departure;
-      if (!hasOperated && !realDep) continue; // skip future/scheduled flights
+      if (!realDep) continue; // skip flights that haven't actually departed
 
       hubMetrics[hub].operated++;
       const schedT = fl.time?.scheduled?.departure || 0;
-      const actT = realDep || fl.time?.estimated?.departure || 0;
-      if (schedT && actT && actT > schedT) {
-        const delayMin = Math.round((actT - schedT) / 60);
+      if (schedT && realDep > schedT) {
+        const delayMin = Math.round((realDep - schedT) / 60);
         if (delayMin > 30) hubMetrics[hub].delayed30++;
         if (delayMin > 60) hubMetrics[hub].delayed60++;
         if (delayMin <= 15) hubMetrics[hub].onTime++;
