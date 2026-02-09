@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Blue Board — Live United Operations · Flights · Fleet · Weather · Hubs</title>
+<title>The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs</title>
 <meta name="description" content="The Blue Board — an unofficial, fan-built United Airlines operations dashboard. Real-time flight tracking, hub schedules, fleet data, weather, and analytics for all UA hubs. Not affiliated with United Airlines.">
 <meta name="keywords" content="United Airlines, flight tracker, operations center, NOC, live flights, schedule, fleet, aviation, UA">
 <meta name="author" content="The Blue Board">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Blue Board — Live United Operations · Flights · Fleet · Weather · Hubs">
+<meta property="og:title" content="The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs">
 <meta property="og:description" content="Live operations dashboard for United Airlines — every flight tracked in real time, fleet database, hub schedules, weather, IRROPS alerts, and more. Built by a flyer, for flyers. Not affiliated with United Airlines.">
 <meta property="og:url" content="https://theblueboard.co">
 <meta property="og:site_name" content="The Blue Board">
@@ -18,7 +18,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The Blue Board dashboard showing 600+ United Airlines flights tracked in real time across a dark map of the United States">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Blue Board — Live United Operations · Flights · Fleet · Weather · Hubs">
+<meta name="twitter:title" content="The Blue Board — Live United Operations · Flights · Fleet · Delays · Weather · Hubs">
 <meta name="twitter:description" content="Live operations dashboard for United Airlines — every flight tracked in real time, fleet database, hub schedules, weather, IRROPS alerts, and more. Built by a flyer, for flyers. Not affiliated with United Airlines.">
 <meta name="twitter:image" content="https://theblueboard.co/og-image.png">
 <link rel="canonical" href="https://theblueboard.co">
@@ -444,7 +444,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <div class="onboarding-feature"><span class="onboarding-icon">📡</span><div><strong>Live Map</strong><span class="onboarding-desc">Track 600+ United flights in real time across all 7 hubs</span></div></div>
       <div class="onboarding-feature"><span class="onboarding-icon">📅</span><div><strong>Schedules</strong><span class="onboarding-desc">Departures &amp; arrivals for every UA hub, with on-time stats</span></div></div>
       <div class="onboarding-feature"><span class="onboarding-icon">✈️</span><div><strong>Fleet</strong><span class="onboarding-desc">Full database of 1,200+ aircraft with WiFi, config, and Starlink status</span></div></div>
-      <div class="onboarding-feature"><span class="onboarding-icon">🌦</span><div><strong>Weather</strong><span class="onboarding-desc">METAR observations, NEXRAD radar, and FAA delay alerts</span></div></div>
+      <div class="onboarding-feature"><span class="onboarding-icon">🌦</span><div><strong>Delays · Weather · Hubs</strong><span class="onboarding-desc">FAA delay alerts, METAR observations, NEXRAD radar, and hub status</span></div></div>
       <div class="onboarding-feature"><span class="onboarding-icon">📊</span><div><strong>Analytics</strong><span class="onboarding-desc">Fleet composition, utilization, and performance breakdowns</span></div></div>
     </div>
     <p class="onboarding-footer">Built by a fellow United flyer. Not affiliated with United Airlines.</p>
@@ -492,7 +492,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <button class="tab-btn active" data-tab="tab-live" role="tab" aria-selected="true" aria-controls="tab-live"><span aria-hidden="true">📡</span> LIVE OPS</button>
   <button class="tab-btn" data-tab="tab-schedule" role="tab" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
   <button class="tab-btn" data-tab="tab-fleet" role="tab" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
-  <button class="tab-btn" data-tab="tab-weather" role="tab" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> WEATHER</button>
+  <button class="tab-btn" data-tab="tab-weather" role="tab" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> DELAYS · WEATHER · HUBS</button>
   <button class="tab-btn" data-tab="tab-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" aria-label="Stats"><span aria-hidden="true">📊</span> STATS</button>
   <button class="tab-btn" data-tab="tab-sources" role="tab" aria-selected="false" aria-controls="tab-sources"><span aria-hidden="true">ℹ️</span> SOURCES</button>
 </nav>
@@ -685,7 +685,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- TAB 3: WEATHER -->
-<div class="tab-content" id="tab-weather" role="tabpanel" aria-label="Weather conditions">
+<div class="tab-content" id="tab-weather" role="tabpanel" aria-label="Delays, weather, and hub status">
   <div class="wx-hero">
     <h3 id="radar-title">🌧 NEXRAD Radar</h3>
     <div id="radar-map"></div>
