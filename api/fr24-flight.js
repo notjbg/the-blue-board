@@ -208,10 +208,17 @@ export default async function handler(req, res) {
       console.error(`FR24 live error for ${flight}: status=${liveResp.status}, body=${errText.slice(0, 500)}`);
     }
 
-    // 2. If no live data, try flight summary
+    // 2. If no live data, try flight summary (requires time range per SDK docs)
     if (!flightData) {
       source = 'summary';
-      const summaryResp = await fr24Fetch(SUMMARY_PATH, { flights: flight });
+      const now = new Date();
+      const from = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h ago
+      const to = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h ahead
+      const summaryResp = await fr24Fetch(SUMMARY_PATH, {
+        flights: flight,
+        flight_datetime_from: from.toISOString(),
+        flight_datetime_to: to.toISOString(),
+      });
       if (summaryResp.ok) {
         const summaryData = await summaryResp.json();
         console.log(`FR24 summary response for ${flight}: status=${summaryResp.status}, entries=${summaryData?.data?.length || 0}`);
