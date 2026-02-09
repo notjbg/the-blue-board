@@ -1,5 +1,6 @@
 const fs = require('fs');
-const html = fs.readFileSync('/Users/jmbg/clawd/united-noc-vercel/public/index.html', 'utf8');
+const path = require('path');
+const html = fs.readFileSync(path.join(__dirname, 'public/index.html'), 'utf8');
 
 // Extract FLEET_DB
 const m = html.match(/const FLEET_DB = (\[.*?\]);/s);
@@ -167,5 +168,5 @@ const oldTypeOrder = `['A319','A320','737-700','737-800','737-900','737 MAX','75
 const newTypeOrder = `['A319','A320','A321neo','737-700','737-800','737-900','737-900ER','737 MAX 8','737 MAX 9','757-200','757-300','767-300ER','767-400ER','777-200','777-200ER','777-300ER','787-8','787-9','787-10']`;
 newHtml = newHtml.split(oldTypeOrder).join(newTypeOrder);
 
-fs.writeFileSync('/Users/jmbg/clawd/united-noc-vercel/public/index.html', newHtml, 'utf8');
+fs.writeFileSync(path.join(__dirname, 'public/index.html'), newHtml, 'utf8');
 console.log('File updated successfully!');

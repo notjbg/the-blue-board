@@ -25,7 +25,7 @@ Real-time map tracking 600+ United flights. Filter by hub, flight phase, or sear
 Departure and arrival schedules for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX). Filter by status, aircraft type, or search. On-time performance stats. All times displayed in airport local timezone.
 
 ### ✈️ Fleet
-Complete database of 1,200+ mainline aircraft — searchable by type, registration, config, WiFi, and IFE. Starlink tracker for 258+ equipped aircraft. Live fleet status correlates airborne flights with the database.
+Complete database of 1,175+ mainline aircraft — searchable by type, registration, config, WiFi, and IFE. Starlink tracker for 258+ equipped aircraft. Live fleet status correlates airborne flights with the database.
 
 ### 🌦 Weather
 METAR observations with plain-English explainers, NEXRAD radar overlay, and FAA NAS delay/ground stop alerts for every hub. Each hub gets a unified weather card with conditions, visibility, wind, and ceiling.
@@ -44,7 +44,7 @@ Fleet composition by aircraft type, seat configuration analysis, WiFi/IFE covera
 │  public/index.html — single-file dark NOC dashboard  │
 │  ├── Leaflet map + OpenStreetMap tiles               │
 │  ├── NEXRAD radar tile overlay                       │
-│  ├── Inline fleet database (1,200+ aircraft)         │
+│  ├── Inline fleet database (1,175+ aircraft)         │
 │  └── All API calls go through server-side proxies    │
 └──────────────┬──────────────────────────────────────┘
                │
@@ -83,6 +83,18 @@ Fleet composition by aircraft type, seat configuration analysis, WiFi/IFE covera
 | [Iowa State NEXRAD](https://mesonet.agron.iastate.edu) | Radar imagery | ~5min | Direct tile server |
 
 All sources are public. No API keys required.
+
+---
+
+## Security
+
+- **Content Security Policy** — Strict CSP with `frame-ancestors 'none'` (clickjacking protection)
+- **Security headers** — `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`
+- **XSS protection** — All dynamic API data is HTML-escaped before DOM insertion
+- **URL encoding** — External link parameters use `encodeURIComponent`
+- **Tabnabbing protection** — All external links use `rel="noopener noreferrer"`
+- **CORS** — API endpoints locked to `theblueboard.co` origin (configurable via `ALLOWED_ORIGIN` env var for local dev)
+- **Input validation** — All API parameters (hub codes, timestamps, airline codes) are validated server-side
 
 ---
 
@@ -131,7 +143,7 @@ vercel --prod
 │   ├── faa.js           # FAA NAS status proxy (XML → JSON)
 │   ├── opensky.js       # OpenSky flight data proxy
 │   └── fleet.js         # Fleet data proxy
-├── vercel.json          # Vercel config + headers
+├── vercel.json          # Vercel config + security headers
 ├── rebuild-fleet.cjs    # Utility: rebuild inline fleet database from Google Sheets
 └── fix-fleet.cjs        # Utility: one-time fleet data cleanup
 ```
