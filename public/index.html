@@ -2588,13 +2588,19 @@ document.getElementById('global-search-input').addEventListener('input', functio
     });
   }
 
+  // Check if query looks like a flight number for FR24 lookup
+  const flightPattern = /^(UA[L]?\s*\d{1,4}|\d{1,4})$/i;
+  const normalizedQ = q.replace(/\s+/g, '');
+  const looksLikeFlight = flightPattern.test(normalizedQ);
+  const fr24Option = looksLikeFlight ? `<div class="search-result" style="border-top:1px solid var(--ua-border);color:var(--ua-accent);font-size:10px" onclick="lookupFR24Flight('${escapeHtml(normalizedQ)}');document.getElementById('global-search-results').style.display='none'">🔍 Look up ${escapeHtml(normalizedQ.startsWith('UA') || normalizedQ.startsWith('UAL') ? normalizedQ : 'UA' + normalizedQ)} via FlightRadar24...</div>` : '';
+
   if (matches.length === 0) {
-    results.innerHTML = '<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px">No results for "' + escapeHtml(q) + '"</div>';
+    results.innerHTML = '<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px">No results for "' + escapeHtml(q) + '"</div>' + fr24Option;
   } else {
     results.innerHTML = matches.slice(0, 20).map(m => {
       if (m.type === 'live') return `<div class="search-result" onclick="focusFlight('${escapeHtml(m.icao24)}');document.getElementById('global-search-results').style.display='none'">${escapeHtml(m.label)}</div>`;
       return `<div class="search-result" onclick="document.querySelector('[data-tab=tab-schedule]').click();document.getElementById('global-search-results').style.display='none'"><span style="color:var(--ua-muted)">${escapeHtml(m.label)}</span></div>`;
-    }).join('');
+    }).join('') + fr24Option;
   }
   results.style.display = 'block';
 });
@@ -2984,5 +2990,116 @@ function hideDisclaimer() {
   overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
   helpBtn.addEventListener('click',showOverlay);
 })();
+
+// ═══ FR24 FLIGHT LOOKUP ═══
+function lookupFR24Flight(query) {
+  let q = query.trim().toUpperCase().replace(/\s+/g, '');
+  if (/^\d{1,4}$/.test(q)) q = 'UA' + q;
+  if (q.startsWith('UAL') && /\d/.test(q[3])) q = 'UA' + q.slice(3);
+
+  // Show loading modal
+  let modal = document.getElementById('fr24-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'fr24-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)';
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  modal.innerHTML = '<div style="background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:24px;max-width:420px;width:90%;color:var(--ua-text);font-family:var(--mono);position:relative"><div style="text-align:center;padding:20px;color:var(--ua-muted)"><div style="font-size:24px;margin-bottom:8px">🔍</div>Looking up ' + escapeHtml(q) + '...</div></div>';
+
+  fetch('/api/fr24-flight?flight=' + encodeURIComponent(q))
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success || !data.flight) {
+        modal.innerHTML = '<div style="background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:24px;max-width:420px;width:90%;color:var(--ua-text);font-family:var(--mono);position:relative"><button onclick="document.getElementById(\'fr24-modal\').style.display=\'none\'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:16px">✕</button><div style="text-align:center;padding:20px"><div style="font-size:24px;margin-bottom:8px">✈️</div><div style="color:var(--ua-muted);font-size:11px">' + escapeHtml(data.error || 'No data found for ' + q) + '</div><div style="margin-top:12px;font-size:9px;color:var(--ua-muted)">The flight may not be active right now.<br>Check the Schedule tab for gate status.</div></div></div>';
+        return;
+      }
+      renderFR24Modal(data.flight, data.source, data.cached);
+    })
+    .catch(err => {
+      console.error('FR24 lookup error:', err);
+      modal.innerHTML = '<div style="background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:24px;max-width:420px;width:90%;color:var(--ua-text);font-family:var(--mono);position:relative"><button onclick="document.getElementById(\'fr24-modal\').style.display=\'none\'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:16px">✕</button><div style="text-align:center;padding:20px;color:var(--ua-muted)"><div style="font-size:24px;margin-bottom:8px">⚠️</div>Failed to look up flight. Try again later.</div></div>';
+    });
+}
+
+function renderFR24Modal(f, source, cached) {
+  var modal = document.getElementById('fr24-modal');
+  var statusColors = {'en-route':'#22c55e','on-ground':'#f59e0b','landed':'#3b82f6','scheduled':'#6b7280','unknown':'#6b7280'};
+  var statusColor = statusColors[f.status] || statusColors['unknown'];
+  var statusLabel = (f.status || 'unknown').replace(/-/g, ' ');
+
+  // Cross-reference with FLEET_DB for enrichment
+  var fleetInfo = '';
+  if (f.aircraft && f.aircraft.reg && typeof FLEET_DB !== 'undefined') {
+    var match = FLEET_DB.find(function(a) { return a.r === f.aircraft.reg; });
+    if (match) {
+      fleetInfo = '<div style="margin-top:8px;padding:8px;background:rgba(0,93,170,.1);border-radius:4px;font-size:10px">' +
+        '<span style="color:var(--ua-accent)">Fleet Match:</span> ' + escapeHtml(match.t) +
+        (match.c ? ' • ' + escapeHtml(match.c) : '') +
+        (match.w ? ' • WiFi: ' + escapeHtml(match.w) : '') +
+        '</div>';
+    }
+  }
+
+  var posHtml = '';
+  if (f.position && f.position.lat != null && f.position.lon != null) {
+    posHtml = '<div style="margin-top:8px;padding:8px;background:rgba(15,23,41,.6);border-radius:4px;font-size:10px">' +
+      '<span style="color:var(--ua-muted)">Position:</span> ' + Number(f.position.lat).toFixed(2) + '°, ' + Number(f.position.lon).toFixed(2) + '°' +
+      (f.position.alt != null ? ' • ' + f.position.alt.toLocaleString() + ' ft' : '') +
+      (f.position.speed != null ? ' • ' + f.position.speed + ' kts' : '') +
+      (f.position.heading != null ? ' • hdg ' + f.position.heading + '°' : '') +
+      '</div>';
+  }
+
+  function fmtTime(t) {
+    if (!t) return '—';
+    try { var d = new Date(typeof t === 'number' ? t * 1000 : t); return isNaN(d) ? String(t) : d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',timeZoneName:'short'}); }
+    catch(e) { return String(t); }
+  }
+
+  var html = '<div style="background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:0;max-width:420px;width:90%;color:var(--ua-text);font-family:var(--mono);position:relative;overflow:hidden">';
+  // Header
+  html += '<div style="background:linear-gradient(135deg,rgba(0,93,170,.3),rgba(0,50,100,.2));padding:16px 20px;border-bottom:1px solid var(--ua-border)">';
+  html += '<button onclick="document.getElementById(\'fr24-modal\').style.display=\'none\'" style="position:absolute;top:8px;right:12px;background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:16px">✕</button>';
+  html += '<div style="font-size:16px;font-weight:700;color:var(--ua-accent)">' + escapeHtml(f.flightNumber || '?') + '</div>';
+  if (f.callsign) html += '<div style="font-size:10px;color:var(--ua-muted)">' + escapeHtml(f.callsign) + '</div>';
+  html += '<div style="margin-top:6px"><span style="display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:600;background:' + statusColor + '22;color:' + statusColor + ';border:1px solid ' + statusColor + '44">' + escapeHtml(statusLabel.toUpperCase()) + '</span></div>';
+  html += '</div>';
+  // Body
+  html += '<div style="padding:16px 20px">';
+  // Route
+  var origLabel = (f.origin && f.origin.iata) ? f.origin.iata : '?';
+  var destLabel = (f.destination && f.destination.iata) ? f.destination.iata : '?';
+  var origName = (f.origin && f.origin.name) ? f.origin.name : '';
+  var destName = (f.destination && f.destination.name) ? f.destination.name : '';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  html += '<div style="text-align:center"><div style="font-size:18px;font-weight:700">' + escapeHtml(origLabel) + '</div><div style="font-size:9px;color:var(--ua-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(origName) + '</div></div>';
+  html += '<div style="flex:1;text-align:center;color:var(--ua-muted);font-size:16px">✈ →</div>';
+  html += '<div style="text-align:center"><div style="font-size:18px;font-weight:700">' + escapeHtml(destLabel) + '</div><div style="font-size:9px;color:var(--ua-muted);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(destName) + '</div></div>';
+  html += '</div>';
+  // Aircraft
+  if (f.aircraft && (f.aircraft.type || f.aircraft.reg)) {
+    html += '<div style="font-size:10px;margin-bottom:4px"><span style="color:var(--ua-muted)">Aircraft:</span> ' + escapeHtml(f.aircraft.type || '?') + (f.aircraft.reg ? ' • ' + escapeHtml(f.aircraft.reg) : '') + '</div>';
+  }
+  // Times
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;font-size:10px">';
+  html += '<div><span style="color:var(--ua-muted)">Dep Sched:</span><br>' + escapeHtml(fmtTime(f.departure?.scheduled)) + '</div>';
+  html += '<div><span style="color:var(--ua-muted)">Dep Actual:</span><br>' + escapeHtml(fmtTime(f.departure?.actual)) + '</div>';
+  html += '<div><span style="color:var(--ua-muted)">Arr Sched:</span><br>' + escapeHtml(fmtTime(f.arrival?.scheduled)) + '</div>';
+  html += '<div><span style="color:var(--ua-muted)">Arr Est:</span><br>' + escapeHtml(fmtTime(f.arrival?.estimated)) + '</div>';
+  html += '</div>';
+  html += fleetInfo;
+  html += posHtml;
+  html += '</div>';
+  // Footer
+  html += '<div style="padding:10px 20px;border-top:1px solid var(--ua-border);display:flex;justify-content:space-between;align-items:center">';
+  html += '<div style="font-size:8px;color:var(--ua-muted)">Powered by Flightradar24 Official API' + (cached ? ' • cached' : '') + '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  modal.innerHTML = html;
+}
 </script>
 </body></html>
