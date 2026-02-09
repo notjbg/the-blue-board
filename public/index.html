@@ -126,7 +126,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .popup-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--ua-border)}
 .popup-callsign{font-size:18px;font-weight:700;color:var(--ua-accent)}
 .popup-route{font-size:13px;color:#fff;margin-top:2px}
-.popup-route-est{font-size:8px;color:var(--ua-muted);font-style:italic}
+.popup-route-est{font-size:9px;color:var(--ua-muted);font-style:italic}
 .popup-phase{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600;display:inline-block}
 .phase-ground{background:#374151;color:#9ca3af}
 .phase-climb{background:rgba(34,197,94,.15);color:var(--ua-green)}
@@ -135,7 +135,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .phase-approach{background:rgba(239,68,68,.15);color:var(--ua-red)}
 .popup-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:8px 0}
 .popup-field{display:flex;flex-direction:column}
-.popup-field-label{font-size:8px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px}
+.popup-field-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px}
 .popup-field-value{font-size:12px;font-weight:600}
 .alt-bar{height:6px;background:var(--ua-border);border-radius:3px;margin:3px 0;overflow:hidden}
 .alt-bar-fill{height:100%;background:linear-gradient(90deg,var(--ua-blue),var(--ua-accent));border-radius:3px;transition:width .3s}
@@ -182,10 +182,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .chart-bar{display:flex;align-items:flex-end;gap:2px;height:120px;padding:8px 0}
 .chart-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
 .chart-col .bar{background:var(--ua-blue);border-radius:2px 2px 0 0;width:100%;min-height:1px;transition:height .5s}
-.chart-col .lbl{font-size:7px;color:var(--ua-muted);margin-top:2px;writing-mode:vertical-rl;transform:rotate(180deg);max-height:50px;overflow:hidden}
-.chart-col .val{font-size:8px;color:var(--ua-accent);margin-bottom:1px}
+.chart-col .lbl{font-size:9px;color:var(--ua-muted);margin-top:2px;writing-mode:vertical-rl;transform:rotate(180deg);max-height:50px;overflow:hidden}
+.chart-col .val{font-size:9px;color:var(--ua-accent);margin-bottom:1px}
 .config-gallery{display:flex;gap:3px;flex-wrap:wrap;margin-top:6px}
-.config-block{height:14px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;min-width:20px}
+.config-block{height:14px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;min-width:20px}
 .config-J{background:#2563eb}.config-PP,.config-PE{background:#0d9488}.config-F{background:#7c3aed}.config-E\\+{background:#16a34a}.config-Y{background:#475569}
 .refresh-btn{background:var(--ua-blue);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--mono);font-size:10px;font-weight:600;transition:all .2s}
 .refresh-btn:hover{background:#0070cc}
@@ -207,7 +207,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .cat-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:.5px}
 .hub-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin:10px 14px;background:var(--ua-border);border-radius:4px;overflow:hidden}
 .hub-metric{background:rgba(0,0,0,.25);padding:8px 10px}
-.hub-metric-label{font-size:8px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px}
+.hub-metric-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px}
 .hub-metric-val{font-size:13px;font-weight:600;color:var(--ua-text);margin-top:2px}
 .hub-faa{padding:6px 14px;font-size:10px;display:flex;align-items:center;gap:6px}
 .hub-faa.normal{color:var(--ua-green)}.hub-faa.delay{color:var(--ua-red)}
@@ -286,6 +286,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   body{font-size:13px}
   #header{flex-direction:column;gap:6px;padding:8px 12px;text-align:center}
   #header h1{font-size:13px;letter-spacing:1px}
+  #global-search-wrap{flex:0 1 100%!important;order:3}
   #header-right{font-size:10px;gap:10px;justify-content:center}
   #tab-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   #tab-bar::-webkit-scrollbar{display:none}
@@ -293,11 +294,14 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-live{height:auto;min-height:calc(100vh - 140px)}
   #tab-live .ops-layout{flex-direction:column}
   #tab-live .sidebar{width:100%;max-height:200px;border-right:none;border-bottom:1px solid var(--ua-border)}
+  #tab-live .sidebar #sidebar-extra-filters{display:none}
+  #tab-live .sidebar #sidebar-filters-toggle{display:block}
+  #tab-live .sidebar #sidebar-extra-filters.show{display:block}
   #tab-live .map-area{height:50vh;min-height:300px}
   #tab-live #map{height:100%}
   #tab-live #controls{top:6px;right:6px;gap:3px}
   .ctrl-btn{padding:8px 12px;font-size:11px;min-height:44px}
-  #stats-bar{padding:8px 10px;gap:6px;justify-content:center;flex-wrap:wrap}
+  #stats-bar{padding:8px 10px;gap:6px;justify-content:center;display:grid!important;grid-template-columns:repeat(3,1fr)}
   .stat-sep{display:none}
   .stat-item{min-width:60px;text-align:center;flex-direction:column;gap:1px}
   .stat-val{font-size:14px}
@@ -405,9 +409,13 @@ tbody td{padding:5px 8px;white-space:nowrap}
 <!-- HEADER -->
 <div id="header">
   <h1><span class="ua">THE BLUE BOARD</span> <span style="font-size:9px;color:var(--ua-muted);font-weight:300;letter-spacing:0.5px">UNOFFICIAL · FOR UNITED FLYERS, BY UNITED FLYERS</span></h1>
+  <div id="global-search-wrap" style="position:relative;flex:0 1 300px">
+    <input type="text" id="global-search-input" placeholder="Track a flight (UA 1234, N12345, ORD...)" style="width:100%;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 10px;border-radius:4px;font-family:var(--mono);font-size:11px">
+    <div id="global-search-results" style="position:absolute;top:34px;left:0;right:0;background:rgba(17,24,39,.95);border:1px solid var(--ua-border);border-radius:4px;max-height:300px;overflow-y:auto;display:none;z-index:9999;backdrop-filter:blur(8px)"></div>
+  </div>
   <div id="header-right">
-    <span><span class="status-dot live" id="status-dot"></span><span id="status-text">LIVE</span></span>
-    <span id="countdown">--:--</span>
+    <span><span class="status-dot live" id="status-dot"></span><span id="status-text">LIVE</span> <span id="header-flight-count" style="color:var(--ua-muted);font-size:10px"></span></span>
+    <span id="countdown">Next refresh: --:--</span>
     <span id="clock" style="color:var(--ua-muted)"></span>
     <button id="onboarding-help" title="About this dashboard" aria-label="About this dashboard">?</button>
   </div>
@@ -419,7 +427,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <button class="tab-btn" data-tab="tab-schedule" role="tab" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
   <button class="tab-btn" data-tab="tab-fleet" role="tab" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
   <button class="tab-btn" data-tab="tab-weather" role="tab" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> WEATHER</button>
-  <button class="tab-btn" data-tab="tab-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics"><span aria-hidden="true">📊</span> ANALYTICS</button>
+  <button class="tab-btn" data-tab="tab-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" aria-label="Stats"><span aria-hidden="true">📊</span> STATS</button>
   <button class="tab-btn" data-tab="tab-sources" role="tab" aria-selected="false" aria-controls="tab-sources"><span aria-hidden="true">ℹ️</span> SOURCES</button>
 </nav>
 
@@ -429,6 +437,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <div class="sidebar" id="sidebar">
       <h3>🏢 Hub Operations</h3>
       <div id="hub-stats"></div>
+      <button id="sidebar-filters-toggle" onclick="document.getElementById('sidebar-extra-filters').classList.toggle('show');this.textContent=document.getElementById('sidebar-extra-filters').classList.contains('show')?'Filters ▴':'Filters ▾'" style="display:none;width:100%;background:none;border:none;border-bottom:1px solid var(--ua-border);color:var(--ua-accent);font-family:var(--mono);font-size:10px;padding:6px 12px;cursor:pointer;text-align:center">Filters ▾</button>
+      <div id="sidebar-extra-filters">
       <h3 style="margin-top:4px">🔍 Search</h3>
       <div style="padding:8px 12px">
         <input type="text" id="search-input-side" placeholder="Flight #, tail, airport..." style="width:100%;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 8px;border-radius:4px;font-family:var(--mono);font-size:10px">
@@ -436,6 +446,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       </div>
       <h3>📊 Phase Breakdown</h3>
       <div id="phase-stats" style="padding:8px 12px"></div>
+      </div>
     </div>
     <div class="map-area">
       <div id="map"></div>
@@ -483,7 +494,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <select id="sched-hub" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
           <option value="">All Hubs</option>
-          <option value="ORD">ORD — Chicago O'Hare</option>
+          <option value="ORD" selected>ORD — Chicago O'Hare</option>
           <option value="DEN">DEN — Denver</option>
           <option value="IAH">IAH — Houston</option>
           <option value="EWR">EWR — Newark</option>
@@ -495,6 +506,9 @@ tbody td{padding:5px 8px;white-space:nowrap}
           <option value="departures">Departures</option>
           <option value="arrivals">Arrivals</option>
         </select>
+        <button id="sched-refresh-btn" onclick="loadScheduleData()" style="background:var(--ua-blue);color:white;border:none;padding:4px 10px;font-family:var(--mono);font-size:10px;border-radius:3px;cursor:pointer">↻ Refresh</button>
+        <button id="sched-more-filters-btn" onclick="document.getElementById('sched-adv-filters').style.display=document.getElementById('sched-adv-filters').style.display==='none'?'flex':'none';this.textContent=document.getElementById('sched-adv-filters').style.display==='none'?'More Filters ▾':'Less Filters ▴'" style="background:none;border:1px solid var(--ua-border);color:var(--ua-muted);padding:4px 10px;font-family:var(--mono);font-size:10px;border-radius:3px;cursor:pointer">More Filters ▾</button>
+        <div id="sched-adv-filters" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
         <select id="sched-status" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
           <option value="">All Status</option>
           <option value="scheduled">Scheduled</option>
@@ -510,7 +524,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
           <option value="">All Aircraft</option>
         </select>
         <input type="text" id="sched-search" placeholder="Flight, city, reg..." style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px;width:140px">
-        <button id="sched-refresh-btn" onclick="loadScheduleData()" style="background:var(--ua-blue);color:white;border:none;padding:4px 10px;font-family:var(--mono);font-size:10px;border-radius:3px;cursor:pointer">↻ Refresh</button>
+        </div>
       </div>
     </div>
   </div>
@@ -549,7 +563,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">🛩 Live Fleet Status</h3>
       <div style="display:flex;align-items:center;gap:8px"><span class="live-badge"><span class="pulse-dot"></span> LIVE</span><span id="fleet-live-time" style="font-size:9px;color:var(--ua-muted)"></span></div>
     </div>
-    <div id="fleet-live-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Load Live Ops tab first to see live fleet data</div></div>
+    <div id="fleet-live-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading live fleet data...<br><button class="retry-btn" onclick="refreshFlights()" style="margin-top:8px">⏳ Load Now</button></div></div>
   </div>
   <div class="card">
     <h3 id="fleet-overview-title">Fleet Overview</h3>
@@ -829,20 +843,34 @@ let activeHubFilter = null, activePhaseFilter = null;
 let refreshTimer = null, countdown = 30;
 
 // ═══ TAB SWITCHING ═══
+const TAB_HASHES = {'tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#fleet','tab-weather':'#weather','tab-analytics':'#stats','tab-sources':'#sources'};
+const HASH_TABS = Object.fromEntries(Object.entries(TAB_HASHES).map(([k,v])=>[v,k]));
+
+function switchToTab(tabId, updateHash) {
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+  if (!btn) return;
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected', 'true');
+  document.getElementById(tabId).classList.add('active');
+  if (updateHash !== false && TAB_HASHES[tabId]) history.replaceState(null, '', TAB_HASHES[tabId]);
+  if (tabId === 'tab-live' && map) map.invalidateSize();
+  if (tabId === 'tab-schedule') initScheduleTab();
+  if (tabId === 'tab-fleet') { if (!allFlights.length && !flightsLoading) refreshFlights(); updateLiveFleetPanel(); }
+  if (tabId === 'tab-weather') initWeatherTab();
+  if (tabId === 'tab-analytics') updateAnalytics();
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    btn.classList.add('active');
-    btn.setAttribute('aria-selected', 'true');
-    document.getElementById(btn.dataset.tab).classList.add('active');
-    if (btn.dataset.tab === 'tab-live' && map) map.invalidateSize();
-    if (btn.dataset.tab === 'tab-schedule') initScheduleTab();
-    if (btn.dataset.tab === 'tab-fleet') updateLiveFleetPanel();
-    if (btn.dataset.tab === 'tab-weather') initWeatherTab();
-    if (btn.dataset.tab === 'tab-analytics') updateAnalytics();
-  });
+  btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
 });
+
+// Deep-link hash on load
+(function(){
+  const h = location.hash;
+  if (h && HASH_TABS[h]) switchToTab(HASH_TABS[h], false);
+})();
 
 // ═══ CLOCK ═══
 function updateClock() {
@@ -1010,7 +1038,7 @@ function initMap() {
   refreshFlights();
   refreshTimer = setInterval(() => {
     countdown--;
-    document.getElementById('countdown').textContent = countdown + 's';
+    document.getElementById('countdown').textContent = 'Next refresh: ' + countdown + 's';
     if (countdown <= 0) { refreshFlights(); countdown = 30; }
   }, 1000);
 }
@@ -1084,6 +1112,7 @@ async function refreshFlights() {
 
     document.getElementById('status-dot').className = 'status-dot live';
     document.getElementById('status-text').textContent = 'LIVE';
+    document.getElementById('header-flight-count').textContent = '· ' + allFlights.length + ' flights';
     const errOverlay = document.getElementById('map-error-overlay');
     if (errOverlay) errOverlay.remove();
   } catch (e) {
@@ -1458,10 +1487,13 @@ function focusFlight(icao24) {
 
 // ═══ TICKER ═══
 function updateTicker() {
-  const items = [
-    { text: `${allFlights.filter(f=>!f.onGround).length} United flights airborne`, cls: 'info' },
-    { text: `Fleet: ${FLEET_DB.length} mainline aircraft | ${STARLINK_TAILS.size} Starlink-equipped`, cls: 'info' },
-  ];
+  const airborne = allFlights.filter(f=>!f.onGround).length;
+  const items = [];
+
+  if (allFlights.length > 0) {
+    items.push({ text: `${airborne} United flights airborne`, cls: 'info' });
+    items.push({ text: `Fleet: ${FLEET_DB.length} mainline aircraft | ${STARLINK_TAILS.size} Starlink-equipped`, cls: 'info' });
+  }
 
   // Check for emergency squawks
   allFlights.forEach(f => {
@@ -1470,6 +1502,12 @@ function updateTicker() {
       items.push({ text: `${sq.text}: ${f.callsign} (${f.squawk})`, cls: 'critical' });
     }
   });
+
+  // Default message when no alerts
+  if (items.length === 0 || items.every(i => i.cls === 'info')) {
+    const countStr = allFlights.length > 0 ? ` — tracking ${allFlights.length} United flights` : '';
+    items.unshift({ text: `✅ All systems normal${countStr}`, cls: 'info' });
+  }
 
   const tickerHtml = items.map(i => `<span class="ticker-item ${i.cls}">${i.text}</span>`).join('');
   document.getElementById('ticker').innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
@@ -2312,7 +2350,7 @@ function renderScheduleTable() {
       <td style="font-weight:600;color:var(--ua-accent)">${escapeHtml(ident)}</td>
       <td>${routeStr}</td>
       <td title="${escapeHtml(acText)}">${escapeHtml(acCode)}${acShort ? `<div style="font-size:9px;color:var(--ua-muted)">${escapeHtml(acShort)}</div>` : ''}</td>
-      <td style="font-family:var(--mono);font-size:10px">${escapeHtml(reg)}</td>
+      <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<a href="#fleet" onclick="switchToTab('tab-fleet');document.getElementById('fleet-search').value='${escapeHtml(reg)}';renderFleetTable();return false" style="color:var(--ua-accent);text-decoration:none;cursor:pointer">${escapeHtml(reg)}</a>` : '—'}</td>
       <td>${escapeHtml(gate)}</td>
       <td><span class="sched-status ${escapeHtml(status.cls)}">${escapeHtml(status.text)}</span></td>
       <td>${fleetMatch}</td>
@@ -2400,6 +2438,48 @@ window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
+// ═══ GLOBAL SEARCH ═══
+document.getElementById('global-search-input').addEventListener('input', function() {
+  const q = this.value.trim().toUpperCase();
+  const results = document.getElementById('global-search-results');
+  if (q.length < 2) { results.style.display = 'none'; return; }
+
+  const matches = [];
+  // Search live flights
+  allFlights.forEach(f => {
+    const cs = (f.callsign || '').toUpperCase();
+    const flt = (f.flightIATA || '').toUpperCase();
+    const reg = (f.reg || '').toUpperCase();
+    const routeStr = ((f.origin || '') + (f.dest || '')).toUpperCase();
+    if (cs.includes(q) || flt.includes(q) || reg.includes(q) || routeStr.includes(q)) {
+      matches.push({ type: 'live', label: `${f.flightIATA || f.callsign} ${f.origin||'?'}→${f.dest||'?'} ${f.reg||''}`, icao24: f.icao24 });
+    }
+  });
+  // Search schedule data
+  if (schedAllFlights.length) {
+    schedAllFlights.forEach(fl => {
+      const ident = (fl.identification?.number?.default || '').toUpperCase();
+      const reg = (fl.aircraft?.registration || '').toUpperCase();
+      const dest = (fl.airport?.destination?.code?.iata || '').toUpperCase();
+      const orig = (fl.airport?.origin?.code?.iata || '').toUpperCase();
+      if (ident.includes(q) || reg.includes(q) || dest.includes(q) || orig.includes(q)) {
+        matches.push({ type: 'sched', label: `📅 ${fl.identification?.number?.default||'?'} ${orig||'?'}→${dest||'?'} ${fl.aircraft?.registration||''}` });
+      }
+    });
+  }
+
+  if (matches.length === 0) {
+    results.innerHTML = '<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px">No results for "' + escapeHtml(q) + '"</div>';
+  } else {
+    results.innerHTML = matches.slice(0, 20).map(m => {
+      if (m.type === 'live') return `<div class="search-result" onclick="focusFlight('${escapeHtml(m.icao24)}');document.getElementById('global-search-results').style.display='none'">${escapeHtml(m.label)}</div>`;
+      return `<div class="search-result" onclick="document.querySelector('[data-tab=tab-schedule]').click();document.getElementById('global-search-results').style.display='none'"><span style="color:var(--ua-muted)">${escapeHtml(m.label)}</span></div>`;
+    }).join('');
+  }
+  results.style.display = 'block';
+});
+document.addEventListener('click', function(e) { if (!document.getElementById('global-search-wrap').contains(e.target)) document.getElementById('global-search-results').style.display = 'none'; });
+
 // ═══ INIT ═══
 initMap();
 initFleetTab();
@@ -2453,8 +2533,16 @@ function hideDisclaimer() {
   var overlay=document.getElementById('onboarding-overlay');
   var btn=document.getElementById('onboarding-dismiss');
   var helpBtn=document.getElementById('onboarding-help');
-  function hideOverlay(){overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
+  function hideOverlay(){overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300);showBmacToast()}
   function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';overlay.offsetHeight;overlay.style.animation='obFadeIn .4s ease forwards'}
+  function showBmacToast(){
+    if(document.getElementById('bmac-toast'))return;
+    var t=document.createElement('div');t.id='bmac-toast';
+    t.style.cssText='position:fixed;bottom:16px;right:16px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:10px 14px;z-index:9999;font-size:11px;color:var(--ua-text);box-shadow:0 4px 16px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px;animation:fadeIn .3s ease';
+    t.innerHTML='Like this? ☕ <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:600">Buy me a WiFi day pass</a> <button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:14px;margin-left:4px">✕</button>';
+    document.body.appendChild(t);
+    setTimeout(function(){if(t.parentElement)t.remove()},8000);
+  }
   if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
   btn.addEventListener('click',hideOverlay);
   overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
