@@ -648,8 +648,9 @@ tbody td{padding:5px 8px;white-space:nowrap}
   </div>
   <div class="two-col">
     <div class="card">
-      <h3>Fleet Age Distribution</h3>
-      <div class="chart-bar" id="age-chart"></div>
+      <h3>Fleet Delivery Timeline</h3>
+      <div style="font-size:9px;color:var(--ua-muted);margin-bottom:4px">Aircraft deliveries by year · colored by family</div>
+      <div id="age-chart" style="position:relative"></div>
       <div id="age-stats" style="font-size:10px;color:var(--ua-muted);margin-top:6px"></div>
     </div>
     <div class="card">
@@ -1896,31 +1897,106 @@ function showConfigGallery(type) {
 }
 
 function renderAgeChart() {
-  const years = {};
+  const familyColor = {
+    'A319': '#8b5cf6', 'A320': '#8b5cf6', 'A321neo': '#a78bfa',
+    '737-700': '#3b82f6', '737-800': '#3b82f6', '737-900': '#3b82f6', '737-900ER': '#3b82f6',
+    '737 MAX 8': '#22c55e', '737 MAX 9': '#22c55e',
+    '757-200': '#f59e0b', '757-300': '#f59e0b',
+    '767-300ER': '#ef4444', '767-400ER': '#ef4444',
+    '777-200': '#ec4899', '777-200ER': '#ec4899', '777-300ER': '#ec4899',
+    '787-8': '#06b6d4', '787-9': '#06b6d4', '787-10': '#06b6d4'
+  };
+  const familyNames = {
+    '#8b5cf6': 'A320 family', '#a78bfa': 'A321neo', '#3b82f6': '737NG',
+    '#22c55e': '737 MAX', '#f59e0b': '757', '#ef4444': '767',
+    '#ec4899': '777', '#06b6d4': '787'
+  };
+
+  // Group by year and family
+  const yearData = {};
   FLEET_DB.forEach(a => {
     const y = parseInt(a.d);
-    if (y && y > 1980 && y < 2030) years[y] = (years[y] || 0) + 1;
+    if (!y || y < 1990 || y > 2030) return;
+    if (!yearData[y]) yearData[y] = { total: 0, families: {} };
+    yearData[y].total++;
+    const color = familyColor[a.t] || '#64748b';
+    yearData[y].families[color] = (yearData[y].families[color] || 0) + 1;
   });
 
-  const sortedYears = Object.keys(years).sort();
-  const maxCount = Math.max(...Object.values(years));
+  const minYear = Math.min(...Object.keys(yearData).map(Number));
+  const maxYear = Math.max(...Object.keys(yearData).map(Number));
+  const allYears = [];
+  for (let y = minYear; y <= maxYear; y++) allYears.push(y);
 
-  document.getElementById('age-chart').innerHTML = sortedYears.map(y => {
-    const pct = (years[y] / maxCount * 100);
-    return `<div class="chart-col"><div class="val">${years[y]}</div><div class="bar" style="height:${pct}%"></div><div class="lbl">${y.slice(2)}</div></div>`;
-  }).join('');
+  const maxCount = Math.max(...Object.values(yearData).map(d => d.total), 1);
+  const barH = 140;
+
+  // Build stacked bars
+  let barsHtml = '<div style="display:flex;align-items:flex-end;gap:1px;height:' + barH + 'px;padding:0">';
+  allYears.forEach(y => {
+    const d = yearData[y];
+    if (!d) {
+      barsHtml += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0"><div style="height:${barH}px"></div></div>`;
+      return;
+    }
+    const totalH = (d.total / maxCount) * barH;
+    let stackHtml = '';
+    // Stack segments bottom-up
+    const segments = Object.entries(d.families).sort((a, b) => b[1] - a[1]);
+    segments.forEach(([color, count]) => {
+      const segH = Math.max(1, (count / d.total) * totalH);
+      stackHtml += `<div style="width:100%;height:${segH}px;background:${color};min-height:1px" title="${count} aircraft"></div>`;
+    });
+
+    const showLabel = d.total >= 15;
+    barsHtml += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;cursor:default" title="${y}: ${d.total} aircraft">`;
+    if (showLabel) barsHtml += `<div style="font-size:8px;color:var(--ua-accent);margin-bottom:1px;font-weight:700">${d.total}</div>`;
+    barsHtml += `<div style="width:100%;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">${stackHtml}</div>`;
+    barsHtml += `</div>`;
+  });
+  barsHtml += '</div>';
+
+  // Year labels (show every 5 years + first/last)
+  barsHtml += '<div style="display:flex;gap:1px">';
+  allYears.forEach(y => {
+    const show = y === minYear || y === maxYear || y % 5 === 0;
+    barsHtml += `<div style="flex:1;text-align:center;font-size:8px;color:${show ? 'var(--ua-muted)' : 'transparent'};min-width:0;overflow:hidden">${show ? y : '·'}</div>`;
+  });
+  barsHtml += '</div>';
+
+  // Legend
+  const usedColors = new Set();
+  FLEET_DB.forEach(a => { const c = familyColor[a.t]; if (c) usedColors.add(c); });
+  barsHtml += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">';
+  [...usedColors].forEach(c => {
+    barsHtml += `<span style="font-size:9px;color:var(--ua-muted);display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:${c};border-radius:2px;display:inline-block"></span>${familyNames[c] || '?'}</span>`;
+  });
+  barsHtml += '</div>';
+
+  document.getElementById('age-chart').innerHTML = barsHtml;
 
   // Stats
   const currentYear = new Date().getFullYear();
   const ages = FLEET_DB.filter(a => parseInt(a.d)).map(a => currentYear - parseInt(a.d));
-  const avgAge = (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1);
+  const avgAge = ages.length ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : '--';
   const newest = FLEET_DB.filter(a => parseInt(a.d)).sort((a, b) => parseInt(b.d) - parseInt(a.d))[0];
   const oldest = FLEET_DB.filter(a => parseInt(a.d)).sort((a, b) => parseInt(a.d) - parseInt(b.d))[0];
 
+  // Decade breakdown
+  const decades = {'0-5y': 0, '6-10y': 0, '11-15y': 0, '16-20y': 0, '20y+': 0};
+  ages.forEach(a => {
+    if (a <= 5) decades['0-5y']++;
+    else if (a <= 10) decades['6-10y']++;
+    else if (a <= 15) decades['11-15y']++;
+    else if (a <= 20) decades['16-20y']++;
+    else decades['20y+']++;
+  });
+
   document.getElementById('age-stats').innerHTML =
-    `Average age: <strong style="color:var(--ua-accent)">${avgAge} years</strong> | ` +
-    `Newest: <strong style="color:var(--ua-green)">${newest?.r} (${newest?.d})</strong> | ` +
-    `Oldest: <strong style="color:var(--ua-yellow)">${oldest?.r} (${oldest?.d})</strong>`;
+    `Average: <strong style="color:var(--ua-accent)">${avgAge}y</strong> · ` +
+    `Newest: <strong style="color:var(--ua-green)">${newest?.r} (${newest?.d})</strong> · ` +
+    `Oldest: <strong style="color:var(--ua-yellow)">${oldest?.r} (${oldest?.d})</strong><br>` +
+    Object.entries(decades).map(([k, v]) => `<span style="margin-right:8px">${k}: <strong>${v}</strong></span>`).join('');
 }
 
 let starlinkSortKey = 'tail', starlinkSortAsc = true;
