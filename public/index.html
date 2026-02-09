@@ -433,7 +433,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
 
 /* Hub Health Bar */
 #hub-health-bar{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);padding:6px 16px;font-size:10px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;overflow:hidden}
-#hub-health-bar .hh-label{color:var(--ua-blue);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-right:8px;font-size:9px;white-space:nowrap}
+#hub-health-bar .hh-label{color:var(--ua-blue);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-right:4px;font-size:9px;white-space:nowrap}
+#hub-health-bar .hh-explainer{color:var(--ua-muted);font-size:8px;margin-right:8px;white-space:nowrap;cursor:help;border-bottom:1px dotted var(--ua-muted)}
 .hh-hub{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;white-space:nowrap}
 .hh-hub .hh-code{font-weight:700;color:var(--ua-text)}
 .hh-hub .hh-pct{font-weight:600}
@@ -524,7 +525,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- HUB HEALTH BAR -->
-<div id="hub-health-bar" title="On-Time Performance: % of operated flights departing within 15 min of schedule. 🟢 >80% · 🟡 65-80% · 🔴 <65%"><span class="hh-label">Hub Health</span><span style="color:var(--ua-muted)">Loading…</span></div>
+<div id="hub-health-bar" title="On-Time Performance: % of operated flights departing within 15 min of schedule. 🟢 >80% · 🟡 65-80% · 🔴 <65%"><span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span style="color:var(--ua-muted)">Loading…</span></div>
 
 <!-- WATCH NOTIFICATION BANNER -->
 <div id="watch-notification"><span id="wn-text"></span><button class="wn-dismiss" data-action="dismiss-watch-notification">Dismiss</button></div>
@@ -3205,11 +3206,11 @@ function updateHubHealth() {
   }
 
   if (!hasData) {
-    bar.innerHTML = '<span class="hh-label">Hub Health</span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
+    bar.innerHTML = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
     return;
   }
 
-  let html = '<span class="hh-label">Hub Health</span>';
+  let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span>';
   hubs.forEach((hub, i) => {
     const pct = hubHealthData[hub];
     if (pct === undefined) {
@@ -3332,7 +3333,7 @@ function renderIrropsFromAPI(data) {
   if (data.hubMetrics) {
     const bar = document.getElementById('hub-health-bar');
     const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX'];
-    let html = '<span class="hh-label">Hub Health</span>';
+    let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span>';
     hubs.forEach((hub, i) => {
       const m = data.hubMetrics[hub];
       if (!m || !m.total) {
