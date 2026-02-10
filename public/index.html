@@ -3200,8 +3200,8 @@ function updateHubHealth() {
       if (!hasOp) return;
       operated++;
       const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival || 0;
-      const realT = fl.time?.real?.departure || fl.time?.real?.arrival || 0;
-      if (!realT) { operated--; return; } // only count flights with real departure/arrival
+      const realT = fl.time?.real?.departure || fl.time?.real?.arrival || fl.time?.estimated?.departure || fl.time?.estimated?.arrival || 0;
+      if (!realT) { operated--; return; }
       if (realT && schedT && realT <= schedT + 1800) onTime++;
     });
     if (operated > 0) {

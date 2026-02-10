@@ -81,14 +81,20 @@ function computeMetrics(flightsByHub) {
       if (status === 'canceled' || status === 'cancelled') { hubMetrics[hub].cancellations++; continue; }
       if (status === 'diverted') hubMetrics[hub].diversions++;
 
-      // Only count flights with a real departure time for OTP (not estimated)
+      // Count flights that have actually operated (departed, en-route, landed)
+      const hasOperated = status === 'departed' || status === 'en-route' || status === 'landed' || status === 'diverted';
       const realDep = fl.time?.real?.departure;
-      if (!realDep) continue; // skip flights that haven't actually departed
+      const estDep = fl.time?.estimated?.departure;
+      if (!hasOperated && !realDep) continue; // skip future/scheduled flights
+
+      // Use real departure time; only fall back to estimated for operated flights
+      const actDep = realDep || (hasOperated ? estDep : null);
+      if (!actDep) continue; // no usable departure time
 
       hubMetrics[hub].operated++;
       const schedT = fl.time?.scheduled?.departure || 0;
-      if (schedT && realDep > schedT) {
-        const delayMin = Math.round((realDep - schedT) / 60);
+      if (schedT && actDep > schedT) {
+        const delayMin = Math.round((actDep - schedT) / 60);
         if (delayMin > 30) hubMetrics[hub].delayed30++;
         if (delayMin > 60) hubMetrics[hub].delayed60++;
         if (delayMin <= 30) hubMetrics[hub].onTime++; // 30-min threshold for on-time
