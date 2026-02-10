@@ -3354,8 +3354,13 @@ function renderIrropsFromAPI(data) {
       } else {
         // OTP = on-time flights / operated flights (within 30 min of schedule)
         const operated = m.operated || (m.total - m.cancellations);
+        if (!operated) {
+          html += `<span class="hh-hub"><span class="hh-code">${hub}</span> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+          if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
+          return;
+        }
         const onTime = m.onTime !== undefined ? m.onTime : Math.max(0, operated - m.delayed30);
-        const pct = operated > 0 ? Math.round((onTime / operated) * 100) : 0;
+        const pct = Math.round((onTime / operated) * 100);
         const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
         const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
         hubHealthData[hub] = pct;
