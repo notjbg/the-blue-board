@@ -2779,7 +2779,13 @@ async function loadScheduleData() {
     const timestamp = getSchedDayTimestamp(schedCurrentDay);
     const hubKey = `${schedCurrentHub}-${schedCurrentDir}-${schedCurrentDay}`;
 
-    const result = await fetchScheduleAggregated(schedCurrentHub, schedCurrentDir, timestamp);
+    // Check if IRROPS already hydrated this data
+    let result;
+    if (schedRawByHub[hubKey] && schedRawByHub[hubKey].length) {
+      result = { flights: schedRawByHub[hubKey], cached: true, fromIrrops: true };
+    } else {
+      result = await fetchScheduleAggregated(schedCurrentHub, schedCurrentDir, timestamp);
+    }
     const allUAFlights = result.flights || [];
 
     // Show cache indicator
@@ -3341,6 +3347,25 @@ async function fetchIrropsFromAPI() {
 }
 
 function renderIrropsFromAPI(data) {
+  // Hydrate schedule cache from IRROPS hub flights (avoids 7 separate schedule calls)
+  if (data.hubFlights) {
+    const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX'];
+    hubs.forEach(hub => {
+      const flights = data.hubFlights[hub];
+      if (!flights || !flights.length) return;
+      const hubKey = `${hub}-departures-0`;
+      if (!schedRawByHub[hubKey]) {
+        schedRawByHub[hubKey] = flights;
+        // Also populate the fetch cache so Schedule tab doesn't re-fetch
+        const timestamp = getSchedDayTimestamp(0);
+        const cacheKey = `agg-${hub}-departures-${timestamp}`;
+        if (!schedCache[cacheKey]) {
+          schedCache[cacheKey] = { flights, total: flights.length, cached: true, hub, dir: 'departures' };
+        }
+      }
+    });
+  }
+
   // Use hub metrics from IRROPS API to populate hub health bar immediately
   if (data.hubMetrics) {
     const bar = document.getElementById('hub-health-bar');

@@ -144,6 +144,7 @@ function computeMetrics(flightsByHub) {
     diversions,
     worstDelays: worstDelays.slice(0, 8),
     hubMetrics,
+    hubFlights: flightsByHub,
     generatedAt: new Date().toISOString()
   };
 }
