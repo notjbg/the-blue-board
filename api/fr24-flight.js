@@ -40,7 +40,7 @@ function isRateLimited() {
 
 function corsHeaders(req) {
   const origin = req.headers?.origin || '';
-  const allowed = origin.includes('theblueboard.co') || origin.includes('localhost');
+  const allowed = origin === 'https://theblueboard.co' || origin.includes('localhost');
   return {
     'Access-Control-Allow-Origin': allowed ? origin : 'https://theblueboard.co',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -204,8 +204,8 @@ export default async function handler(req, res) {
       console.log(`FR24 live response for ${flight}: status=${liveResp.status}, entries=${liveData?.data?.length || 0}`);
       flightData = normalizeLiveResponse(liveData, flight);
     } else {
-      const errText = await liveResp.text().catch(() => '');
-      console.error(`FR24 live error for ${flight}: status=${liveResp.status}, body=${errText.slice(0, 500)}`);
+      await liveResp.text().catch(() => '');
+      console.error(`FR24 live error for ${flight}: status=${liveResp.status}`);
     }
 
     // 2. If no live data, try flight summary (requires time range per SDK docs)
@@ -224,8 +224,8 @@ export default async function handler(req, res) {
         console.log(`FR24 summary response for ${flight}: status=${summaryResp.status}, entries=${summaryData?.data?.length || 0}`);
         flightData = normalizeSummaryResponse(summaryData, flight);
       } else {
-        const errText = await summaryResp.text().catch(() => '');
-        console.error(`FR24 summary error for ${flight}: status=${summaryResp.status}, body=${errText.slice(0, 500)}`);
+        await summaryResp.text().catch(() => '');
+        console.error(`FR24 summary error for ${flight}: status=${summaryResp.status}`);
       }
     }
 

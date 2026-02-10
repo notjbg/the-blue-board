@@ -3,6 +3,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const origin = req.headers?.origin || '';
+  if (origin && origin !== 'https://theblueboard.co' && !origin.includes('localhost')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);

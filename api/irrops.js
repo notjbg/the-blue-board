@@ -152,9 +152,8 @@ async function buildIrropsData() {
   const now = new Date();
   // Use start of today in US Eastern time (most UA operations are eastern-biased)
   // This ensures we capture the full ops day even after midnight UTC
-  const etOffset = -5 * 60 * 60 * 1000; // EST (close enough, DST shifts by 1hr)
-  const etNow = new Date(now.getTime() + etOffset);
-  const startOfDay = Math.floor(new Date(Date.UTC(etNow.getUTCFullYear(), etNow.getUTCMonth(), etNow.getUTCDate())).getTime() / 1000);
+  const etNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const startOfDay = Math.floor(new Date(etNow.getFullYear(), etNow.getMonth(), etNow.getDate()).getTime() / 1000);
 
   const flightsByHub = {};
 
@@ -177,6 +176,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const origin = req.headers?.origin || '';
+  if (origin && origin !== 'https://theblueboard.co' && !origin.includes('localhost')) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   try {
     const now = Date.now();
 
@@ -194,16 +198,20 @@ export default async function handler(req, res) {
     }
 
     // Build fresh
-    fetching = buildIrropsData();
-    const result = await fetching;
-    cached = result;
-    cacheExpires = now + CACHE_TTL;
-    fetching = null;
-
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=120');
-    return res.status(200).json({ ...result, cached: false });
+    try {
+      fetching = buildIrropsData();
+      const result = await fetching;
+      cached = result;
+      cacheExpires = now + CACHE_TTL;
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=120');
+      return res.status(200).json({ ...result, cached: false });
+    } catch (e) {
+      console.error('IRROPS API error:', e);
+      return res.status(502).json({ error: 'Failed to compute IRROPS data' });
+    } finally {
+      fetching = null;
+    }
   } catch (e) {
-    fetching = null;
     console.error('IRROPS API error:', e);
     return res.status(502).json({ error: 'Failed to compute IRROPS data' });
   }

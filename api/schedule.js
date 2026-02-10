@@ -59,9 +59,16 @@ async function fetchOnePage(hub, dir, timestamp, page) {
   return sched;
 }
 
+const pendingAggs = new Map();
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const origin = req.headers?.origin || '';
+  if (origin && origin !== 'https://theblueboard.co' && !origin.includes('localhost')) {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   try {
@@ -115,6 +122,14 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...cached.data, cached: true });
     }
 
+    // Dedup concurrent aggregation requests for same key
+    if (pendingAggs.has(aggKey)) {
+      const result = await pendingAggs.get(aggKey);
+      res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
+      return res.status(200).json({ ...result, cached: true });
+    }
+
+    const aggPromise = (async () => {
     const dayEnd = ts + 86400;
     const allUAFlights = [];
     let pageNum = 1;
@@ -155,8 +170,17 @@ export default async function handler(req, res) {
     };
 
     cacheSet(aggKey, result, ttl);
-    res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
-    return res.status(200).json(result);
+    return result;
+    })();
+
+    pendingAggs.set(aggKey, aggPromise);
+    try {
+      const result = await aggPromise;
+      res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
+      return res.status(200).json(result);
+    } finally {
+      pendingAggs.delete(aggKey);
+    }
   } catch (e) {
     console.error('Schedule API error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });

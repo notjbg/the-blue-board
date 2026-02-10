@@ -1496,10 +1496,16 @@ function getPhaseGroup(phase) {
 function updateMarkers() {
   const filtered = getFilteredFlights();
   const filteredIcaos = new Set(filtered.map(f => f.icao24));
+  const allIcaos = new Set(allFlights.map(f => f.icao24));
 
-  // Remove markers not in filtered set
+  // Remove markers for flights no longer in feed
   Object.keys(flightMarkers).forEach(id => {
-    if (!filteredIcaos.has(id)) { map.removeLayer(flightMarkers[id]); delete flightMarkers[id]; }
+    if (!allIcaos.has(id)) { map.removeLayer(flightMarkers[id]); delete flightMarkers[id]; }
+  });
+  // Hide markers not in filtered set
+  Object.keys(flightMarkers).forEach(id => {
+    if (!filteredIcaos.has(id)) { map.removeLayer(flightMarkers[id]); }
+    else if (!map.hasLayer(flightMarkers[id])) { flightMarkers[id].addTo(map); }
   });
 
   filtered.forEach(f => {
@@ -1640,27 +1646,20 @@ function showFlightPopup(f, marker) {
 }
 
 function greatCirclePoints(lat1, lon1, lat2, lon2, n) {
+  const φ1 = toRad(lat1), λ1 = toRad(lon1), φ2 = toRad(lat2), λ2 = toRad(lon2);
+  const d = Math.acos(Math.min(1, Math.max(-1,
+    Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2)*Math.cos(λ2-λ1)
+  )));
+  if (d < 1e-6) return [[lat1,lon1],[lat2,lon2]];
+  const sinD = Math.sin(d);
   const pts = [];
   for (let i = 0; i <= n; i++) {
     const f = i / n;
-    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
-    const a = Math.sin((1 - f) * Math.acos(
-      Math.sin(toRad(lat1)) * Math.sin(toRad(lat2)) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
-    )) / Math.sin(Math.acos(
-      Math.sin(toRad(lat1)) * Math.sin(toRad(lat2)) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
-    ));
-    const b = Math.sin(f * Math.acos(
-      Math.sin(toRad(lat1)) * Math.sin(toRad(lat2)) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
-    )) / Math.sin(Math.acos(
-      Math.sin(toRad(lat1)) * Math.sin(toRad(lat2)) +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon)
-    ));
-    const x = a * Math.cos(toRad(lat1)) * Math.cos(toRad(lon1)) + b * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2));
-    const y = a * Math.cos(toRad(lat1)) * Math.sin(toRad(lon1)) + b * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2));
-    const z = a * Math.sin(toRad(lat1)) + b * Math.sin(toRad(lat2));
+    const a = Math.sin((1-f)*d) / sinD;
+    const b = Math.sin(f*d) / sinD;
+    const x = a*Math.cos(φ1)*Math.cos(λ1) + b*Math.cos(φ2)*Math.cos(λ2);
+    const y = a*Math.cos(φ1)*Math.sin(λ1) + b*Math.cos(φ2)*Math.sin(λ2);
+    const z = a*Math.sin(φ1) + b*Math.sin(φ2);
     pts.push([toDeg(Math.atan2(z, Math.sqrt(x*x + y*y))), toDeg(Math.atan2(y, x))]);
   }
   return pts;
@@ -3038,13 +3037,13 @@ function renderScheduleStats(filtered) {
     const schedT = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
     const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
     const actT = realT || (schedCurrentDir === 'departures' ? fl.time?.estimated?.departure : fl.time?.estimated?.arrival);
-    if (schedT && actT && actT > schedT + 900) depDelayed++;
+    if (schedT && actT && actT > schedT + 1800) depDelayed++;
     else depOnTime++;
   });
 
   const totalOperated = depOnTime + depDelayed;
   const otp = totalOperated > 0 ? Math.round((depOnTime / totalOperated) * 100) : (showing > 0 ? '—' : 0);
-  const otpColor = typeof otp === 'number' ? (otp >= 80 ? '#22c55e' : otp >= 60 ? '#f59e0b' : '#ef4444') : 'var(--ua-muted)';
+  const otpColor = typeof otp === 'number' ? (otp >= 70 ? '#22c55e' : otp >= 50 ? '#f59e0b' : '#ef4444') : 'var(--ua-muted)';
   const otpStr = typeof otp === 'number' ? otp + '%' : otp;
 
   const dayLabel = getSchedDayLabel(schedCurrentDay);
@@ -3061,11 +3060,11 @@ function renderScheduleStats(filtered) {
     </div>
     <div class="metric-card">
       <div class="metric-value" style="color:#22c55e">${depOnTime}</div>
-      <div class="metric-label">On Time (±15m)</div>
+      <div class="metric-label">On Time (±30m)</div>
     </div>
     <div class="metric-card">
       <div class="metric-value" style="color:#f59e0b">${depDelayed}</div>
-      <div class="metric-label">Late (&gt;15m)</div>
+      <div class="metric-label">Late (&gt;30m)</div>
     </div>
     <div class="metric-card">
       <div class="metric-value" style="color:#ef4444">${canceled}</div>
