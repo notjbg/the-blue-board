@@ -3860,7 +3860,9 @@ function hideDisclaimer() {
     document.body.appendChild(t);
     setTimeout(function(){if(t.parentElement)t.remove()},8000);
   }
-  if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
+  var visited=localStorage.getItem('bb-visited');
+  if(!visited){localStorage.setItem('bb-visited','1');overlay.style.display='none'}
+  else if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
   btn.addEventListener('click',hideOverlay);
   overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
   helpBtn.addEventListener('click',showOverlay);
