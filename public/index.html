@@ -1683,9 +1683,13 @@ function showFlightPopup(f, marker) {
 
   html += `<div class="popup-links">`;
   const fltLink = flightNum.replace(/^UA/, '');
+  // United.com flight status link
+  if (fltLink) html += `<a href="https://www.united.com/en/us/flightstatus/details/${encodeURIComponent('UA' + fltLink)}" target="_blank" rel="noopener noreferrer">United ↗</a>`;
   if (fltLink) html += `<a href="https://flightaware.com/live/flight/UAL${encodeURIComponent(fltLink)}" target="_blank" rel="noopener noreferrer">FlightAware ↗</a>`;
   const regLink = aircraft?.r || f.reg;
   if (regLink) html += `<a href="https://www.planespotters.net/search?q=${encodeURIComponent(regLink)}" target="_blank" rel="noopener noreferrer">Planespotters ↗</a>`;
+  // Aerolopa seat map link
+  if (aircraft?.t) html += `<a href="https://www.aerolopa.com/united-airlines" target="_blank" rel="noopener noreferrer">Seat Map ↗</a>`;
   html += `<a href="https://globe.adsbexchange.com/?icao=${encodeURIComponent(f.icao24)}" target="_blank" rel="noopener noreferrer">ADS-B ↗</a>`;
   // Watch button in popup
   const popupFlt = displayFlight;
@@ -3207,6 +3211,8 @@ document.getElementById('global-search-input').addEventListener('input', functio
   const results = document.getElementById('global-search-results');
   if (q.length < 2) { results.style.display = 'none'; return; }
 
+  // Normalize route queries: "ORD-DEN", "ORD DEN", "ORD → DEN" all become "ORDDEN"
+  const qNorm = q.replace(/[\s\-→>]+/g, '');
   const matches = [];
   // Search live flights
   allFlights.forEach(f => {
@@ -3214,7 +3220,8 @@ document.getElementById('global-search-input').addEventListener('input', functio
     const flt = (f.flightIATA || '').toUpperCase();
     const reg = (f.reg || '').toUpperCase();
     const routeStr = ((f.origin || '') + (f.dest || '')).toUpperCase();
-    if (cs.includes(q) || flt.includes(q) || reg.includes(q) || routeStr.includes(q)) {
+    const routeRev = ((f.dest || '') + (f.origin || '')).toUpperCase();
+    if (cs.includes(q) || flt.includes(q) || reg.includes(q) || routeStr.includes(qNorm) || routeRev.includes(qNorm)) {
       matches.push({ type: 'live', label: `${f.flightIATA || f.callsign} ${f.origin||'?'}→${f.dest||'?'} ${f.reg||''}`, icao24: f.icao24 });
     }
   });
