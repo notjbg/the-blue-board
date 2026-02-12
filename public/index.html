@@ -1536,8 +1536,10 @@ function isLonghaulFlight(f) {
 function createPlaneIcon(hdg, isLonghaul, phase) {
   const color = isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa');
   const size = isLonghaul ? 14 : 10;
+  // SVG plane pointing north (0°) — rotate by heading directly, no platform-dependent offset
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="${color}" style="filter:drop-shadow(0 0 2px ${color})"><path d="M12 2L8 9h-5l1 2 4 1v6l-3 2v1l5-1.5 5 1.5v-1l-3-2v-6l4-1 1-2h-5z"/></svg>`;
   return L.divIcon({
-    html: `<div style="transform:rotate(${(hdg||0) - 45}deg);color:${color};font-size:${size}px;line-height:1;filter:drop-shadow(0 0 2px ${color})">✈</div>`,
+    html: `<div style="transform:rotate(${hdg||0}deg);line-height:0">${svg}</div>`,
     iconSize: [size, size], iconAnchor: [size/2, size/2], className: ''
   });
 }
