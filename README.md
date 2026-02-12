@@ -2,7 +2,7 @@
 
 **An unofficial, real-time operations dashboard for United Airlines — built by flyers, for flyers.**
 
-**[→ Live Dashboard](https://theblueboard.co)** · **[Support Server Costs ☕](https://buymeacoffee.com/notjbg)** · **[Suggest a Feature](https://github.com/notjbg/the-blue-board/issues)**
+**[→ Live Dashboard](https://theblueboard.co)** · **[☕ Support the Project](https://buymeacoffee.com/notjbg)** · **[💡 Suggest a Feature](https://github.com/notjbg/the-blue-board/issues)** · **[𝕏 Follow @theblueboard](https://x.com/theblueboard)**
 
 ![The Blue Board — Live Operations Map](https://theblueboard.co/og-image.png)
 
@@ -153,11 +153,25 @@ Look up any UA flight number from the header search bar. Returns live position, 
 
 ---
 
-## Contributing
+## ☕ Support The Blue Board
 
-Feature ideas? Bug reports? [Open an issue](https://github.com/notjbg/the-blue-board/issues) — contributions welcome.
+This project is free, ad-free, and open source. It costs real money to keep running — API calls, Vercel hosting, and the time to build and maintain it.
 
-Want to support the project? [Help keep the servers running ☕](https://buymeacoffee.com/notjbg) · Got an idea? [Suggest a feature →](https://github.com/notjbg/the-blue-board/issues)
+If The Blue Board has saved you a trip to the gate screen or helped you spot an equipment swap before boarding, consider supporting the project:
+
+### **[→ Buy Me a Coffee ☕](https://buymeacoffee.com/notjbg)**
+
+Every donation helps cover server costs and keeps the dashboard free for everyone. You can also suggest a feature with your coffee — I read every one.
+
+---
+
+## 💡 Feature Requests & Contributing
+
+Got an idea? Found a bug? **[Open an issue →](https://github.com/notjbg/the-blue-board/issues)**
+
+The community drives this project. Some of the best features came from user suggestions on Reddit and FlyerTalk. PRs welcome too — it's a single HTML file, so the barrier to entry is low.
+
+**Follow [@theblueboard](https://x.com/theblueboard) on X** for updates, new features, and release notes.
 
 ---
 
