@@ -109,7 +109,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--mono:'JetBrains Mono',monospace}
-body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);overflow-x:hidden;font-size:12px}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);overflow:hidden;font-size:12px;height:100vh;display:flex;flex-direction:column}
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(30,41,59,.15) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(30,41,59,.15) 50px);pointer-events:none;z-index:0}
 
 /* Scrollbar */
@@ -140,11 +140,11 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .tab-btn{flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;letter-spacing:.5px;color:var(--ua-muted);cursor:pointer;border:none;background:none;transition:all .25s;border-bottom:2px solid transparent;font-family:var(--mono)}
 .tab-btn:hover{color:#94a3b8;background:rgba(30,41,59,.5)}
 .tab-btn.active{color:var(--ua-text);border-bottom-color:var(--ua-blue);background:rgba(0,93,170,.08)}
-.tab-content{display:none;position:relative;z-index:1}
+.tab-content{display:none;position:relative;z-index:1;flex:1;overflow-y:auto}
 .tab-content.active{display:flex;flex-direction:column}
 
 /* ═══ TAB 1: LIVE OPS ═══ */
-#tab-live{height:calc(100vh - 108px)}
+#tab-live{flex:1;min-height:0}
 #tab-live .ops-layout{display:flex;height:100%;overflow:hidden}
 #tab-live .sidebar{width:260px;background:var(--ua-panel);border-right:1px solid var(--ua-border);overflow-y:auto;flex-shrink:0}
 #tab-live .sidebar h3{font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;padding:12px 12px 6px;border-bottom:1px solid var(--ua-border)}
@@ -214,7 +214,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 .hub-tooltip{background:rgba(10,14,20,.85)!important;border:1px solid var(--ua-blue)!important;color:var(--ua-accent)!important;font-size:10px!important;font-weight:700!important;padding:2px 6px!important;border-radius:3px!important;font-family:var(--mono)!important}
 
 /* ═══ TAB 2: FLEET ═══ */
-#tab-fleet{padding:16px;min-height:calc(100vh - 108px);overflow-y:auto}
+#tab-fleet{padding:16px;flex:1;min-height:0;overflow-y:auto}
 .card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px}
 .card h3{font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
 .fleet-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:14px}
@@ -248,7 +248,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .refresh-btn:hover{background:#0070cc}
 
 /* ═══ TAB 3: WEATHER ═══ */
-#tab-weather{padding:0;min-height:calc(100vh - 108px);overflow-y:auto}
+#tab-weather{padding:0;flex:1;min-height:0;overflow-y:auto}
 .wx-hero{position:relative}
 .wx-hero h3{position:absolute;top:10px;left:14px;z-index:500;font-size:13px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 #radar-map{height:500px;width:100%}
@@ -272,7 +272,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .hub-raw{padding:6px 14px 10px;font-size:9px;color:var(--ua-accent);opacity:.7;word-break:break-all;font-family:var(--mono)}
 
 /* ═══ TAB 4: ANALYTICS ═══ */
-#tab-analytics{padding:16px;min-height:calc(100vh - 108px);overflow-y:auto}
+#tab-analytics{padding:16px;flex:1;min-height:0;overflow-y:auto}
 .metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
 @media(max-width:900px){.metric-row{grid-template-columns:repeat(2,1fr)}}
 .metric-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;text-align:center}
@@ -280,7 +280,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .metric-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
 
 /* ═══ TAB 5: SOURCES ═══ */
-#tab-sources{padding:20px;min-height:calc(100vh - 108px);overflow-y:auto}
+#tab-sources{padding:20px;flex:1;min-height:0;overflow-y:auto}
 .source-item{display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;margin-bottom:10px;transition:border-color .2s}
 .source-item:hover{border-color:var(--ua-blue)}
 .source-icon{font-size:24px;flex-shrink:0}
@@ -354,7 +354,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-bar{display:none!important}
   #mobile-bottom-nav{display:flex!important}
   /* ── Live Ops ── */
-  #tab-live{height:auto;min-height:calc(100vh - 100px)}
+  #tab-live{flex:1;min-height:0}
   #tab-live .ops-layout{flex-direction:column}
   /* Sidebar collapsed by default on mobile */
   #tab-live .sidebar{width:100%;max-height:none;border-right:none;border-bottom:1px solid var(--ua-border);display:none;position:relative;z-index:10}
