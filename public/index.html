@@ -1593,10 +1593,17 @@ function updateMarkers() {
     const phaseInfo = getPhase(f.alt, f.vr, f.spd);
     const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase);
 
+    // Normalize longitude to nearest world copy relative to map center
+    // so IDL-crossing flights (e.g. SFO→BNE) are always visible
+    let lon = f.lon;
+    const centerLng = map.getCenter().lng;
+    while (lon - centerLng > 180) lon -= 360;
+    while (lon - centerLng < -180) lon += 360;
+
     if (flightMarkers[f.icao24]) {
-      flightMarkers[f.icao24].setLatLng([f.lat, f.lon]).setIcon(icon);
+      flightMarkers[f.icao24].setLatLng([f.lat, lon]).setIcon(icon);
     } else {
-      const marker = L.marker([f.lat, f.lon], { icon }).addTo(map);
+      const marker = L.marker([f.lat, lon], { icon }).addTo(map);
       marker._icao24 = f.icao24;
       marker.on('click', () => {
         const currentFlight = allFlights.find(fl => fl.icao24 === marker._icao24);
@@ -1928,7 +1935,9 @@ document.getElementById('search-input-side').addEventListener('input', function(
 function focusFlight(icao24) {
   const f = allFlights.find(fl => fl.icao24 === icao24);
   if (f && flightMarkers[icao24]) {
-    map.setView([f.lat, f.lon], 8);
+    // Use marker's actual position (already IDL-normalized)
+    const markerPos = flightMarkers[icao24].getLatLng();
+    map.setView(markerPos, 8);
     showFlightPopup(f, flightMarkers[icao24]);
   }
 }
@@ -2849,7 +2858,9 @@ function classifySchedStatus(flight) {
   const diverted = generic?.diverted;
   const txtLower = txt.toLowerCase();
   if (diverted) return { text: 'Diverted', cls: 'diverted', key: 'diverted' };
-  if (statusText === 'canceled' || txtLower.includes('cancel')) return { text: txt || 'Canceled', cls: 'canceled', key: 'canceled' };
+  // FR24 uses various cancellation indicators: generic.status.text, status.text, status.icon
+  const iconColor = s.icon || '';
+  if (statusText === 'canceled' || statusText === 'cancelled' || txtLower.includes('cancel') || (iconColor === 'red' && generic?.type === 'canceled')) return { text: txt || 'Canceled', cls: 'canceled', key: 'canceled' };
   if (statusText === 'landed' || txtLower.includes('landed')) return { text: txt || 'Landed', cls: 'landed', key: 'landed' };
   if (statusText === 'departed' || txtLower.startsWith('departed')) return { text: txt || 'Departed', cls: 'departed', key: 'departed' };
   // A flight is en-route if: FR24 says so, OR it's live with a real departure (actually airborne)
