@@ -639,6 +639,17 @@ tbody td{padding:5px 8px;white-space:nowrap}
     </div>
     <div class="map-area">
       <div id="map"></div>
+      <div id="delay-legend" style="display:none;position:absolute;bottom:36px;left:8px;z-index:1000;background:rgba(17,24,39,.9);border:1px solid var(--ua-border);border-radius:6px;padding:6px 10px;font-size:9px;backdrop-filter:blur(8px)">
+        <div style="color:var(--ua-muted);font-weight:700;margin-bottom:4px;letter-spacing:.5px">DELAY STATUS</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#22c55e"/></svg> On-time</span>
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#eab308"/></svg> 15–44m</span>
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#f97316"/></svg> 45–89m</span>
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#ef4444"/></svg> 90m+</span>
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#60a5fa"/></svg> No data</span>
+          <span><svg width="8" height="8"><circle cx="4" cy="4" r="4" fill="#6b7280"/></svg> Ground</span>
+        </div>
+      </div>
       <div id="controls">
         <button class="ctrl-btn" data-action="toggle-hubs" id="btn-hubs">🏢 Hubs</button>
         <button class="ctrl-btn" data-action="toggle-longhaul" id="btn-longhaul">🌍 Long-haul</button>
@@ -1561,8 +1572,68 @@ function isLonghaulFlight(f) {
   return num > 0 && num < 100;
 }
 
-function createPlaneIcon(hdg, isLonghaul, phase) {
-  const color = isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa');
+// ═══ DELAY COLOR MAP ═══
+// Build a lookup from schedule data: flight number → delay minutes
+// Updated whenever schedule data loads
+let flightDelayMap = {}; // key: normalized flight number (e.g. "1234") → { delayMin, phase }
+
+function buildFlightDelayMap() {
+  flightDelayMap = {};
+  // Only use today's data (keys like "ORD-departures-today" or "ORD-arrivals-today")
+  for (const [key, flights] of Object.entries(schedRawByHub)) {
+    if (!Array.isArray(flights)) continue;
+    // Only use today's data (day offset 0); skip yesterday (-1) / tomorrow (1)
+    if (!key.endsWith('-0')) continue;
+    flights.forEach(fl => {
+      const ident = fl.identification?.number?.default;
+      if (!ident) return;
+      const num = ident.replace(/[^0-9]/g, '');
+      if (!num) return;
+      const status = classifySchedStatus(fl);
+      const isOperated = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
+      if (!isOperated) return;
+      // Prefer departure times consistently to avoid dep/arr mismatch
+      const schedT = fl.time?.scheduled?.departure || 0;
+      const realT = fl.time?.real?.departure || fl.time?.estimated?.departure || 0;
+      if (!schedT || !realT) return;
+      const delayMin = Math.round((realT - schedT) / 60);
+      // Only overwrite if this entry has a more recent real departure (avoids stale hub data)
+      if (flightDelayMap[num] && flightDelayMap[num].realT > realT) return;
+      flightDelayMap[num] = { delayMin, status: status.key, realT };
+    });
+  }
+  // Show delay legend if we have data
+  const legend = document.getElementById('delay-legend');
+  if (legend) legend.style.display = Object.keys(flightDelayMap).length > 0 ? 'block' : 'none';
+}
+
+function getDelayColor(delayMin) {
+  if (delayMin === null || delayMin === undefined) return null; // no data
+  if (delayMin < 15) return '#22c55e';   // green — on time
+  if (delayMin < 45) return '#eab308';   // yellow — moderate
+  if (delayMin < 90) return '#f97316';   // orange — significant
+  return '#ef4444';                       // red — severe
+}
+
+function getFlightDelayMin(f) {
+  // Extract flight number digits from callsign or flightIATA
+  const iata = f.flightIATA || '';
+  const cs = f.callsign || '';
+  const num = iata.replace(/[^0-9]/g, '') || cs.replace(/[^0-9]/g, '');
+  if (!num || !flightDelayMap[num]) return null;
+  return flightDelayMap[num].delayMin;
+}
+
+function createPlaneIcon(hdg, isLonghaul, phase, delayMin) {
+  // Color priority: ground → grey, delay data → delay color, longhaul → gold, default → blue
+  let color;
+  if (phase === 'Ground') {
+    color = '#6b7280';
+  } else if (delayMin !== null && delayMin !== undefined) {
+    color = getDelayColor(delayMin);
+  } else {
+    color = isLonghaul ? '#fbbf24' : '#60a5fa';
+  }
   const size = isLonghaul ? 14 : 10;
   // SVG plane pointing north (0°) — classic top-down aircraft silhouette, cross-platform consistent
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 256 256" fill="${color}" style="filter:drop-shadow(0 0 2px ${color})"><path d="M128 16c-4 0-8 3-9 7l-15 72-88 34c-3 1-4 4-4 7s2 5 5 6l87 20 4 52-28 18c-2 1-3 3-3 5v8c0 2 1 4 3 4l20-6h28l20 6c2 0 3-2 3-4v-8c0-2-1-4-3-5l-28-18 4-52 87-20c3-1 5-3 5-6s-1-6-4-7l-88-34-15-72c-1-4-5-7-9-7z"/></svg>`;
@@ -1617,7 +1688,8 @@ function updateMarkers() {
   filtered.forEach(f => {
     const isLonghaul = showLonghaul && isLonghaulFlight(f);
     const phaseInfo = getPhase(f.alt, f.vr, f.spd);
-    const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase);
+    const delayMin = getFlightDelayMin(f);
+    const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase, delayMin);
 
     // Normalize longitude to nearest world copy relative to map center
     // so IDL-crossing flights (e.g. SFO→BNE) are always visible
@@ -1685,6 +1757,12 @@ function showFlightPopup(f, marker) {
   if (!hasRealRoute && (originObj || destObj)) html += `<div class="popup-route-est">estimated route</div>`;
   html += `</div><div>`;
   html += `<span class="popup-phase ${phaseInfo.cls}">${phaseInfo.icon} ${phaseInfo.phase}</span>`;
+  const popupDelay = getFlightDelayMin(f);
+  if (popupDelay !== null) {
+    const delayColor = getDelayColor(popupDelay);
+    const delayLabel = popupDelay < 15 ? 'On Time' : '+' + popupDelay + ' min';
+    html += `<br><span style="font-size:10px;font-weight:600;color:${delayColor}">${popupDelay < 15 ? '✓' : '⏱'} ${delayLabel}</span>`;
+  }
   if (squawk) html += `<br><span class="${squawk.cls}">${squawk.text}</span>`;
   html += `</div></div>`;
 
@@ -2858,7 +2936,7 @@ async function preloadScheduleData() {
     }
   });
   if (loaded > 0) {
-    updateHubHealth();
+    buildFlightDelayMap(); updateHubHealth(); updateMarkers();
     updateIrrops();
   }
 }
@@ -2947,7 +3025,7 @@ async function loadScheduleData() {
     tableWrap.style.display = 'block';
     renderScheduleTable();
     renderScheduleStats();
-    updateHubHealth();
+    buildFlightDelayMap(); updateHubHealth(); updateMarkers();
     updateIrrops();
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
@@ -3508,6 +3586,8 @@ function renderIrropsFromAPI(data) {
         }
       }
     });
+    // Rebuild delay colors from newly hydrated schedule data
+    buildFlightDelayMap(); updateMarkers();
   }
 
   // Use hub metrics from IRROPS API to populate hub health bar immediately
