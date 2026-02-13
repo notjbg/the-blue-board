@@ -3193,10 +3193,6 @@ function renderScheduleStats(filtered) {
       <div class="metric-label">Late (&gt;30m)</div>
     </div>
     <div class="metric-card">
-      <div class="metric-value" style="color:#ef4444">${canceled}</div>
-      <div class="metric-label">Canceled</div>
-    </div>
-    <div class="metric-card">
       <div class="metric-value" style="color:#94a3b8">${scheduled}</div>
       <div class="metric-label">Upcoming</div>
     </div>
@@ -3420,7 +3416,6 @@ function updateIrrops() {
 
   let html = `<div style="margin-bottom:10px"><span class="irrops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
   html += '<div class="irrops-metrics">';
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${cancellations}</div><div class="il">Cancellations</div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#f59e0b">${delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#c026d3">${diversions}</div><div class="il">Diversions</div></div>`;
@@ -3533,7 +3528,7 @@ function renderIrropsFromAPI(data) {
 
   let html = `<div style="margin-bottom:10px"><span class="irrops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
   html += '<div class="irrops-metrics">';
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${data.cancellations}</div><div class="il">Cancellations</div></div>`;
+  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${data.cancellations || '—'}</div><div class="il">Cancellations<span style="font-size:7px;display:block;color:var(--ua-muted)" title="FR24 schedule data does not reliably include cancelled flights">Limited data</span></div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#f59e0b">${data.delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${data.delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
   html += `<div class="irrops-card"><div class="iv" style="color:#c026d3">${data.diversions}</div><div class="il">Diversions</div></div>`;
