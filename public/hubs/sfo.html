@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>United Airlines SFO Hub Status — San Francisco Delays, On-Time Performance & Flight Tracker</title>
+<meta name="description" content="Live United Airlines status at San Francisco International (SFO). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and schedules. United's Pacific gateway — updated every 30 seconds.">
+<meta name="keywords" content="United Airlines SFO delays, United San Francisco hub status, United Airlines SFO on-time, United SFO cancellations today, SFO flight status, United hub San Francisco, United Airlines SFO departures, San Francisco airport fog delays">
+<meta name="author" content="The Blue Board">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://theblueboard.co/hubs/sfo">
+<meta property="og:type" content="website">
+<meta property="og:title" content="United Airlines SFO Hub — Live San Francisco Status">
+<meta property="og:description" content="Real-time United Airlines operations at SFO. Delays, cancellations, on-time %, and schedules. United's Pacific gateway and headquarters.">
+<meta property="og:url" content="https://theblueboard.co/hubs/sfo">
+<meta property="og:site_name" content="The Blue Board">
+<meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="United Airlines SFO Hub — Live San Francisco Status">
+<meta name="twitter:description" content="Real-time delays, cancellations, on-time performance at United's Pacific gateway. Updated every 30 seconds.">
+<meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:site" content="@theblueboard">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"Is United Airlines delayed at SFO today?","acceptedAnswer":{"@type":"Answer","text":"The Blue Board tracks every United Airlines flight at San Francisco International in real time. Check the live panel for current delays, cancellations, and on-time performance. SFO is particularly prone to fog delays in summer — the marine layer can force single-runway operations."}},
+    {"@type":"Question","name":"What terminal is United Airlines at SFO?","acceptedAnswer":{"@type":"Answer","text":"United Airlines operates from Terminal 3 (domestic) and the International Terminal (G gates) at SFO. United's headquarters are adjacent to the airport. United Club lounges are in Terminal 3 and the International Terminal. The Polaris Lounge is in the International Terminal."}},
+    {"@type":"Question","name":"Why does SFO have so many fog delays?","acceptedAnswer":{"@type":"Answer","text":"SFO's closely-spaced parallel runways (28L/28R) cannot be used simultaneously when visibility drops below 4,000 feet — which happens frequently due to San Francisco's marine layer, especially from May through August. When SFO goes to single-runway operations, arrival capacity is roughly halved, triggering ground delay programs across the country."}},
+    {"@type":"Question","name":"How many United flights depart from SFO daily?","acceptedAnswer":{"@type":"Answer","text":"United Airlines operates approximately 300+ daily departures from SFO, making it the fifth-largest United hub. SFO is United's headquarters and its primary gateway for transpacific flights to Asia and Oceania."}}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Airport","name":"San Francisco International Airport","iataCode":"SFO","address":{"@type":"PostalAddress","addressLocality":"San Francisco","addressRegion":"CA","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":37.6213,"longitude":-122.3790},"url":"https://www.flysfo.com"}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+.hub-header{border-bottom:1px solid var(--ua-border);padding:20px 0 16px;margin-bottom:24px}
+.hub-header .nav{font-size:11px;color:var(--ua-muted);margin-bottom:12px}.hub-header .nav a{color:var(--ua-accent);font-size:11px}
+.hub-header h1{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.hub-header .subtitle{font-size:12px;color:var(--ua-muted)}.hub-header .iata{color:var(--ua-blue);font-weight:700}
+.live-panel{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:20px;margin-bottom:28px}
+.live-panel .live-badge{display:inline-block;background:var(--ua-green);color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:1px;margin-bottom:12px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:6px;padding:12px;text-align:center}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.stat-card .value{font-size:24px;font-weight:700}.stat-card .value.green{color:var(--ua-green)}.stat-card .value.yellow{color:var(--ua-yellow)}.stat-card .value.red{color:var(--ua-red)}
+.live-panel .updated{font-size:9px;color:var(--ua-muted);text-align:right}
+.cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:8px 20px;border-radius:4px;font-size:11px;font-weight:600;margin-top:12px;text-decoration:none;letter-spacing:.5px}.cta:hover{background:#0069c0;text-decoration:none}
+.section{margin-bottom:32px}.section h2{font-size:16px;font-weight:700;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
+.section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
+.section p{margin-bottom:12px}.section ul{padding-left:20px;margin-bottom:12px}.section li{margin-bottom:4px}
+.highlight-box{background:var(--ua-panel);border-left:3px solid var(--ua-blue);padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;font-size:12px}
+.hub-nav{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.hub-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;font-weight:600;color:var(--ua-muted)}
+.hub-nav a:hover{border-color:var(--ua-blue);color:var(--ua-accent);text-decoration:none}
+.hub-nav a.active{border-color:var(--ua-blue);color:var(--ua-blue);background:rgba(0,93,170,.1)}
+.hub-footer{border-top:1px solid var(--ua-border);padding:16px 0;margin-top:40px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:2}
+@media(max-width:600px){.hub-header h1{font-size:18px}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hub-header">
+    <div class="nav"><a href="/">← The Blue Board</a> / Hubs / <span class="iata">SFO</span></div>
+    <h1>United Airlines at <span class="iata">SFO</span> — San Francisco International</h1>
+    <div class="subtitle">United's headquarters & Pacific gateway · ~300 daily departures · Terminal 3 & International</div>
+  </div>
+
+  <div class="live-panel">
+    <div class="live-badge">● LIVE</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">On-Time</div><div class="value" id="otp">—</div></div>
+      <div class="stat-card"><div class="label">Active Flights</div><div class="value" id="active">—</div></div>
+      <div class="stat-card"><div class="label">Delayed</div><div class="value" id="delayed">—</div></div>
+      <div class="stat-card"><div class="label">Cancelled</div><div class="value" id="cancelled">—</div></div>
+    </div>
+    <div class="updated" id="updated-time">Connecting to live data...</div>
+    <a class="cta" href="/?hub=sfo">Open SFO on The Blue Board →</a>
+  </div>
+
+  <div class="section">
+    <h2>Dive Deep at The Blue Board</h2>
+    <p>Track every United flight at SFO in real time — flight watch alerts, equipment swaps, weather radar, and IRROPS monitoring.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+      <a class="cta" href="/?hub=sfo" style="margin:0">🗺️ Live SFO Map</a>
+      <a class="cta" href="/?tab=schedule&hub=sfo" style="margin:0">📋 SFO Schedules</a>
+      <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
+      <a class="cta" href="/?tab=irrops&hub=sfo" style="margin:0">⚠️ IRROPS Monitor</a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Hub Overview</h2>
+    <p>San Francisco International is <strong>United Airlines' headquarters hub</strong> and the primary gateway for <strong>transpacific flights to Asia and Oceania</strong>. With approximately 300 daily departures, SFO is the nerve center of United's Pacific strategy and a key tech industry travel hub.</p>
+    <p>United operates from <strong>Terminal 3</strong> (domestic) and <strong>International Terminal G gates</strong> (long-haul). The Polaris Lounge at SFO is one of the best in the system. United's corporate headquarters are located adjacent to the airport in the Willis Tower complex.</p>
+    <div class="highlight-box">
+      <strong>SFO by the numbers:</strong> ~300 daily departures · 140+ destinations · Terminal 3 + International · United HQ · Polaris Lounge · #1 transpacific hub · BART rail access to downtown SF
+    </div>
+    <h3>Key Routes from SFO</h3>
+    <ul>
+      <li><strong>Transpacific:</strong> NRT, HND, ICN, PVG, PEK, SIN, SYD, MEL — the deepest Asia-Pacific network</li>
+      <li><strong>Domestic:</strong> ORD, DEN, IAH, EWR, LAX, IAD, SEA — all hub connections plus West Coast shuttle</li>
+      <li><strong>Hawaii:</strong> HNL, OGG, LIH, KOA — high-frequency island service</li>
+      <li><strong>Transatlantic:</strong> LHR, FRA, CDG, MUC (seasonal routes vary)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Delay Patterns at SFO</h2>
+    <p>SFO has a unique delay profile driven almost entirely by one factor: <strong>fog</strong>.</p>
+    <h3>The Fog Problem (May–Aug)</h3>
+    <p>San Francisco's famous marine layer is the dominant operational challenge. SFO's two closely-spaced parallel runways (28L/28R) require 4,000+ feet visibility for simultaneous approaches. When the fog rolls in — and it does, frequently — the airport drops to single-runway operations, cutting arrival capacity roughly in half. This triggers ground delay programs that ripple nationwide.</p>
+    <h3>Summer Irony</h3>
+    <p>Unlike most airports where summer means thunderstorm delays, SFO's worst months are June and July — peak fog season. Mark Twain's (misattributed) quote about San Francisco's cold summers applies directly to airport operations.</p>
+    <h3>Winter (Nov–Mar)</h3>
+    <p>Atmospheric rivers and heavy rain can reduce visibility and create turbulence on approach. These events are less frequent than fog but can cause more severe multi-hour disruptions when they hit.</p>
+    <h3>Year-Round</h3>
+    <p>Wind shifts requiring runway configuration changes can cause brief delays. SFO's bayside location means crosswinds are common but usually manageable.</p>
+    <div class="highlight-box">
+      <strong>Tip:</strong> For summer travel through SFO, book morning departures before 10 AM — fog typically burns off by early afternoon but the GDP damage is already done. Afternoon flights often carry cumulative delays from the morning fog.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Starlink WiFi at SFO</h2>
+    <p>As United's HQ hub, SFO sees a wide mix of aircraft. <strong>Starlink satellite internet</strong> is being installed on narrowbody domestic aircraft first (737 MAX), with widebody transpacific aircraft (787, 777) following. Given the long over-water flights to Asia, Starlink will be transformative for the SFO-based Pacific routes.</p>
+    <p>Check <a href="/?tab=fleet&filter=starlink">The Blue Board's Fleet tab</a> to verify Starlink status for your flight.</p>
+  </div>
+
+  <div class="section">
+    <h2>Frequently Asked Questions</h2>
+    <h3>Is United Airlines delayed at SFO today?</h3>
+    <p>Check the live panel above. SFO delays are heavily weather-dependent — clear days run smoothly, fog days don't. <a href="/?hub=sfo">Open SFO on The Blue Board</a> for flight-level detail.</p>
+    <h3>What terminal is United at SFO?</h3>
+    <p>Domestic flights: Terminal 3. International flights: International Terminal (G gates). Polaris Lounge is in the International Terminal. BART connects directly to the airport.</p>
+    <h3>Why does SFO have so many fog delays?</h3>
+    <p>SFO's closely-spaced runways can't be used simultaneously in low visibility. The marine layer frequently drops visibility below minimums, forcing single-runway ops and halving capacity. This is worst May through August.</p>
+    <h3>How many United flights depart from SFO daily?</h3>
+    <p>Approximately 300+ daily departures — United's headquarters hub and #1 gateway for transpacific travel.</p>
+  </div>
+
+  <div class="section">
+    <h2>All United Hubs</h2>
+    <nav class="hub-nav">
+      <a href="/hubs/ord">ORD · Chicago</a>
+      <a href="/hubs/den">DEN · Denver</a>
+      <a href="/hubs/iah">IAH · Houston</a>
+      <a href="/hubs/ewr">EWR · Newark</a>
+      <a href="/hubs/sfo" class="active">SFO · San Francisco</a>
+      <a href="/hubs/iad">IAD · Washington</a>
+      <a href="/hubs/lax">LAX · Los Angeles</a>
+    </nav>
+  </div>
+</div>
+<div class="hub-footer">
+  <div><a href="/">The Blue Board</a> · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed</div>
+  <div>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">FAA</a> · Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer">Jonah Berg</a></div>
+</div>
+<script>
+async function loadLiveData(){try{const r=await fetch('/api/fr24-feed?airline=UAL');if(!r.ok)throw new Error('Feed unavailable');const d=await r.json();let a=0,dl=0,c=0;const f=d.result?.response?.data||d;const e=Array.isArray(f)?f:(typeof f==='object'?Object.values(f):[]);e.forEach(x=>{const o=Array.isArray(x)?x[11]:x?.origin;const ds=Array.isArray(x)?x[12]:x?.dest;if(o==='SFO'||ds==='SFO'){a++;const s=Array.isArray(x)?x[21]:x?.status;if(s&&/delay/i.test(String(s)))dl++;if(s&&/cancel/i.test(String(s)))c++}});const otp=a>0?Math.round(((a-dl-c)/a)*100):0;document.getElementById('active').textContent=a;document.getElementById('delayed').textContent=dl;document.getElementById('cancelled').textContent=c;const el=document.getElementById('otp');el.textContent=otp+'%';el.className='value '+(otp>=80?'green':otp>=60?'yellow':'red');document.getElementById('delayed').className='value '+(dl===0?'green':dl<=10?'yellow':'red');document.getElementById('cancelled').className='value '+(c===0?'green':'red');document.getElementById('updated-time').textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'})}catch(e){document.getElementById('updated-time').textContent='Live data temporarily unavailable — visit The Blue Board for real-time status'}}
+loadLiveData();setInterval(loadLiveData,30000);
+</script>
+</body>
+</html>

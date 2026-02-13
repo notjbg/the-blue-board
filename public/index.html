@@ -3368,11 +3368,11 @@ function updateHubHealth() {
   hubs.forEach((hub, i) => {
     const pct = hubHealthData[hub];
     if (pct === undefined) {
-      html += `<span class="hh-hub"><span class="hh-code">${hub}</span> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+      html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
     } else {
       const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
       const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-      html += `<span class="hh-hub"><span class="hh-code">${hub}</span> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
+      html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
     }
     if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
   });
@@ -3517,12 +3517,12 @@ function renderIrropsFromAPI(data) {
     hubs.forEach((hub, i) => {
       const m = data.hubMetrics[hub];
       if (!m || !m.total) {
-        html += `<span class="hh-hub"><span class="hh-code">${hub}</span> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+        html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
       } else {
         // OTP = on-time flights / operated flights (within 30 min of schedule)
         const operated = m.operated || (m.total - m.cancellations);
         if (!operated) {
-          html += `<span class="hh-hub"><span class="hh-code">${hub}</span> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+          html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
         }
@@ -3531,7 +3531,7 @@ function renderIrropsFromAPI(data) {
         const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
         const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
         hubHealthData[hub] = pct;
-        html += `<span class="hh-hub"><span class="hh-code">${hub}</span> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
+        html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
       }
       if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
     });

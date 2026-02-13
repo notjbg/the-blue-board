@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>United Airlines EWR Hub Status — Newark Liberty Delays, On-Time Performance & Flight Tracker</title>
+<meta name="description" content="Live United Airlines status at Newark Liberty International (EWR). Real-time delays, cancellations, on-time performance, and departure schedules. United's East Coast flagship hub — updated every 30 seconds.">
+<meta name="keywords" content="United Airlines EWR delays, United Newark hub status, United Airlines Newark on-time, United EWR cancellations today, Newark Liberty United Airlines, EWR flight status, United hub Newark, United Airlines EWR departures, Newark airport delays today">
+<meta name="author" content="The Blue Board">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://theblueboard.co/hubs/ewr">
+<meta property="og:type" content="website">
+<meta property="og:title" content="United Airlines EWR Hub — Live Newark Liberty Status">
+<meta property="og:description" content="Real-time United Airlines operations at Newark Liberty. Delays, cancellations, on-time %, and schedules. The most delay-prone hub in the system.">
+<meta property="og:url" content="https://theblueboard.co/hubs/ewr">
+<meta property="og:site_name" content="The Blue Board">
+<meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="United Airlines EWR Hub — Live Newark Liberty Status">
+<meta name="twitter:description" content="Real-time delays, cancellations, on-time performance at United's most challenging hub. Updated every 30 seconds.">
+<meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:site" content="@theblueboard">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type":"Question","name":"Is United Airlines delayed at EWR today?","acceptedAnswer":{"@type":"Answer","text":"Newark Liberty is historically the most delay-prone major airport in the United States. The Blue Board tracks every United flight at EWR in real time — check the live panel above for current delays, cancellations, and on-time performance. Ground stops and GDPs at EWR are common, especially in summer."}},
+    {"@type":"Question","name":"What terminal is United Airlines at Newark?","acceptedAnswer":{"@type":"Answer","text":"United Airlines operates from Terminal C at Newark Liberty International Airport. Terminal C was recently expanded with a new Terminal A (opened 2023) handling other airlines. United Club lounges are located throughout Terminal C. The AirTrain connects all terminals and the NJ Transit/Amtrak rail station."}},
+    {"@type":"Question","name":"Why is Newark airport always delayed?","acceptedAnswer":{"@type":"Answer","text":"EWR's challenges are structural: closely-spaced parallel runways limit capacity, the New York TRACON airspace is the most congested in the world (shared with JFK and LGA), and weather impacts are amplified by these constraints. Even moderate rain or wind can trigger ground delay programs. The FAA frequently imposes flow restrictions at EWR that cascade delays nationwide."}},
+    {"@type":"Question","name":"How many United flights depart from EWR daily?","acceptedAnswer":{"@type":"Answer","text":"United Airlines operates approximately 400+ daily departures from Newark, making it the fourth-largest United hub and the airline's primary East Coast gateway for transatlantic flights."}}
+  ]
+}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Airport","name":"Newark Liberty International Airport","iataCode":"EWR","address":{"@type":"PostalAddress","addressLocality":"Newark","addressRegion":"NJ","addressCountry":"US"},"geo":{"@type":"GeoCoordinates","latitude":40.6895,"longitude":-74.1745},"url":"https://www.newarkairport.com"}
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}a:hover{text-decoration:underline}
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+.hub-header{border-bottom:1px solid var(--ua-border);padding:20px 0 16px;margin-bottom:24px}
+.hub-header .nav{font-size:11px;color:var(--ua-muted);margin-bottom:12px}.hub-header .nav a{color:var(--ua-accent);font-size:11px}
+.hub-header h1{font-size:22px;font-weight:700;letter-spacing:-.5px;margin-bottom:4px}
+.hub-header .subtitle{font-size:12px;color:var(--ua-muted)}.hub-header .iata{color:var(--ua-blue);font-weight:700}
+.live-panel{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:20px;margin-bottom:28px}
+.live-panel .live-badge{display:inline-block;background:var(--ua-green);color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:1px;margin-bottom:12px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:6px;padding:12px;text-align:center}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.stat-card .value{font-size:24px;font-weight:700}.stat-card .value.green{color:var(--ua-green)}.stat-card .value.yellow{color:var(--ua-yellow)}.stat-card .value.red{color:var(--ua-red)}
+.live-panel .updated{font-size:9px;color:var(--ua-muted);text-align:right}
+.cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:8px 20px;border-radius:4px;font-size:11px;font-weight:600;margin-top:12px;text-decoration:none;letter-spacing:.5px}.cta:hover{background:#0069c0;text-decoration:none}
+.section{margin-bottom:32px}.section h2{font-size:16px;font-weight:700;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
+.section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
+.section p{margin-bottom:12px}.section ul{padding-left:20px;margin-bottom:12px}.section li{margin-bottom:4px}
+.highlight-box{background:var(--ua-panel);border-left:3px solid var(--ua-blue);padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;font-size:12px}
+.hub-nav{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.hub-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;font-weight:600;color:var(--ua-muted)}
+.hub-nav a:hover{border-color:var(--ua-blue);color:var(--ua-accent);text-decoration:none}
+.hub-nav a.active{border-color:var(--ua-blue);color:var(--ua-blue);background:rgba(0,93,170,.1)}
+.hub-footer{border-top:1px solid var(--ua-border);padding:16px 0;margin-top:40px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:2}
+@media(max-width:600px){.hub-header h1{font-size:18px}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hub-header">
+    <div class="nav"><a href="/">← The Blue Board</a> / Hubs / <span class="iata">EWR</span></div>
+    <h1>United Airlines at <span class="iata">EWR</span> — Newark Liberty</h1>
+    <div class="subtitle">United's East Coast flagship · ~400 daily departures · Terminal C</div>
+  </div>
+
+  <div class="live-panel">
+    <div class="live-badge">● LIVE</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="label">On-Time</div><div class="value" id="otp">—</div></div>
+      <div class="stat-card"><div class="label">Active Flights</div><div class="value" id="active">—</div></div>
+      <div class="stat-card"><div class="label">Delayed</div><div class="value" id="delayed">—</div></div>
+      <div class="stat-card"><div class="label">Cancelled</div><div class="value" id="cancelled">—</div></div>
+    </div>
+    <div class="updated" id="updated-time">Connecting to live data...</div>
+    <a class="cta" href="/?hub=ewr">Open EWR on The Blue Board →</a>
+  </div>
+
+  <div class="section">
+    <h2>Dive Deep at The Blue Board</h2>
+    <p>Track every United flight at EWR in real time — especially useful at the most delay-prone hub in the system. Flight watch alerts, equipment swaps, weather radar, and IRROPS monitoring.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
+      <a class="cta" href="/?hub=ewr" style="margin:0">🗺️ Live EWR Map</a>
+      <a class="cta" href="/?tab=schedule&hub=ewr" style="margin:0">📋 EWR Schedules</a>
+      <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
+      <a class="cta" href="/?tab=irrops&hub=ewr" style="margin:0">⚠️ IRROPS Monitor</a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Hub Overview</h2>
+    <p>Newark Liberty International is <strong>United Airlines' East Coast flagship hub</strong> and the primary transatlantic gateway. With approximately 400 daily departures, EWR is the airline's most important premium revenue hub, generating disproportionate international and business travel income.</p>
+    <p>United operates from <strong>Terminal C</strong>, which has been significantly renovated and expanded. United Club and Polaris Lounge facilities are among the best in the system. The AirTrain connects to NJ Transit and Amtrak for direct rail access to Manhattan (Penn Station, ~25 minutes).</p>
+    <div class="highlight-box">
+      <strong>EWR by the numbers:</strong> ~400 daily departures · 160+ destinations · Terminal C · Polaris Lounge · Rail link to NYC · United's #1 transatlantic hub · Historically the most delay-prone major US airport
+    </div>
+    <h3>Key Routes from EWR</h3>
+    <ul>
+      <li><strong>Transatlantic:</strong> LHR, FRA, CDG, MUC, FCO, ZRH, LIS, BCN, DUB, EDI, TLV — the deepest European network</li>
+      <li><strong>Domestic:</strong> ORD, DEN, IAH, SFO, LAX, IAD — all hub connections</li>
+      <li><strong>Caribbean/Latin:</strong> CUN, SJU, SXM, BOG, GRU</li>
+      <li><strong>Asia:</strong> NRT, HND, DEL, BOM</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Delay Patterns at EWR</h2>
+    <p>Newark is <strong>consistently the most delay-prone major airport in the United States</strong>. The challenges are both structural and environmental:</p>
+    <h3>Airspace Congestion (Year-Round)</h3>
+    <p>EWR shares the New York TRACON airspace with JFK and LaGuardia — the busiest and most complex airspace in the world. FAA flow restrictions at any of the three airports cascade to the others. Even on clear days, sequencing constraints limit EWR throughput.</p>
+    <h3>Runway Configuration</h3>
+    <p>EWR's two closely-spaced parallel runways cannot be used independently in low visibility. When the airport drops to single-runway operations (common in rain, fog, or low clouds), arrival rates are cut roughly in half, triggering immediate GDPs.</p>
+    <h3>Summer (Jun–Aug)</h3>
+    <p>Thunderstorms along the I-95 corridor cause the most severe disruptions. Convective weather can close the entire New York airspace for hours. Multi-hour ground stops are not uncommon, and recovery can take the rest of the day.</p>
+    <h3>Winter (Dec–Feb)</h3>
+    <p>Snow, ice, and nor'easters can shut down operations entirely. De-icing delays are routine, and EWR's limited gate space means aircraft backups compound quickly.</p>
+    <div class="highlight-box">
+      <strong>Tip:</strong> If you're connecting through EWR, build in extra time — especially in summer. A 2-hour connection that looks fine on paper can easily be missed during a ground stop. Morning departures have the best odds, but EWR can go sideways at any time.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Starlink WiFi at EWR</h2>
+    <p>United is equipping its fleet with <strong>Starlink satellite internet</strong>. EWR's mix of narrowbody domestic and widebody transatlantic aircraft means you'll see a range — domestic 737 MAX flights are getting Starlink first, with 767 and 787 widebodies following.</p>
+    <p>Check <a href="/?tab=fleet&filter=starlink">The Blue Board's Fleet tab</a> to see if your aircraft has Starlink.</p>
+  </div>
+
+  <div class="section">
+    <h2>Frequently Asked Questions</h2>
+    <h3>Is United Airlines delayed at EWR today?</h3>
+    <p>Probably. Check the live status panel above — EWR has delays more often than not. For flight-level detail, <a href="/?hub=ewr">open EWR on The Blue Board</a>.</p>
+    <h3>What terminal is United at Newark?</h3>
+    <p>Terminal C. United Club and Polaris Lounge are both in Terminal C. AirTrain connects to all terminals and the rail station.</p>
+    <h3>Why is Newark airport always delayed?</h3>
+    <p>Closely-spaced runways + the world's most congested airspace (shared with JFK and LGA) + East Coast weather. Even moderate weather triggers ground delay programs because capacity margins are razor-thin.</p>
+    <h3>How many United flights depart from EWR daily?</h3>
+    <p>Approximately 400+ daily departures — United's fourth-largest hub but arguably its most important for premium revenue.</p>
+  </div>
+
+  <div class="section">
+    <h2>All United Hubs</h2>
+    <nav class="hub-nav">
+      <a href="/hubs/ord">ORD · Chicago</a>
+      <a href="/hubs/den">DEN · Denver</a>
+      <a href="/hubs/iah">IAH · Houston</a>
+      <a href="/hubs/ewr" class="active">EWR · Newark</a>
+      <a href="/hubs/sfo">SFO · San Francisco</a>
+      <a href="/hubs/iad">IAD · Washington</a>
+      <a href="/hubs/lax">LAX · Los Angeles</a>
+    </nav>
+  </div>
+</div>
+<div class="hub-footer">
+  <div><a href="/">The Blue Board</a> · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed</div>
+  <div>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">FAA</a> · Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer">Jonah Berg</a></div>
+</div>
+<script>
+async function loadLiveData(){try{const r=await fetch('/api/fr24-feed?airline=UAL');if(!r.ok)throw new Error('Feed unavailable');const d=await r.json();let a=0,dl=0,c=0;const f=d.result?.response?.data||d;const e=Array.isArray(f)?f:(typeof f==='object'?Object.values(f):[]);e.forEach(x=>{const o=Array.isArray(x)?x[11]:x?.origin;const ds=Array.isArray(x)?x[12]:x?.dest;if(o==='EWR'||ds==='EWR'){a++;const s=Array.isArray(x)?x[21]:x?.status;if(s&&/delay/i.test(String(s)))dl++;if(s&&/cancel/i.test(String(s)))c++}});const otp=a>0?Math.round(((a-dl-c)/a)*100):0;document.getElementById('active').textContent=a;document.getElementById('delayed').textContent=dl;document.getElementById('cancelled').textContent=c;const el=document.getElementById('otp');el.textContent=otp+'%';el.className='value '+(otp>=80?'green':otp>=60?'yellow':'red');document.getElementById('delayed').className='value '+(dl===0?'green':dl<=10?'yellow':'red');document.getElementById('cancelled').className='value '+(c===0?'green':'red');document.getElementById('updated-time').textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'})}catch(e){document.getElementById('updated-time').textContent='Live data temporarily unavailable — visit The Blue Board for real-time status'}}
+loadLiveData();setInterval(loadLiveData,30000);
+</script>
+</body>
+</html>
