@@ -153,6 +153,17 @@ a:hover{text-decoration:underline}
   .hub-header h1{font-size:18px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Jump Nav */
+.jump-nav{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 0;margin-bottom:24px;border-bottom:1px solid var(--ua-border);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.jump-nav a{color:var(--ua-muted);text-decoration:none;white-space:nowrap}
+.jump-nav a:hover{color:var(--ua-accent);text-decoration:none}
+
+/* Scroll Indicator */
+.scroll-hint{text-align:center;padding:12px 0 0;animation:bounce 2s ease-in-out infinite;font-size:10px;color:var(--ua-muted);letter-spacing:1px;transition:opacity .5s}
+.scroll-hint span{display:block;font-size:16px;margin-top:2px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
 </style>
 </head>
 <body>
@@ -184,6 +195,23 @@ a:hover{text-decoration:underline}
     <a class="cta" href="/?hub=ord">Open ORD on The Blue Board →</a>
   </div>
 
+
+  <div class="scroll-hint" id="scrollHint">
+    Scroll for hub details
+    <span>↓</span>
+  </div>
+
+
+  <!-- Jump Nav -->
+  <nav class="jump-nav">
+    <a href="#overview">Overview</a>
+    <a href="#delay-patterns">Delay Patterns</a>
+    <a href="#starlink">Starlink WiFi</a>
+    <a href="#construction">Construction</a>
+    <a href="#faq">FAQ</a>
+    <a href="#all-hubs">All Hubs</a>
+  </nav>
+
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
@@ -199,7 +227,7 @@ a:hover{text-decoration:underline}
 
   <!-- Hub Overview -->
   <div class="section">
-    <h2>Hub Overview</h2>
+    <h2 id="overview">Hub Overview</h2>
     <p>Chicago O'Hare International Airport is <strong>United Airlines' largest hub</strong> and the backbone of its domestic network. With approximately 550 daily departures, ORD connects to over 200 destinations across the United States, Canada, Europe, Asia, and Latin America.</p>
     <p>United operates primarily from <strong>Terminal 1</strong>, occupying Concourses B and C, with United Club lounges in both concourses (Concourse B mezzanine near B6, Concourse C near C16) and a <strong>United Polaris lounge</strong> on Concourse B near gate B6 for premium international travelers. United Express regional partners (Air Wisconsin, GoJet, Mesa, Republic, SkyWest) operate from Terminal 2, Concourses E and F.</p>
 
@@ -209,7 +237,7 @@ a:hover{text-decoration:underline}
 
     
     <div class="highlight-box" style="border-left-color:var(--ua-yellow)">
-      <strong>⚠️ Construction Alert:</strong> The <a href="https://www.flychicago.com/ohare21" target="_blank" rel="noopener noreferrer">O'Hare 21 Global Terminal</a> project is actively under construction, replacing Terminal 2 with a unified check-in facility (est. completion ~2028-2030). Terminal 5 satellite concourse expansion is also underway. Expect construction impacts on ground transportation and terminal access.
+      <span id="construction"></span><strong>⚠️ Construction Alert:</strong> The <a href="https://www.flychicago.com/ohare21" target="_blank" rel="noopener noreferrer">O'Hare 21 Global Terminal</a> project is actively under construction, replacing Terminal 2 with a unified check-in facility (est. completion ~2028-2030). Terminal 5 satellite concourse expansion is also underway. Expect construction impacts on ground transportation and terminal access.
     </div>
 
     <h3>Key Routes from ORD</h3>
@@ -224,7 +252,7 @@ a:hover{text-decoration:underline}
 
   <!-- Delay Patterns -->
   <div class="section">
-    <h2>Delay Patterns at ORD</h2>
+    <h2 id="delay-patterns">Delay Patterns at ORD</h2>
     <p>O'Hare is one of the most delay-prone airports in the United States due to its geography and traffic volume. Understanding typical disruption patterns helps set expectations:</p>
 
     <h3>Summer (Jun–Aug)</h3>
@@ -243,7 +271,7 @@ a:hover{text-decoration:underline}
 
   <!-- Starlink -->
   <div class="section">
-    <h2>Starlink WiFi at ORD</h2>
+    <h2 id="starlink">Starlink WiFi at ORD</h2>
     <p>United Airlines is actively equipping its fleet with <strong>Starlink satellite internet</strong> — the fastest WiFi ever offered on a commercial airline. ORD-based narrowbody aircraft, including 737 MAX 8, 737 MAX 9, and A321neo, are among the first aircraft types receiving Starlink installations.</p>
     <p>Use <a href="/?tab=fleet&filter=starlink">The Blue Board's Fleet tab</a> to check if your specific aircraft has Starlink. You can search by tail number, flight number, or aircraft type.</p>
 
@@ -254,7 +282,7 @@ a:hover{text-decoration:underline}
 
   <!-- FAQ (visible, matches schema) -->
   <div class="section">
-    <h2>Frequently Asked Questions</h2>
+    <h2 id="faq">Frequently Asked Questions</h2>
 
     <h3>Is United Airlines delayed at ORD today?</h3>
     <p>Check the live status panel at the top of this page for current on-time performance, delay counts, and cancellations. For flight-level detail, <a href="/?hub=ord">open ORD on The Blue Board</a> to see every flight in real time.</p>
@@ -271,7 +299,7 @@ a:hover{text-decoration:underline}
 
   <!-- Other Hubs -->
   <div class="section">
-    <h2>All United Hubs</h2>
+    <h2 id="all-hubs">All United Hubs</h2>
     <nav class="hub-nav">
       <a href="/hubs/ord" class="active">ORD · Chicago</a>
       <a href="/hubs/den">DEN · Denver</a>
@@ -303,5 +331,9 @@ async function loadLiveData(){try{const r=await fetch('/api/fr24-feed?airline=UA
 loadLiveData();setInterval(loadLiveData,30000);
 </script>
 
+
+<script>
+(function(){var h=document.getElementById('scrollHint');if(h){var done=false;window.addEventListener('scroll',function(){if(!done&&window.scrollY>100){h.style.opacity='0';done=true;setTimeout(function(){h.style.display='none'},500)}});}})();
+</script>
 </body>
 </html>

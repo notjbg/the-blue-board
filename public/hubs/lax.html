@@ -150,6 +150,17 @@ a:hover{text-decoration:underline}
   .hub-header h1{font-size:18px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Jump Nav */
+.jump-nav{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 0;margin-bottom:24px;border-bottom:1px solid var(--ua-border);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.jump-nav a{color:var(--ua-muted);text-decoration:none;white-space:nowrap}
+.jump-nav a:hover{color:var(--ua-accent);text-decoration:none}
+
+/* Scroll Indicator */
+.scroll-hint{text-align:center;padding:12px 0 0;animation:bounce 2s ease-in-out infinite;font-size:10px;color:var(--ua-muted);letter-spacing:1px;transition:opacity .5s}
+.scroll-hint span{display:block;font-size:16px;margin-top:2px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
 </style>
 </head>
 <body>
@@ -181,6 +192,23 @@ a:hover{text-decoration:underline}
     <a class="cta" href="/?hub=lax">Open LAX on The Blue Board →</a>
   </div>
 
+
+  <div class="scroll-hint" id="scrollHint">
+    Scroll for hub details
+    <span>↓</span>
+  </div>
+
+
+  <!-- Jump Nav -->
+  <nav class="jump-nav">
+    <a href="#overview">Overview</a>
+    <a href="#delay-patterns">Delay Patterns</a>
+    <a href="#starlink">Starlink WiFi</a>
+    <a href="#construction">Construction</a>
+    <a href="#faq">FAQ</a>
+    <a href="#all-hubs">All Hubs</a>
+  </nav>
+
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
@@ -196,7 +224,7 @@ a:hover{text-decoration:underline}
 
   <!-- Hub Overview -->
   <div class="section">
-    <h2>Hub Overview</h2>
+    <h2 id="overview">Hub Overview</h2>
     <p>Los Angeles International Airport is <strong>United Airlines' primary Pacific gateway</strong> and a major focus city on the West Coast. With approximately 200 daily departures, LAX connects to destinations across the U.S., Asia, Australia, and the Pacific Islands. LAX is critical for United's transcontinental and transpacific operations.</p>
     <p>United operates from <strong>Terminals 7 and 8</strong>, located on the south side of the LAX horseshoe. Terminal 7 handles the majority of domestic flights, while Terminal 8 serves additional domestic routes and some international departures. United Club lounges are available in both terminals (Terminal 7 near gate 71, Terminal 8 near gate 80s), plus a <strong>United Polaris lounge</strong> in Terminal 7 near gate 71A for premium international travelers. United Express partners operate from the same terminals.</p>
 
@@ -206,7 +234,7 @@ a:hover{text-decoration:underline}
 
     
     <div class="highlight-box" style="border-left-color:var(--ua-yellow)">
-      <strong>⚠️ Construction Alert:</strong> The <a href="https://www.flylax.com/lax-people-mover" target="_blank" rel="noopener noreferrer">LAX Automated People Mover (APM)</a> elevated train is under construction with a target 2026 opening, connecting terminals to Metro K Line and the consolidated rental car facility. <strong>Terminals 7 & 8 modernization</strong> plans have been announced for a significant rebuild of United's terminal footprint. Expect ongoing construction impacts on ground transportation.
+      <span id="construction"></span><strong>⚠️ Construction Alert:</strong> The <a href="https://www.flylax.com/lax-people-mover" target="_blank" rel="noopener noreferrer">LAX Automated People Mover (APM)</a> elevated train is under construction with a target 2026 opening, connecting terminals to Metro K Line and the consolidated rental car facility. <strong>Terminals 7 & 8 modernization</strong> plans have been announced for a significant rebuild of United's terminal footprint. Expect ongoing construction impacts on ground transportation.
     </div>
 
     <h3>Key Routes from LAX</h3>
@@ -221,7 +249,7 @@ a:hover{text-decoration:underline}
 
   <!-- Delay Patterns -->
   <div class="section">
-    <h2>Delay Patterns at LAX</h2>
+    <h2 id="delay-patterns">Delay Patterns at LAX</h2>
     <p>LAX benefits from Southern California's generally mild weather but faces unique operational challenges from its complex airspace and marine layer conditions:</p>
 
     <h3>Marine Layer (May–Jun)</h3>
@@ -240,7 +268,7 @@ a:hover{text-decoration:underline}
 
   <!-- Starlink -->
   <div class="section">
-    <h2>Starlink WiFi at LAX</h2>
+    <h2 id="starlink">Starlink WiFi at LAX</h2>
     <p>United Airlines is actively equipping its fleet with <strong>Starlink satellite internet</strong> — the fastest WiFi ever offered on a commercial airline. LAX sees a diverse mix of United aircraft including widebodies (777, 787 Dreamliner) on Pacific routes and narrowbodies (737 MAX, A321neo) on domestic flights, with the narrowbody fleet among the first to receive Starlink installations.</p>
     <p>Use <a href="/?tab=fleet&filter=starlink">The Blue Board's Fleet tab</a> to check if your specific aircraft has Starlink. You can search by tail number, flight number, or aircraft type.</p>
 
@@ -251,7 +279,7 @@ a:hover{text-decoration:underline}
 
   <!-- FAQ (visible, matches schema) -->
   <div class="section">
-    <h2>Frequently Asked Questions</h2>
+    <h2 id="faq">Frequently Asked Questions</h2>
 
     <h3>Is United Airlines delayed at LAX today?</h3>
     <p>Check the live status panel at the top of this page for current on-time performance, delay counts, and cancellations. For flight-level detail, <a href="/?hub=lax">open LAX on The Blue Board</a> to see every flight in real time.</p>
@@ -268,7 +296,7 @@ a:hover{text-decoration:underline}
 
   <!-- Other Hubs -->
   <div class="section">
-    <h2>All United Hubs</h2>
+    <h2 id="all-hubs">All United Hubs</h2>
     <nav class="hub-nav">
       <a href="/hubs/ord">ORD · Chicago</a>
       <a href="/hubs/den">DEN · Denver</a>
@@ -298,5 +326,9 @@ async function loadLiveData(){try{const r=await fetch('/api/fr24-feed?airline=UA
 loadLiveData();setInterval(loadLiveData,30000);
 </script>
 
+
+<script>
+(function(){var h=document.getElementById('scrollHint');if(h){var done=false;window.addEventListener('scroll',function(){if(!done&&window.scrollY>100){h.style.opacity='0';done=true;setTimeout(function(){h.style.display='none'},500)}});}})();
+</script>
 </body>
 </html>
