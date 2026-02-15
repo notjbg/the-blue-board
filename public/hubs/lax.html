@@ -42,7 +42,7 @@
       "name": "What terminal is United Airlines at LAX?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "United Airlines operates from Terminals 7 and 8 at Los Angeles International Airport. Terminal 7 handles most domestic flights and Terminal 8 serves additional domestic and select international flights. A United Club lounge is located in Terminal 7. United Express regional flights also depart from Terminals 7 and 8."
+        "text": "United Airlines operates from Terminals 7 and 8 at Los Angeles International Airport. Terminal 7 handles most domestic flights, while Terminal 8 serves additional domestic and some international departures. United Club lounges are located in both terminals. United Express regional flights also depart from Terminals 7 and 8."
       }
     },
     {
@@ -50,7 +50,7 @@
       "name": "How many United flights depart from LAX daily?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "United Airlines operates approximately 200 daily departures from Los Angeles International. LAX is a United focus city rather than a full hub, serving as the airline's Pacific gateway and connecting Southern California to United's hub network."
+        "text": "United Airlines operates approximately 200 daily departures from Los Angeles International. While LAX is a focus city rather than a full hub, it is United's primary Pacific gateway and connects to destinations across the U.S., Asia, Australia, and the Pacific Islands."
       }
     },
     {
@@ -58,7 +58,7 @@
       "name": "Which United planes at LAX have Starlink WiFi?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "United is rolling out Starlink satellite WiFi across its fleet. The Blue Board's Fleet tab tracks which aircraft have been equipped — search by tail number or check WiFi status on any tracked flight. LAX sees both narrowbody and widebody aircraft, with 737 MAX and A321neo among the first to receive Starlink."
+        "text": "United is rolling out Starlink satellite WiFi across its fleet. The Blue Board's Fleet tab tracks which aircraft have been equipped — search by tail number or check WiFi status on any tracked flight. LAX sees a mix of narrowbody and widebody United aircraft, with 737 MAX and A321neo among the first to receive Starlink."
       }
     },
     {
@@ -66,7 +66,7 @@
       "name": "What causes the most delays at LAX for United?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "LAX delays are primarily driven by marine layer fog (especially May-June, known as 'June Gloom'), airspace congestion from the sheer volume of traffic at one of the world's busiest airports, and occasional Santa Ana wind events. LAX's four parallel runways generally handle capacity well, but fog-related instrument approaches can reduce arrival rates."
+        "text": "LAX delays are most commonly caused by morning marine layer fog (May Gray / June Gloom) that can reduce visibility and require instrument approaches, reducing runway throughput. LAX's complex airspace shared with nearby airports (BUR, SNA, LGB, ONT) creates congestion. Late-night construction on taxiways and runways can also cause delays during early morning hours."
       }
     }
   ]
@@ -102,37 +102,50 @@
 body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
 a{color:var(--ua-accent);text-decoration:none}
 a:hover{text-decoration:underline}
+
 .container{max-width:900px;margin:0 auto;padding:20px 16px}
+
+/* Header */
 .hub-header{border-bottom:1px solid var(--ua-border);padding:20px 0 16px;margin-bottom:24px}
 .hub-header .nav{font-size:11px;color:var(--ua-muted);margin-bottom:12px}
 .hub-header .nav a{color:var(--ua-accent);font-size:11px}
 .hub-header h1{font-size:22px;font-weight:700;color:var(--ua-text);letter-spacing:-.5px;margin-bottom:4px}
 .hub-header .subtitle{font-size:12px;color:var(--ua-muted)}
 .hub-header .iata{color:var(--ua-blue);font-weight:700}
+
+/* Live Panel */
 .live-panel{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:20px;margin-bottom:28px}
 .live-panel .live-badge{display:inline-block;background:var(--ua-green);color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:1px;margin-bottom:12px;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
 .live-panel .error{color:var(--ua-muted);font-size:11px;font-style:italic}
+
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
 .stat-card{background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:6px;padding:12px;text-align:center}
 .stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
 .stat-card .value{font-size:24px;font-weight:700}
 .stat-card .value.green{color:var(--ua-green)}.stat-card .value.yellow{color:var(--ua-yellow)}.stat-card .value.red{color:var(--ua-red)}
+
 .live-panel .updated{font-size:9px;color:var(--ua-muted);text-align:right}
 .live-panel .cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:8px 20px;border-radius:4px;font-size:11px;font-weight:600;margin-top:12px;text-decoration:none;letter-spacing:.5px}
 .live-panel .cta:hover{background:#0069c0;text-decoration:none}
+
+/* Content Sections */
 .section{margin-bottom:32px}
 .section h2{font-size:16px;font-weight:700;color:var(--ua-text);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
 .section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
 .section p{color:var(--ua-text);margin-bottom:12px}
 .section ul{padding-left:20px;margin-bottom:12px}
 .section li{color:var(--ua-text);margin-bottom:4px}
+
 .highlight-box{background:var(--ua-panel);border-left:3px solid var(--ua-blue);padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;font-size:12px}
+
+/* Hub Nav */
 .hub-nav{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
 .hub-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;font-weight:600;color:var(--ua-muted)}
 .hub-nav a:hover{border-color:var(--ua-blue);color:var(--ua-accent);text-decoration:none}
 .hub-nav a.active{border-color:var(--ua-blue);color:var(--ua-blue);background:rgba(0,93,170,.1)}
 
+/* Responsive */
 @media(max-width:600px){
   .hub-header h1{font-size:18px}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
@@ -147,7 +160,7 @@ a:hover{text-decoration:underline}
   <div class="hub-header">
     <div class="nav"><a href="/">← The Blue Board</a> / Hubs / <span class="iata">LAX</span></div>
     <h1>United Airlines at <span class="iata">LAX</span> — Los Angeles International</h1>
-    <div class="subtitle">United focus city · ~200 daily departures · Terminals 7 & 8</div>
+    <div class="subtitle">United's Pacific gateway focus city · ~200 daily departures · Terminals 7 & 8</div>
   </div>
 
   <!-- Live Status Panel -->
@@ -183,45 +196,46 @@ a:hover{text-decoration:underline}
   <!-- Hub Overview -->
   <div class="section">
     <h2>Hub Overview</h2>
-    <p>Los Angeles International Airport is <strong>United Airlines' focus city</strong> and Pacific gateway, connecting Southern California and the entertainment industry to United's global network. With approximately 200 daily departures, LAX is not a full hub but plays a critical role in United's West Coast strategy.</p>
-    <p>United operates from <strong>Terminals 7 and 8</strong> at LAX. Terminal 7 handles most domestic flights with a United Club lounge, while Terminal 8 serves additional domestic and select international routes. United Express regional partners operate from both terminals. LAX is undergoing a massive modernization including the Automated People Mover connecting all terminals.</p>
+    <p>Los Angeles International Airport is <strong>United Airlines' primary Pacific gateway</strong> and a major focus city on the West Coast. With approximately 200 daily departures, LAX connects to destinations across the U.S., Asia, Australia, and the Pacific Islands. While not a full connecting hub like ORD or DEN, LAX is critical for United's transcontinental and transpacific operations.</p>
+    <p>United operates from <strong>Terminals 7 and 8</strong>, located on the south side of the LAX horseshoe. Terminal 7 handles the majority of domestic flights, while Terminal 8 serves additional domestic routes and some international departures. United Club lounges are available in both terminals. United Express partners operate from the same terminals.</p>
 
     <div class="highlight-box">
-      <strong>LAX by the numbers:</strong> ~200 daily departures · Focus city (not full hub) · Terminals 7 & 8 · Pacific gateway · Entertainment industry hub · 4 parallel runways
+      <strong>LAX by the numbers:</strong> ~200 daily departures · Terminals 7 & 8 · Focus city (not full hub) · Key Pacific gateway · Widebody-heavy route mix · Polaris service to Asia & Australia
     </div>
 
     <h3>Key Routes from LAX</h3>
     <ul>
-      <li><strong>Domestic:</strong> SFO, ORD, DEN, EWR, IAH, IAD — all major United hub connections plus extensive California/West Coast network</li>
-      <li><strong>Transpacific:</strong> NRT, HND, SYD, MEL, PVG, TPE, SIN — significant Pacific Rim service</li>
+      <li><strong>Domestic:</strong> SFO, ORD, DEN, EWR, IAH, IAD — all major United hub connections plus extensive West Coast network</li>
+      <li><strong>Transpacific:</strong> NRT, HND, SYD, MEL, SIN, PVG, TPE — United's largest Pacific gateway</li>
       <li><strong>Transatlantic:</strong> LHR (seasonal widebody service)</li>
       <li><strong>Latin America:</strong> CUN, GDL, PVR, SJD, MEX</li>
+      <li><strong>Hawaii:</strong> HNL, OGG, LIH, KOA — multiple daily frequencies</li>
     </ul>
   </div>
 
   <!-- Delay Patterns -->
   <div class="section">
     <h2>Delay Patterns at LAX</h2>
-    <p>Los Angeles International benefits from Southern California's generally mild weather, but several factors can still cause delays:</p>
+    <p>LAX benefits from Southern California's generally mild weather but faces unique operational challenges from its complex airspace and marine layer conditions:</p>
 
-    <h3>Marine Layer / June Gloom (May–Jun)</h3>
-    <p>Coastal fog and low clouds — locally known as "June Gloom" — reduce visibility and can force instrument approaches, reducing arrival rates. Morning fog typically burns off by midday, making afternoon flights more reliable during fog season.</p>
+    <h3>Marine Layer (May–Jun)</h3>
+    <p>"May Gray" and "June Gloom" bring persistent morning fog and low clouds that can reduce visibility below IFR minimums. When marine layer is thick, LAX switches to instrument approaches which reduce throughput from 4 runways to 2, causing cascading delays. Conditions typically burn off by midday.</p>
 
-    <h3>Santa Ana Winds (Oct–Mar)</h3>
-    <p>Hot, dry offshore winds can reach 50+ mph in extreme events, causing turbulence on approach and occasionally triggering runway configuration changes. Severe Santa Ana events are rare but can significantly disrupt operations.</p>
+    <h3>Santa Ana Winds (Oct–Jan)</h3>
+    <p>Hot, dry Santa Ana winds can force runway configuration changes and create turbulent approach conditions. While not a major delay driver, they occasionally require go-arounds and diversions, especially for regional jets.</p>
 
-    <h3>Volume and Ground Congestion</h3>
-    <p>LAX is one of the busiest airports in the world by passenger volume. Taxi times can be lengthy, and the U-shaped terminal layout creates surface congestion. Terminal construction related to the Automated People Mover and other modernization projects may add ground delays through 2028.</p>
+    <h3>Year-Round: Airspace Congestion</h3>
+    <p>LAX shares the LA Basin airspace with Burbank (BUR), Long Beach (LGB), Orange County (SNA), and Ontario (ONT). This creates one of the most complex approach corridors in the U.S. Late arrivals from East Coast airports — especially weather-delayed EWR and JFK flights — ripple into LAX evening operations.</p>
 
     <div class="highlight-box">
-      <strong>Tip:</strong> LAX generally has good on-time performance compared to East Coast airports. Morning fog during May–June is the main weather concern. Early afternoon departures typically have the best reliability.
+      <strong>Tip:</strong> Afternoon departures from LAX typically have the best on-time performance. Morning marine layer affects early flights in May–June, and East Coast ripple effects hit evening departures year-round.
     </div>
   </div>
 
   <!-- Starlink -->
   <div class="section">
     <h2>Starlink WiFi at LAX</h2>
-    <p>United Airlines is actively equipping its fleet with <strong>Starlink satellite internet</strong> — the fastest WiFi ever offered on a commercial airline. LAX-based narrowbody and widebody aircraft, including 737 MAX 8, 737 MAX 9, and A321neo, are among the first aircraft types receiving Starlink installations.</p>
+    <p>United Airlines is actively equipping its fleet with <strong>Starlink satellite internet</strong> — the fastest WiFi ever offered on a commercial airline. LAX sees a diverse mix of United aircraft including widebodies (777, 787 Dreamliner) on Pacific routes and narrowbodies (737 MAX, A321neo) on domestic flights, with the narrowbody fleet among the first to receive Starlink installations.</p>
     <p>Use <a href="/?tab=fleet&filter=starlink">The Blue Board's Fleet tab</a> to check if your specific aircraft has Starlink. You can search by tail number, flight number, or aircraft type.</p>
 
     <div class="highlight-box">
@@ -237,10 +251,10 @@ a:hover{text-decoration:underline}
     <p>Check the live status panel at the top of this page for current on-time performance, delay counts, and cancellations. For flight-level detail, <a href="/?hub=lax">open LAX on The Blue Board</a> to see every flight in real time.</p>
 
     <h3>What terminal is United at LAX?</h3>
-    <p>United operates from Terminals 7 and 8. Terminal 7 has the United Club lounge and handles most domestic flights. Terminal 8 serves additional domestic and select international routes.</p>
+    <p>United Airlines operates from Terminals 7 and 8 on the south side of the LAX horseshoe. Both terminals have United Club lounges. Terminals 7 and 8 are connected airside, so you can move between them without re-clearing security.</p>
 
     <h3>How many United flights depart from LAX daily?</h3>
-    <p>Approximately 200 daily departures. LAX is a United focus city rather than a full hub, but it plays a critical role as the airline's Pacific gateway.</p>
+    <p>Approximately 200 daily departures. LAX is a focus city rather than a full hub, but it's United's most important Pacific gateway with widebody service to Asia, Australia, and extensive Hawaii frequencies.</p>
 
     <h3>Which United planes at LAX have Starlink WiFi?</h3>
     <p>Starlink is being installed on narrowbody aircraft first (737 MAX, A321neo). Check <a href="/?tab=fleet&filter=starlink">the Fleet tab</a> for the latest count and specific tail numbers.</p>
@@ -270,8 +284,6 @@ a:hover{text-decoration:underline}
     <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Support Server Costs</a>
     <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
   </div>
-</div>
-  <div>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer">FAA</a> · Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer">Jonah Berg</a></div>
 </div>
 
 <!-- Live Data Script -->
