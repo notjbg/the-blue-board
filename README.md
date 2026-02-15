@@ -39,6 +39,9 @@ Live fleet utilization by aircraft type (airborne vs. total), flight phase distr
 ### 🔍 Flight Search
 Look up any UA flight number from the header search bar. Returns live position, route, aircraft details, and scheduled/actual times via the official Flightradar24 API.
 
+### 🏢 [Hub Pages](https://theblueboard.co/hubs/ord)
+Dedicated SEO-rich pages for each of United's 7 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX). Each page includes live flight counts, hub overview with terminal/concourse details, United Club and Polaris lounge locations, delay pattern analysis by season, Starlink WiFi info, construction alerts with links to official project pages, structured FAQ, and FAQPage + Airport schema markup for search engines. Jump navigation and scroll hints guide visitors through the content.
+
 ### More
 - **Deep-link hashes** — Share direct links to any tab (`#live`, `#schedule`, `#fleet`, `#weather`, `#stats`)
 - **Flight watch** — Pin a flight and get browser push notifications on status changes
@@ -133,12 +136,20 @@ Look up any UA flight number from the header search bar. Returns live position, 
 ```
 ├── public/
 │   ├── index.html       # The entire dashboard (single file)
+│   ├── hubs/
+│   │   ├── ord.html     # Chicago O'Hare hub page
+│   │   ├── den.html     # Denver International hub page
+│   │   ├── ewr.html     # Newark Liberty hub page
+│   │   ├── iah.html     # Houston Intercontinental hub page
+│   │   ├── sfo.html     # San Francisco International hub page
+│   │   ├── iad.html     # Washington Dulles hub page
+│   │   └── lax.html     # Los Angeles International hub page
 │   ├── data/
-│   │   ├── fleet.json   # Fleet database (1,175+ aircraft)
-│   │   └── starlink.json # Starlink-equipped aircraft (258+)
+│   │   ├── fleet.json   # Fleet database
+│   │   └── starlink.json # Starlink-equipped aircraft
 │   ├── og-image.png     # Social media preview image (1200×630)
-│   ├── robots.txt       # Search engine directives
-│   └── sitemap.xml      # Sitemap
+│   ├── robots.txt       # Search engine directives (blocks /api/ and /data/ from crawlers)
+│   └── sitemap.xml      # Sitemap (homepage + all hub pages)
 ├── api/
 │   ├── schedule.js      # FR24 schedule proxy (cached, rate-limited, UA-filtered)
 │   ├── irrops.js        # Server-side IRROPS aggregation (all hubs, 5min cache)
