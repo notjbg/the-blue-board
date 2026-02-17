@@ -3305,7 +3305,8 @@ function renderScheduleStats(filtered) {
     const schedT = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
     const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
     const actT = realT || (schedCurrentDir === 'departures' ? fl.time?.estimated?.departure : fl.time?.estimated?.arrival);
-    if (schedT && actT && actT > schedT + 1800) depDelayed++;
+    if (!schedT || !actT) return; // skip flights without usable timestamps
+    if (actT > schedT + 1800) depDelayed++;
     else depOnTime++;
   });
 
@@ -3464,15 +3465,17 @@ function updateHubHealth() {
       const status = classifySchedStatus(fl);
       const hasOp = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
       if (!hasOp) return;
+      const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival;
+      const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
+      if (!realT || !schedT) return; // skip flights without real timestamps
       operated++;
-      const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival || 0;
-      const realT = fl.time?.real?.departure || fl.time?.real?.arrival || fl.time?.estimated?.departure || fl.time?.estimated?.arrival || 0;
-      if (!realT) { operated--; return; }
-      if (realT && schedT && realT <= schedT + 1800) onTime++;
+      if (realT <= schedT + 1800) onTime++;
     });
-    if (operated > 0) {
+    if (operated >= 5) {
       hubHealthData[hub] = Math.round((onTime / operated) * 100);
       hasData = true;
+    } else {
+      delete hubHealthData[hub]; // clear stale data when sample too small
     }
   }
 
@@ -3638,7 +3641,8 @@ function renderIrropsFromAPI(data) {
       } else {
         // OTP = on-time flights / operated flights (within 30 min of schedule)
         const operated = m.operated || (m.total - m.cancellations);
-        if (!operated) {
+        if (!operated || operated < 5) {
+          delete hubHealthData[hub]; // clear stale data when sample too small
           html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
