@@ -3,8 +3,6 @@
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://theblueboard.co';
-
 let cached = null;
 let cacheExpires = 0;
 let fetching = null; // dedup concurrent requests

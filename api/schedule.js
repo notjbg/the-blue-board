@@ -4,8 +4,6 @@ const MAX_CACHE_SIZE = 200;
 let lastFR24Request = 0;
 const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between FR24 requests
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://theblueboard.co';
-
 function cacheGet(key) {
   const entry = cache.get(key);
   if (!entry) return null;

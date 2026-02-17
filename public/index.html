@@ -1,5 +1,28 @@
 <!DOCTYPE html>
 <html lang="en">
+<!--
+  ═══════════════════════════════════════════════════════════════
+  HUB REGISTRY — Canonical list of all United Airlines hubs
+  ═══════════════════════════════════════════════════════════════
+  IATA  ICAO   Timezone              City
+  ORD   KORD   America/Chicago       Chicago O'Hare
+  DEN   KDEN   America/Denver        Denver International
+  IAH   KIAH   America/Chicago       Houston Intercontinental
+  EWR   KEWR   America/New_York      Newark Liberty
+  SFO   KSFO   America/Los_Angeles   San Francisco Int'l
+  IAD   KIAD   America/New_York      Washington Dulles
+  LAX   KLAX   America/Los_Angeles   Los Angeles Int'l
+  NRT   RJAA   Asia/Tokyo            Tokyo Narita
+  GUM   PGUM   Pacific/Guam          Guam Int'l
+
+  When adding/removing a hub, update ALL of these locations:
+    public/index.html  — AIRPORTS (hub:true), SCHED_HUB_TZ, hubCodes arrays,
+                         hub health bar HTML, SEO metadata
+    api/irrops.js      — HUBS array
+    public/sitemap.xml — hub page entries
+    public/hubs/       — individual hub HTML pages + cross-nav
+  ═══════════════════════════════════════════════════════════════
+-->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -374,14 +397,14 @@ tbody td{padding:5px 8px;white-space:nowrap}
 
 /* ═══ MOBILE RESPONSIVE ═══ */
 @media(max-width:768px){
-  body{font-size:13px;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
+  body{font-size:14px;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
   /* ── Compact Header ── */
   #header{flex-direction:row;gap:0;padding:0 12px;height:44px;text-align:left;align-items:center}
-  #header h1{font-size:13px;letter-spacing:1px;white-space:nowrap}
+  #header h1{font-size:14px;letter-spacing:1px;white-space:nowrap}
   #header h1 span[style]{display:none}
   #global-search-wrap{position:absolute!important;top:44px;left:0;right:0;flex:none!important;order:0;display:none;padding:8px 12px;background:var(--ua-dark);border-bottom:1px solid var(--ua-border);z-index:999}
   #global-search-wrap.mobile-search-open{display:block!important}
-  #header-right{font-size:10px;gap:8px;margin-left:auto}
+  #header-right{font-size:14px;gap:8px;margin-left:auto}
   #header-right #countdown,#header-right #clock{display:none}
   #mobile-search-toggle{display:flex!important}
   /* ── Hide top tab bar, show bottom nav ── */
@@ -400,16 +423,16 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
   #tab-live #controls{top:6px;right:6px;gap:3px}
-  .ctrl-btn{padding:8px 12px;font-size:11px;min-height:44px}
+  .ctrl-btn{padding:8px 12px;font-size:14px;min-height:44px}
   #stats-bar{padding:8px 10px;gap:6px;justify-content:center;display:grid!important;grid-template-columns:repeat(3,1fr)}
   .stat-sep{display:none}
   .stat-item{min-width:60px;text-align:center;flex-direction:column;gap:1px}
   .stat-val{font-size:14px}
-  .stat-label{font-size:9px}
+  .stat-label{font-size:14px}
   /* Schedule tab mobile */
   #tab-schedule .card:first-child > div{flex-direction:column;gap:8px}
   #tab-schedule .card:first-child > div > div{flex-direction:column;gap:6px;width:100%}
-  #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:13px!important;padding:8px 10px!important}
+  #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:14px!important;padding:8px 10px!important}
   #tab-schedule button{min-height:44px}
   #sched-stats.metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
   .fleet-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -418,7 +441,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-fleet{padding:10px}
   .fleet-chips{grid-template-columns:repeat(3,1fr)}
   .fleet-controls{flex-direction:column}
-  .fleet-controls select,.fleet-controls input{width:100%;min-height:44px;font-size:13px}
+  .fleet-controls select,.fleet-controls input{width:100%;min-height:44px;font-size:14px}
   .two-col{grid-template-columns:1fr}
   /* Weather tab mobile */
   #radar-map{height:300px}
@@ -427,7 +450,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   .metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
   .metric-val{font-size:22px}
   /* General touch targets */
-  .sched-day-btn{min-height:44px;padding:8px 14px;font-size:12px}
+  .sched-day-btn{min-height:44px;padding:8px 14px;font-size:14px}
   .hub-row{padding:10px 12px}
   .phase-row{padding:8px 6px}
   .search-result{padding:10px 12px}
@@ -436,7 +459,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 }
 /* ── Bottom Nav (hidden on desktop) ── */
 #mobile-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--ua-panel);border-top:1px solid var(--ua-border);z-index:9998;align-items:stretch;justify-content:space-around}
-#mobile-bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:var(--ua-muted);font-family:var(--mono);font-size:9px;cursor:pointer;padding:4px 0;transition:color .2s}
+#mobile-bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:var(--ua-muted);font-family:var(--mono);font-size:11px;cursor:pointer;padding:4px 0;transition:color .2s;min-height:44px}
 #mobile-bottom-nav button .bnav-icon{font-size:18px;line-height:1}
 #mobile-bottom-nav button.active{color:var(--ua-blue)}
 #mobile-bottom-nav button.active .bnav-label{color:var(--ua-blue)}
@@ -567,7 +590,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <button id="onboarding-dismiss">Let's Fly the Friendly Skies ✈️</button>
   </div>
 </div>
-<div id="offline-banner">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
+<div id="offline-banner" aria-live="assertive" role="alert">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
 <noscript>
 <div style="background:#111827;color:#e2e8f0;padding:40px;text-align:center;font-family:monospace">
 <h1>The Blue Board — United Airlines Flight Tracker & Live Status</h1>
@@ -582,10 +605,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <!-- HUB HEALTH BAR -->
-<div id="hub-health-bar" title="On-Time Performance: % of operated flights departing within 30 min of schedule. 🟢 >70% · 🟡 50-70% · 🔴 <50%"><span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Loading…</span></div>
+<div id="hub-health-bar" aria-live="polite" title="On-Time Performance: % of operated flights departing within 30 min of schedule. 🟢 >70% · 🟡 50-70% · 🔴 <50%"><span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Loading…</span></div>
 
 <!-- WATCH NOTIFICATION BANNER -->
-<div id="watch-notification"><span id="wn-text"></span><button class="wn-dismiss" data-action="dismiss-watch-notification">Dismiss</button></div>
+<div id="watch-notification" aria-live="polite" role="status"><span id="wn-text"></span><button class="wn-dismiss" data-action="dismiss-watch-notification">Dismiss</button></div>
 
 <!-- HEADER -->
 <div id="header">
@@ -606,12 +629,12 @@ tbody td{padding:5px 8px;white-space:nowrap}
 
 <!-- TAB BAR -->
 <nav id="tab-bar" aria-label="Dashboard navigation" role="tablist">
-  <button class="tab-btn active" data-tab="tab-live" role="tab" aria-selected="true" aria-controls="tab-live"><span aria-hidden="true">📡</span> LIVE OPS</button>
-  <button class="tab-btn" data-tab="tab-schedule" role="tab" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
-  <button class="tab-btn" data-tab="tab-fleet" role="tab" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
-  <button class="tab-btn" data-tab="tab-weather" role="tab" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> DELAYS · WEATHER · HUBS</button>
-  <button class="tab-btn" data-tab="tab-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" aria-label="Stats"><span aria-hidden="true">📊</span> STATS</button>
-  <button class="tab-btn" data-tab="tab-sources" role="tab" aria-selected="false" aria-controls="tab-sources"><span aria-hidden="true">ℹ️</span> SOURCES</button>
+  <button class="tab-btn active" data-tab="tab-live" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-live"><span aria-hidden="true">📡</span> LIVE OPS</button>
+  <button class="tab-btn" data-tab="tab-schedule" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
+  <button class="tab-btn" data-tab="tab-fleet" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
+  <button class="tab-btn" data-tab="tab-weather" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-weather"><span aria-hidden="true">🌦</span> DELAYS · WEATHER · HUBS</button>
+  <button class="tab-btn" data-tab="tab-analytics" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-analytics" aria-label="Stats"><span aria-hidden="true">📊</span> STATS</button>
+  <button class="tab-btn" data-tab="tab-sources" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-sources"><span aria-hidden="true">ℹ️</span> SOURCES</button>
 </nav>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -652,7 +675,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       </div>
     </div>
   </div>
-  <div id="stats-bar">
+  <div id="stats-bar" aria-live="polite">
     <div class="stat-item"><span class="stat-val" id="st-airborne">--</span><span class="stat-label">Airborne</span></div>
     <span class="stat-sep">│</span>
     <div class="stat-item"><span class="stat-val" id="st-ground">--</span><span class="stat-label">Ground</span></div>
@@ -837,7 +860,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <!-- IRROPS Monitor -->
   <div id="irrops-section">
     <h3>⚠️ IRROPS Monitor</h3>
-    <div id="irrops-content"><div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div></div>
+    <div id="irrops-content" aria-live="polite"><div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div></div>
   </div>
   <div class="hub-cards" id="hub-cards"></div>
 </div>
@@ -969,6 +992,22 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 
 <script>
+
+// ═══════════════════════════════════════════════
+// HUB LIST — CANONICAL REFERENCE
+// All 9 United hubs: ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM
+// When adding/removing a hub, update ALL of these locations:
+//   1. AIRPORTS array (hub:true entries) — ~line 1010
+//   2. hubCodes in updateHubHealth() — search "hubCodes"
+//   3. SCHED_HUB_TZ — search "SCHED_HUB_TZ"
+//   4. preloadHubs in schedule init — search "preloadHubs"
+//   5. hubs arrays in hub health bar render — search "const hubs = ["
+//   6. HUBS in api/irrops.js
+//   7. Hub health bar HTML (#hub-health-bar)
+//   8. public/sitemap.xml
+//   9. public/hubs/*.html (individual hub pages + nav in each)
+//  10. Schema/SEO in <head> of this file
+// ═══════════════════════════════════════════════
 
 // ═══ HTML SANITIZATION ═══
 function escapeHtml(str) {
@@ -1197,12 +1236,13 @@ const TAB_HASHES = {'tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#
 const HASH_TABS = Object.fromEntries(Object.entries(TAB_HASHES).map(([k,v])=>[v,k]));
 
 function switchToTab(tabId, updateHash) {
-  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); b.setAttribute('tabindex', '-1'); });
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
   if (!btn) return;
   btn.classList.add('active');
   btn.setAttribute('aria-selected', 'true');
+  btn.setAttribute('tabindex', '0');
   document.getElementById(tabId).classList.add('active');
   if (updateHash !== false && TAB_HASHES[tabId]) history.replaceState(null, '', TAB_HASHES[tabId]);
   if (tabId === 'tab-live' && map) map.invalidateSize();
@@ -1214,6 +1254,18 @@ function switchToTab(tabId, updateHash) {
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
+});
+// Keyboard navigation for tabs (arrow keys, Home, End)
+document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
+  const tabs = Array.from(this.querySelectorAll('.tab-btn'));
+  const idx = tabs.indexOf(document.activeElement);
+  if (idx < 0) return;
+  let next = -1;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (idx + 1) % tabs.length;
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (idx - 1 + tabs.length) % tabs.length;
+  else if (e.key === 'Home') next = 0;
+  else if (e.key === 'End') next = tabs.length - 1;
+  if (next >= 0) { e.preventDefault(); tabs[next].focus(); tabs[next].click(); }
 });
 
 // Deep-link hash on load
@@ -1904,7 +1956,7 @@ function updateStats() {
   document.getElementById('st-desc').textContent = descending;
   document.getElementById('st-avgalt').textContent = altCount ? Math.round(totalAlt / altCount).toLocaleString() + 'ft' : '--';
   document.getElementById('st-avgspd').textContent = spdCount ? Math.round(totalSpd / spdCount) + 'kts' : '--';
-  document.getElementById('st-util').textContent = Math.round((airborne / FLEET_DB.length) * 100) + '%' + filterLabel;
+  document.getElementById('st-util').textContent = FLEET_DB.length ? Math.round((airborne / FLEET_DB.length) * 100) + '%' + filterLabel : '--';
   document.getElementById('st-starlink').textContent = starlinkAirborne;
 
   // Phase stats sidebar (always show total counts from allFlights, but make clickable)
@@ -2479,7 +2531,7 @@ function updateAnalytics() {
     if ((ac && STARLINK_TAILS.has(ac.r)) || (f.reg && STARLINK_TAILS.has(f.reg))) starlinkAirborne++;
   });
   const starlinkPct = airborne > 0 ? Math.round((starlinkAirborne / airborne) * 100) : 0;
-  const utilPct = Math.round((airborne / FLEET_DB.length) * 100);
+  const utilPct = FLEET_DB.length ? Math.round((airborne / FLEET_DB.length) * 100) : 0;
 
   document.getElementById('analytics-metrics').innerHTML = [
     { val: airborne, label: 'Flights Airborne' },
@@ -2815,8 +2867,6 @@ function explainFAAStatus(airportCode, delays, rawData) {
 }
 
 // ═══ SCHEDULE TAB ═══
-const SCHED_HUBS = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
-const SCHED_HUB_ICAO = {ORD:'KORD',DEN:'KDEN',IAH:'KIAH',EWR:'KEWR',SFO:'KSFO',IAD:'KIAD',LAX:'KLAX',NRT:'RJAA',GUM:'PGUM'};
 const SCHED_HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
 let schedCache = {}; // key: "hub-dir-day-page"
 let schedAllFlights = []; // current filtered UA flights
