@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blueboard-v3';
+const CACHE_NAME = 'blueboard-v4';
 const MAX_CACHE_ENTRIES = 100;
 const PRECACHE = [
   '/',
@@ -37,10 +37,10 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(e.request.url);
 
-  // HTML navigations: network-first (always get fresh UI after deploys)
+  // HTML navigations: network-first (bypass browser HTTP cache to get fresh deploys)
   if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-cache' })
         .then(res => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(async cache => {
@@ -54,10 +54,10 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // API/data calls: network-first
+  // API/data calls: network-first (bypass HTTP cache for fresh data)
   if (url.origin !== location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/data/')) {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-cache' })
         .then(res => {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(async cache => {
