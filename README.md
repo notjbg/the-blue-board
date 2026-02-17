@@ -22,10 +22,10 @@ The Blue Board is a fan-built operations dashboard that lets you see United Airl
 Real-time map tracking 600+ United flights, updated every 30 seconds. Filter by hub, toggle longhaul routes, overlay NEXRAD weather radar. Hub status sidebar shows departure/arrival counts and identifies the busiest hub. Search any flight by number, tail, or route. Great circle route lines show flight paths with city names.
 
 ### ⚠️ IRROPS Monitor
-Server-side disruption scoring across all 7 hubs — cancellations, delays (30m/60m), diversions, and FAA ground stops. Preloaded automatically on page load with 5-minute server-side caching. No manual trigger needed.
+Server-side disruption scoring across all 9 hubs — cancellations, delays (30m/60m), diversions, and FAA ground stops. Preloaded automatically on page load with 5-minute server-side caching. No manual trigger needed.
 
 ### 📅 [Schedule](https://theblueboard.co#schedule)
-Departure and arrival boards for all 7 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX). Filter by status or aircraft type. Equipment swap detection flags when a plane type changes. On-time performance stats. All times in airport-local timezone.
+Departure and arrival boards for all 9 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM). Filter by status or aircraft type. Equipment swap detection flags when a plane type changes. On-time performance stats. All times in airport-local timezone.
 
 ### ✈️ [Fleet](https://theblueboard.co#fleet)
 Complete database of 1,175+ mainline aircraft — searchable and sortable by type, registration, seat config, WiFi, and IFE. Starlink tracker for 258+ equipped aircraft with sortable columns and filters by fleet, type, and operator. Live fleet status correlates airborne flights with the database.
@@ -40,12 +40,12 @@ Live fleet utilization by aircraft type (airborne vs. total), flight phase distr
 Look up any UA flight number from the header search bar. Returns live position, route, aircraft details, and scheduled/actual times via the official Flightradar24 API.
 
 ### 🏢 [Hub Pages](https://theblueboard.co/hubs/ord)
-Dedicated SEO-rich pages for each of United's 7 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX). Each page includes live flight counts, hub overview with terminal/concourse details, United Club and Polaris lounge locations, delay pattern analysis by season, Starlink WiFi info, construction alerts with links to official project pages, structured FAQ, and FAQPage + Airport schema markup for search engines. Jump navigation and scroll hints guide visitors through the content.
+Dedicated SEO-rich pages for each of United's 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM). Each page includes live flight counts, hub overview with terminal/concourse details, United Club and Polaris lounge locations, delay pattern analysis by season, Starlink WiFi info, construction alerts with links to official project pages, structured FAQ, and FAQPage + Airport schema markup for search engines. Jump navigation and scroll hints guide visitors through the content.
 
 ### More
 - **Deep-link hashes** — Share direct links to any tab (`#live`, `#schedule`, `#fleet`, `#weather`, `#stats`)
 - **Flight watch** — Pin a flight and get browser push notifications on status changes
-- **Hub health bar** — At-a-glance delay severity across all 7 hubs
+- **Hub health bar** — At-a-glance delay severity across all 9 hubs
 - **Equipment swap alerts** — Badges when scheduled aircraft type changes
 - **Mobile responsive** — Full touch-optimized layout for phones and tablets
 - **Click the title** — "THE BLUE BOARD" header always takes you back to Live Ops
@@ -91,7 +91,7 @@ Dedicated SEO-rich pages for each of United's 7 hubs (ORD, DEN, IAH, EWR, SFO, I
 - **Caching** — Schedule data cached 60s (live) / 5min (historical), IRROPS cached 5min, reducing upstream load by 90%+
 - **UA filtering** — Server filters to United flights only, shrinking payloads dramatically
 - **CORS** — Some sources (AWC, FAA) don't allow direct browser requests
-- **Batching** — METAR data for all 7 hubs fetched in a single request
+- **Batching** — METAR data for all 9 hubs fetched in a single request
 
 ---
 
