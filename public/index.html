@@ -671,6 +671,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
         <button class="ctrl-btn" data-action="toggle-hubs" id="btn-hubs">🏢 Hubs</button>
         <button class="ctrl-btn" data-action="toggle-longhaul" id="btn-longhaul">🌍 Long-haul</button>
         <button class="ctrl-btn" data-action="toggle-weather" id="btn-wx">🌧 Weather</button>
+        <button class="ctrl-btn" data-action="view-pacific" id="btn-pacific">🌏 Pacific</button>
         <button class="ctrl-btn" data-action="refresh-flights" id="btn-refresh">🔄 Refresh</button>
       </div>
     </div>
@@ -1584,6 +1585,16 @@ function toggleWeather() {
   } else if (!showWeather && wxLayer) {
     map.removeLayer(wxLayer); wxLayer = null;
   }
+}
+
+let pacificView = false;
+const US_VIEW = { center: [39, -98], zoom: 4 };
+const PACIFIC_VIEW = { center: [25, 145], zoom: 4 };
+function togglePacific() {
+  pacificView = !pacificView;
+  document.getElementById('btn-pacific').classList.toggle('active');
+  const view = pacificView ? PACIFIC_VIEW : US_VIEW;
+  map.flyTo(view.center, view.zoom, { duration: 1.2 });
 }
 
 // ═══ FLIGHT DATA (FlightRadar24) ═══
@@ -3886,6 +3897,9 @@ document.addEventListener('click', function(e) {
       break;
     case 'toggle-weather':
       toggleWeather();
+      break;
+    case 'view-pacific':
+      togglePacific();
       break;
     case 'refresh-flights':
       refreshFlights();
