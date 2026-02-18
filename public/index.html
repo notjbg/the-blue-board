@@ -4044,7 +4044,15 @@ function hideDisclaimer() {
       </ul>
       <p style="margin-bottom:12px"><strong>Data Accuracy:</strong> All flight data is provided for informational purposes only and may be delayed, incomplete, or inaccurate. <strong style="color:var(--ua-red)">Do not use this dashboard for operational or safety-critical decisions.</strong> Always verify flight status directly with <a href="https://www.united.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">united.com</a> or your airline.</p>
       <p style="margin-bottom:12px"><strong>Open Source:</strong> This project is open source. <a href="https://github.com/notjbg/the-blue-board" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">View on GitHub →</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">Follow on X →</a></p>
-      <p style="margin-bottom:12px"><strong>Support:</strong> Independently built and maintained. 100% of donations go to server & API costs. <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">Help keep Blue Board free →</a> or <a href="https://github.com/notjbg/the-blue-board/issues" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">suggest a feature →</a></p>
+      <p style="margin-bottom:12px"><strong>Support:</strong> Built by a United flyer, not a corporation. If Blue Board saved you a headache today, consider <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">supporting our site ☕</a>, <a href="https://buymeacoffee.com/notjbg/membership" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">become a monthly supporter →</a>, or <a href="https://github.com/notjbg/the-blue-board/issues" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">suggest a feature →</a></p>
+      <!-- Supporters Wall — update periodically from BMAC CSV exports -->
+      <div style="margin-bottom:12px">
+        <p style="margin-bottom:8px"><strong>✈️ Supporters</strong></p>
+        <div style="display:flex;flex-wrap:wrap;gap:4px 8px;font-size:10px;color:var(--ua-muted);line-height:1.6">
+          <span>Greeby</span><span>·</span><span>natto</span><span>·</span><span>u/WrldDriftR</span><span>·</span><span>Leo</span><span>·</span><span>FlyerTalk JCG1005</span><span>·</span><span>@paytonwolfee</span><span>·</span><span>@misadventurelab</span><span>·</span><span>@MissLynsey</span><span>·</span><span>Danny</span><span>·</span><span>K2</span><span>·</span><span>James W</span><span>·</span><span>Aaron</span><span>·</span><span>@pconrad0</span><span>·</span><span>Stephen R</span><span>·</span><span>ML</span>
+        </div>
+        <p style="margin-top:6px;font-size:10px;color:var(--ua-muted)">Want to see your name here? <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent)">☕ Buy me a coffee</a></p>
+      </div>
     </div>
     <button data-action="hide-disclaimer" style="margin-top:16px;background:var(--ua-blue);color:white;border:none;padding:8px 24px;font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:4px;width:100%">Got it</button>
   </div>
@@ -4067,7 +4075,7 @@ function hideDisclaimer() {
   </div>
   <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
     <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
-    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">Keep Blue Board Free ✈️</a>
+    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Buy Me a Coffee</a>
     <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
   </div>
 </div>
@@ -4102,7 +4110,7 @@ function hideDisclaimer() {
   // Trigger 1: After 5 minutes of active use
   setTimeout(function() {
     if (!bmacShownThisSession && !bmacDismissed) {
-      showBmacToast('Blue Board is free, ad-free, and community-supported. <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">Help keep it that way →</a>');
+      showBmacToast('Built by a United flyer, not a corporation. If Blue Board saved you a headache today, consider <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">supporting our site ☕</a>');
     }
   }, 5 * 60 * 1000);
 
@@ -4110,7 +4118,7 @@ function hideDisclaimer() {
   document.addEventListener('click', function() {
     bmacInteractions++;
     if (bmacInteractions === 10 && !bmacShownThisSession && !bmacDismissed) {
-      showBmacToast('You\'ve been using Blue Board a lot — <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">help keep it free for everyone ✈️</a>');
+      showBmacToast('You\'re really digging in! 🛫 This dashboard is free, ad-free, and built with love. <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">☕ Support the project</a>');
     }
   });
 
@@ -4120,7 +4128,7 @@ function hideDisclaimer() {
     // Delay slightly so the watch notification shows first
     setTimeout(function() {
       bmacShownThisSession = false; // Allow this special one even if another showed
-      showBmacToast('Your flight ' + escapeHtml(flight) + ' landed! 🎉 Blue Board helped track that one — <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">keep the board running ✈️</a>', 15000);
+      showBmacToast('Your flight ' + escapeHtml(flight) + ' landed! 🎉 If Blue Board helped ease the wait — <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">☕ buy me a coffee</a>', 15000);
     }, 3000);
   };
 
