@@ -233,9 +233,9 @@ export default async function handler(req, res) {
       console.error(`FR24 live error for ${flight}: status=${liveResp.status}`);
     }
 
-    // 2. If no live data, try flight summary (requires time range per SDK docs)
-    if (!flightData) {
-      source = 'summary';
+    // 2. Also try flight summary for departure/arrival times (live endpoint often lacks them)
+    const liveHasTimes = flightData && (flightData.departure?.scheduled || flightData.departure?.actual || flightData.arrival?.scheduled);
+    if (!flightData || !liveHasTimes) {
       const now = new Date();
       const from = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h ago
       const to = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24h ahead
@@ -247,7 +247,18 @@ export default async function handler(req, res) {
       if (summaryResp.ok) {
         const summaryData = await summaryResp.json();
         console.log(`FR24 summary response for ${flight}: status=${summaryResp.status}, entries=${summaryData?.data?.length || 0}`);
-        flightData = normalizeSummaryResponse(summaryData, flight);
+        const summaryFlight = normalizeSummaryResponse(summaryData, flight);
+        if (flightData && summaryFlight) {
+          // Merge: keep live position data, fill in times from summary
+          source = 'live+summary';
+          if (!flightData.departure.scheduled && summaryFlight.departure.scheduled) flightData.departure.scheduled = summaryFlight.departure.scheduled;
+          if (!flightData.departure.actual && summaryFlight.departure.actual) flightData.departure.actual = summaryFlight.departure.actual;
+          if (!flightData.arrival.scheduled && summaryFlight.arrival.scheduled) flightData.arrival.scheduled = summaryFlight.arrival.scheduled;
+          if (!flightData.arrival.estimated && summaryFlight.arrival.estimated) flightData.arrival.estimated = summaryFlight.arrival.estimated;
+        } else if (!flightData && summaryFlight) {
+          source = 'summary';
+          flightData = summaryFlight;
+        }
       } else {
         await summaryResp.text().catch(() => '');
         console.error(`FR24 summary error for ${flight}: status=${summaryResp.status}`);
