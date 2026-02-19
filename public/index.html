@@ -265,6 +265,14 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .starlink-badge{background:rgba(34,197,94,.2);color:var(--ua-green);padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700}
 .squawk-alert{background:var(--ua-red);color:#fff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.5}}
+.popup-times{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:8px 0;padding:8px;background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.15);border-radius:4px}
+.popup-times .popup-field-value{font-size:11px}
+.popup-times .time-delta{font-size:9px;font-weight:600;margin-left:4px}
+.popup-times .time-delta.late{color:#ef4444}
+.popup-times .time-delta.early{color:#22c55e}
+.popup-times .time-delta.ontime{color:var(--ua-muted)}
+.popup-times-loading{font-size:10px;color:var(--ua-muted);text-align:center;padding:6px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .popup-links{display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--ua-border)}
 .popup-links a{color:var(--ua-accent);text-decoration:none;font-size:10px;opacity:.7;transition:opacity .2s}
 .popup-links a:hover{opacity:1}
@@ -1846,6 +1854,9 @@ function showFlightPopup(f, marker) {
     if (acInfo.length) html += `<div style="font-size:10px;color:var(--ua-muted);margin:4px 0">${escapeHtml(acInfo.join(' · '))} (not in mainline fleet DB — likely United Express)</div>`;
   }
 
+  // Departure/Arrival times — placeholder, filled async
+  html += `<div id="popup-times-${escapeHtml(f.icao24)}" class="popup-times-loading">✈️ Loading departure & arrival times…</div>`;
+
   html += `<div class="popup-links">`;
   const fltLink = flightNum.replace(/^UA/, '');
   if (fltLink) html += `<a href="https://flightaware.com/live/flight/UAL${encodeURIComponent(fltLink)}" target="_blank" rel="noopener noreferrer">FlightAware ↗</a>`;
@@ -1861,6 +1872,86 @@ function showFlightPopup(f, marker) {
 
   if (marker.getPopup()) marker.unbindPopup();
   marker.bindPopup(html, { maxWidth: 320, closeButton: true }).openPopup();
+
+  // Async fetch departure/arrival times from FR24 detail API
+  (function fetchFlightTimes() {
+    const timesId = 'popup-times-' + f.icao24;
+    const fltQuery = f.flightIATA || f.callsign || '';
+    if (!fltQuery) {
+      const el = document.getElementById(timesId);
+      if (el) el.style.display = 'none';
+      return;
+    }
+    fetch('/api/fr24-flight?flight=' + encodeURIComponent(fltQuery))
+      .then(r => r.json())
+      .then(data => {
+        const el = document.getElementById(timesId);
+        if (!el) return; // popup closed
+        if (!data.success || !data.flight) { el.style.display = 'none'; return; }
+        const fl = data.flight;
+        const dep = fl.departure || {};
+        const arr = fl.arrival || {};
+
+        function fmtTime(iso) {
+          if (!iso) return null;
+          try {
+            const d = new Date(iso);
+            if (isNaN(d)) return null;
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+          } catch(e) { return null; }
+        }
+        function fmtTimeFull(iso) {
+          if (!iso) return null;
+          try {
+            const d = new Date(iso);
+            if (isNaN(d)) return null;
+            return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' });
+          } catch(e) { return null; }
+        }
+        function deltaHtml(sched, actual) {
+          if (!sched || !actual) return '';
+          try {
+            const diff = Math.round((new Date(actual) - new Date(sched)) / 60000);
+            if (isNaN(diff)) return '';
+            if (Math.abs(diff) <= 5) return '<span class="time-delta ontime">On time</span>';
+            if (diff > 0) return '<span class="time-delta late">+' + diff + 'm</span>';
+            return '<span class="time-delta early">' + diff + 'm</span>';
+          } catch(e) { return ''; }
+        }
+
+        const depSched = fmtTime(dep.scheduled);
+        const depActual = fmtTime(dep.actual);
+        const arrSched = fmtTimeFull(arr.scheduled);
+        const arrEst = fmtTimeFull(arr.estimated);
+
+        if (!depSched && !depActual && !arrSched && !arrEst) { el.style.display = 'none'; return; }
+
+        let h = '<div class="popup-times">';
+        h += '<div class="popup-field"><span class="popup-field-label">Departure</span><span class="popup-field-value">';
+        if (depActual) h += depActual + deltaHtml(dep.scheduled, dep.actual);
+        else if (depSched) h += depSched + ' <span style="font-size:9px;color:var(--ua-muted)">(sched)</span>';
+        else h += 'N/A';
+        h += '</span>';
+        if (depActual && depSched) h += '<span style="font-size:9px;color:var(--ua-muted)">Sched ' + depSched + '</span>';
+        h += '</div>';
+
+        h += '<div class="popup-field"><span class="popup-field-label">Arrival</span><span class="popup-field-value">';
+        if (arrEst) h += arrEst + deltaHtml(arr.scheduled, arr.estimated);
+        else if (arrSched) h += arrSched + ' <span style="font-size:9px;color:var(--ua-muted)">(sched)</span>';
+        else h += 'N/A';
+        h += '</span>';
+        if (arrEst && arrSched) h += '<span style="font-size:9px;color:var(--ua-muted)">Sched ' + fmtTimeFull(arr.scheduled) + '</span>';
+        h += '</div>';
+
+        h += '</div>';
+        el.className = '';
+        el.innerHTML = h;
+      })
+      .catch(() => {
+        const el = document.getElementById(timesId);
+        if (el) el.style.display = 'none';
+      });
+  })();
 
   // Draw great circle route lines with traveled/remaining segments + endpoint markers
   {
