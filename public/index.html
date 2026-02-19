@@ -1957,7 +1957,8 @@ function showFlightPopup(f, marker) {
           h += fmtTimeInTz(depSched, orig.tz);
         }
         h += '</span>';
-        if ((depActual || depEst) && depSched) {
+        const depDiff = deltaMin(depSched, depActual || depEst);
+        if ((depActual || depEst) && depSched && depDiff !== null && Math.abs(depDiff) > 5) {
           h += '<span style="font-size:9px;color:var(--ua-muted)">Sched ' + fmtTimeInTz(depSched, orig.tz) + '</span>';
         }
         h += '</div>';
@@ -1972,7 +1973,8 @@ function showFlightPopup(f, marker) {
           h += fmtTimeWithTz(arrSched, dest.tz);
         }
         h += '</span>';
-        if ((arrActual || arrEst) && arrSched) {
+        const arrDiff = deltaMin(arrSched, arrActual || arrEst);
+        if ((arrActual || arrEst) && arrSched && arrDiff !== null && Math.abs(arrDiff) > 5) {
           h += '<span style="font-size:9px;color:var(--ua-muted)">Sched ' + fmtTimeWithTz(arrSched, dest.tz) + '</span>';
         }
         h += '</div>';
