@@ -5,18 +5,18 @@
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 const HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes — hub health doesn't need real-time
-const INTER_HUB_DELAY = 2500; // ms between hub fetches to avoid rate limiting
-const INTER_PAGE_DELAY = 1200; // ms between pages within a hub
+const INTER_HUB_DELAY = 1500; // ms between hub fetches to avoid rate limiting
+const INTER_PAGE_DELAY = 800; // ms between pages within a hub
 let cached = null;
 let cacheExpires = 0;
 let fetching = null;
 // Persistent per-hub cache — survives full refresh failures
 let hubCache = {};
 
-async function rateLimitedFetch(url, retries = 2) {
+async function rateLimitedFetch(url, retries = 1) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       const resp = await fetch(url, {
         signal: controller.signal,
@@ -30,9 +30,8 @@ async function rateLimitedFetch(url, retries = 2) {
       });
       clearTimeout(timeout);
       if (resp.status === 429 || resp.status === 403) {
-        // Rate limited — wait longer and retry
         if (attempt < retries) {
-          await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+          await new Promise(r => setTimeout(r, 1500));
           continue;
         }
         return null;
@@ -42,7 +41,7 @@ async function rateLimitedFetch(url, retries = 2) {
     } catch (e) {
       clearTimeout(timeout);
       if (attempt < retries) {
-        await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+        await new Promise(r => setTimeout(r, 1000));
         continue;
       }
       return null;
@@ -57,7 +56,7 @@ async function fetchHubSchedule(hub, timestamp) {
   const allFlights = [];
   let page = 1;
   let totalPages = 1;
-  const MAX_PAGES = 10;
+  const MAX_PAGES = 5; // fewer pages = faster; 500 flights is plenty for OTP
 
   while (page <= totalPages && page <= MAX_PAGES) {
     const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${dir}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
