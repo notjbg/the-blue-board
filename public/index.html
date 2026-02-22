@@ -2288,7 +2288,8 @@ function updateTicker() {
 
   if (allFlights.length > 0) {
     items.push({ text: `${airborne} United flights airborne`, cls: 'info' });
-    items.push({ text: `Fleet: ${FLEET_DB.length} mainline aircraft | ${STARLINK_TAILS.size} Starlink-equipped`, cls: 'info' });
+    items.push({ text: `Fleet: ${FLEET_DB.length} mainline aircraft`, cls: 'info' });
+    items.push({ text: `${STARLINK_TAILS.size} Starlink-equipped aircraft (incl. United Express)`, cls: 'info' });
   }
 
   // Check for emergency squawks
