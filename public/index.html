@@ -33,14 +33,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Blue Board">
-<title>The Blue Board — United Airlines Flight Tracker & Live Status | Delays, Fleet, Schedules</title>
-<meta name="description" content="Track every United Airlines flight in real time. Live flight map, delay alerts, hub status for ORD DEN IAH EWR SFO IAD LAX NRT GUM, Starlink WiFi checker, fleet database, schedules, and weather. Free, independent ops dashboard built for United flyers.">
-<meta name="keywords" content="United Airlines flight status, United flight tracker, United Airlines delays today, UA flight tracker, United Airlines live map, United hub delays, United Airlines ORD delays, United Airlines DEN delays, United Airlines EWR delays, United Airlines IAH delays, United Airlines SFO delays, United Airlines NRT delays, United Airlines GUM delays, is my United flight on time, United Airlines cancellations, United Starlink WiFi, United fleet tracker, United Airlines aircraft, United Airlines schedule, United Airlines weather delays, aviation dashboard, flight tracker map, United Airlines operations, UA delays, United Airlines ground stops, MileagePlus flight tracker, United Airlines disruptions">
+<title>The Blue Board — United Flight Tracker | Live UA Flight Status, Delays & Starlink</title>
+<meta name="description" content="Free United Airlines flight tracker updated every 30 seconds. Track any UA flight status live, check delays at all 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM), see which planes have Starlink WiFi, browse the full fleet database, and monitor weather disruptions. Independent ops dashboard built for United flyers.">
+<meta name="keywords" content="United flight tracker, United Airlines flight status, UA flight status, United Airlines flight tracker, United Airlines delays today, UA flight tracker, United Airlines live map, United hub delays, United Starlink tracker, United Starlink WiFi, United Airlines ORD delays, United Airlines DEN delays, United Airlines EWR delays, United Airlines IAH delays, United Airlines SFO delays, United Airlines NRT delays, United Airlines GUM delays, is my United flight on time, United Airlines cancellations, United fleet tracker, United Airlines aircraft, United Airlines schedule, United Airlines weather delays, UA delays, United Airlines ground stops, United Airlines disruptions, UA flight tracking">
 <meta name="author" content="The Blue Board">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Blue Board — Live United Airlines Flight Tracker & Delay Alerts">
-<meta property="og:description" content="Real-time United Airlines dashboard — track every flight, check delays at all 9 hubs, see if your plane has Starlink WiFi, and monitor weather disruptions. Free and updated every 30 seconds.">
+<meta property="og:title" content="The Blue Board — United Flight Tracker | Live Status, Delays & Starlink WiFi">
+<meta property="og:description" content="Free United Airlines flight tracker — track any UA flight live, check delays at all 9 hubs, see which planes have Starlink WiFi, and monitor disruptions. Updated every 30 seconds.">
 <meta property="og:url" content="https://theblueboard.co">
 <meta property="og:site_name" content="The Blue Board">
 <meta property="og:image" content="https://theblueboard.co/og-image.png">
@@ -48,8 +48,8 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The Blue Board — live United Airlines flight tracker showing 600+ flights on a dark operations map of the United States with hub delay status">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Blue Board — Live United Airlines Flight Tracker & Delay Alerts">
-<meta name="twitter:description" content="Track every United flight in real time. Delays, cancellations, Starlink WiFi, fleet data, hub schedules — free ops dashboard updated every 30 seconds.">
+<meta name="twitter:title" content="The Blue Board — United Flight Tracker | Live Status, Delays & Starlink WiFi">
+<meta name="twitter:description" content="Free United Airlines flight tracker — track any UA flight live, check hub delays, Starlink WiFi status, fleet data, and schedules. Updated every 30 seconds.">
 <meta name="twitter:image" content="https://theblueboard.co/og-image.png">
 <meta name="twitter:site" content="@theblueboard">
 <meta name="twitter:creator" content="@theblueboard">
@@ -65,7 +65,7 @@
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "name": "The Blue Board",
-  "alternateName": ["United Airlines Flight Tracker", "United Airlines Operations Dashboard", "UA Flight Status Tracker"],
+  "alternateName": ["United Flight Tracker", "United Airlines Flight Tracker", "UA Flight Status", "UA Flight Tracker", "United Starlink Tracker", "United Airlines Operations Dashboard"],
   "description": "Track every United Airlines flight in real time. Live flight map updated every 30 seconds, delay and cancellation alerts across all 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM), Starlink WiFi aircraft checker, full fleet database of 1,175+ aircraft, departure and arrival schedules, weather radar, and operational analytics. Free and independent — built for United flyers.",
   "url": "https://theblueboard.co",
   "applicationCategory": "Transportation",
@@ -130,6 +130,14 @@
         "@type": "Answer",
         "text": "The Blue Board is a free, independent real-time operations dashboard for United Airlines flights. It tracks every United flight on a live map, shows delays and cancellations at all hubs, provides fleet and aircraft data, weather conditions, and operational analytics. Built for the United community — not affiliated with United Airlines, Inc."
       }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I track a United Airlines flight?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use The Blue Board's free United flight tracker at theblueboard.co. Enter any UA flight number (e.g., UA 875, UA 1234) in the search bar to see its live position, altitude, speed, route, delay status, and aircraft details. The map updates every 30 seconds with all 600+ United flights in the air."
+      }
     }
   ]
 }
@@ -161,8 +169,11 @@
 </script>
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/></noscript>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<!-- Preload LCP map tile for default US view (zoom 4, center ~39,-98) -->
+<link rel="preload" href="https://a.basemaps.cartocdn.com/dark_all/4/3/5.png" as="image" fetchpriority="high">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--bg-card:#111827;--mono:'JetBrains Mono',monospace}
@@ -2622,6 +2633,8 @@ function parseMetarQuick(raw) {
 async function initWeatherTab() {
   if (weatherInitialized) return;
   weatherInitialized = true;
+  // Ensure IRROPS data is loading (may not have fired from idle preload yet)
+  fetchIrropsFromAPI();
 
   const hubStations = {EWR:'KEWR',IAH:'KIAH',ORD:'KORD',DEN:'KDEN',SFO:'KSFO',LAX:'KLAX',IAD:'KIAD',NRT:'RJAA',GUM:'PGUM'};
   const hubs = Object.keys(hubStations);
@@ -4273,14 +4286,15 @@ async function initApp() {
   initFleetTab();
   showConfigGallery('737-800'); // default
   updateTicker();
-  // Preload IRROPS data from server-side cache
-  fetchIrropsFromAPI();
+  // Defer IRROPS + schedule preload to idle — they're only needed for Weather/Schedule tabs
   // Background preload: fetch top 3 hubs on idle so Schedule tab is fast without hammering mobile
-  const idlePreload = () => preloadScheduleData();
+  const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); };
   if ('requestIdleCallback' in window) requestIdleCallback(idlePreload); else setTimeout(idlePreload, 5000);
 }
 
-initApp();
+// Wait for deferred Leaflet to load before initializing
+if (typeof L !== 'undefined') { initApp(); }
+else { document.addEventListener('DOMContentLoaded', () => initApp()); }
 
 // ═══ DISCLAIMER MODAL ═══
 function showDisclaimer() {
