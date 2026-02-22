@@ -442,13 +442,19 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-sidebar-toggle{display:flex!important}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
-  #tab-live #controls{top:6px;right:6px;gap:3px;max-height:calc(100% - 90px);overflow-y:auto}
+  /* ── Map controls: collapse behind menu toggle (Change 1) ── */
+  #tab-live #controls{top:6px;right:6px;gap:3px}
+  #tab-live #controls .ctrl-btn:not(#btn-refresh):not(#mobile-ctrl-toggle){display:none}
+  #tab-live #controls.ctrl-menu-open .ctrl-btn{display:flex}
+  #mobile-ctrl-toggle{display:flex!important}
   .ctrl-btn{padding:6px 10px;font-size:12px;min-height:36px}
-  #stats-bar{padding:8px 10px;gap:6px;justify-content:center;display:grid!important;grid-template-columns:repeat(3,1fr)}
+  /* ── Stats bar: horizontal scrollable strip (Changes 2, 7) ── */
+  #stats-bar{padding:4px 10px;gap:0;display:flex!important;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:40px}
+  #stats-bar::-webkit-scrollbar{display:none}
   .stat-sep{display:none}
-  .stat-item{min-width:60px;text-align:center;flex-direction:column;gap:1px}
-  .stat-val{font-size:14px}
-  .stat-label{font-size:14px}
+  .stat-item{min-width:auto;text-align:center;flex-direction:row;gap:4px;padding:4px 10px;white-space:nowrap;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px}
+  .stat-val{font-size:13px;font-weight:700}
+  .stat-label{font-size:10px;color:var(--ua-muted)}
   /* Schedule tab mobile */
   #tab-schedule .card:first-child > div{flex-direction:column;gap:8px}
   #tab-schedule .card:first-child > div > div{flex-direction:column;gap:6px;width:100%}
@@ -476,6 +482,28 @@ tbody td{padding:5px 8px;white-space:nowrap}
   .search-result{padding:10px 12px}
   /* Footer mobile */
   #disclaimer-modal > div{margin:10px;padding:16px}
+  /* ── Ticker: static single-line with fade rotation (Change 3) ── */
+  .ticker-wrap{overflow:hidden}
+  .ticker{animation:none!important;transform:none!important;overflow:hidden;position:relative}
+  .ticker .ticker-item{display:none;position:absolute;left:60px;right:0;top:0;height:100%;align-items:center;overflow:hidden;text-overflow:ellipsis;padding:0 10px;transition:opacity .4s ease}
+  .ticker .ticker-item.mobile-active{display:flex;opacity:1}
+  .ticker .ticker-item.mobile-fade-out{opacity:0}
+  /* ── Bottom nav: 4 tabs max, larger icons (Change 4) ── */
+  #mobile-bottom-nav button .bnav-icon{font-size:22px}
+  #mobile-bottom-nav button .bnav-label{font-size:12px}
+  #mobile-bottom-nav .bnav-overflow-item{display:none}
+  #mobile-more-btn{display:flex!important}
+  #mobile-more-menu{display:none;position:fixed;bottom:58px;right:8px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:6px 0;z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,.5);min-width:160px}
+  #mobile-more-menu.open{display:block}
+  #mobile-more-menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--ua-text);font-family:var(--mono);font-size:13px;padding:10px 16px;cursor:pointer;transition:background .15s}
+  #mobile-more-menu button:hover{background:rgba(30,41,59,.5)}
+  #mobile-more-menu button .bnav-icon{font-size:18px}
+  /* ── Hub health bar: hidden on mobile (Change 5) ── */
+  #hub-health-bar{display:none!important}
+  /* ── Footer: condensed single line (Change 6) ── */
+  .footer-hub-links,.footer-data-sources{display:none!important}
+  /* ── Header live count emphasis (Change 7) ── */
+  #header-flight-count{font-size:11px!important;color:var(--ua-accent)!important;font-weight:600}
 }
 /* ── Bottom Nav (hidden on desktop) ── */
 #mobile-bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--ua-panel);border-top:1px solid var(--ua-border);z-index:9998;align-items:stretch;justify-content:space-around}
@@ -483,6 +511,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #mobile-bottom-nav button .bnav-icon{font-size:18px;line-height:1}
 #mobile-bottom-nav button.active{color:var(--ua-blue)}
 #mobile-bottom-nav button.active .bnav-label{color:var(--ua-blue)}
+#mobile-more-btn{display:none}
+#mobile-more-menu{display:none}
 /* ── Mobile search toggle (hidden on desktop) ── */
 #mobile-search-toggle{display:none!important;background:none;border:none;color:var(--ua-muted);font-size:16px;cursor:pointer;padding:4px;align-items:center;justify-content:center}
 /* ── Mobile sidebar toggle (hidden on desktop) ── */
@@ -671,10 +701,16 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <button data-tab="tab-live" class="active"><span class="bnav-icon">📡</span><span class="bnav-label">Live</span></button>
   <button data-tab="tab-schedule"><span class="bnav-icon">📅</span><span class="bnav-label">Schedule</span></button>
   <button data-tab="tab-fleet"><span class="bnav-icon">✈️</span><span class="bnav-label">Fleet</span></button>
-  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
-  <button data-tab="tab-analytics"><span class="bnav-icon">📊</span><span class="bnav-label">Stats</span></button>
-  <button data-tab="tab-sources"><span class="bnav-icon">ℹ️</span><span class="bnav-label">Sources</span></button>
+  <button data-tab="tab-weather" class="bnav-overflow-item"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
+  <button data-tab="tab-analytics" class="bnav-overflow-item"><span class="bnav-icon">📊</span><span class="bnav-label">Stats</span></button>
+  <button data-tab="tab-sources" class="bnav-overflow-item"><span class="bnav-icon">ℹ️</span><span class="bnav-label">Sources</span></button>
+  <button id="mobile-more-btn" aria-label="More tabs"><span class="bnav-icon">▾</span><span class="bnav-label">More</span></button>
 </nav>
+<div id="mobile-more-menu">
+  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span> Weather</button>
+  <button data-tab="tab-analytics"><span class="bnav-icon">📊</span> Stats</button>
+  <button data-tab="tab-sources"><span class="bnav-icon">ℹ️</span> Sources</button>
+</div>
 
 <!-- TAB 1: LIVE OPS -->
 <main><div class="tab-content active" id="tab-live" role="tabpanel" aria-label="Live flight operations map">
@@ -697,6 +733,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <div class="map-area">
       <div id="map"></div>
       <div id="controls">
+        <button class="ctrl-btn" id="mobile-ctrl-toggle" style="display:none" aria-label="Toggle map layers">☰</button>
         <button class="ctrl-btn" data-action="toggle-hubs" id="btn-hubs">🏢 Hubs</button>
         <button class="ctrl-btn" data-action="toggle-longhaul" id="btn-longhaul">🌍 Long-haul</button>
         <button class="ctrl-btn" data-action="toggle-weather" id="btn-wx">🌧 Weather</button>
@@ -708,7 +745,9 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <div id="stats-bar" aria-live="polite">
     <div class="stat-item"><span class="stat-val" id="st-airborne">--</span><span class="stat-label">Airborne</span></div>
     <span class="stat-sep">│</span>
-    <div class="stat-item"><span class="stat-val" id="st-ground">--</span><span class="stat-label">Ground</span></div>
+    <div class="stat-item"><span class="stat-val" id="st-util">--</span><span class="stat-label">Utilization</span></div>
+    <span class="stat-sep">│</span>
+    <div class="stat-item"><span class="stat-val" id="st-starlink">--</span><span class="stat-label">⚡ Starlink</span></div>
     <span class="stat-sep">│</span>
     <div class="stat-item"><span class="stat-val" id="st-climb">--</span><span class="stat-label">Climbing</span></div>
     <span class="stat-sep">│</span>
@@ -716,13 +755,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <span class="stat-sep">│</span>
     <div class="stat-item"><span class="stat-val" id="st-desc">--</span><span class="stat-label">Descending</span></div>
     <span class="stat-sep">│</span>
+    <div class="stat-item"><span class="stat-val" id="st-ground">--</span><span class="stat-label">Ground</span></div>
+    <span class="stat-sep">│</span>
     <div class="stat-item"><span class="stat-val" id="st-avgalt">--</span><span class="stat-label">Avg Alt</span></div>
     <span class="stat-sep">│</span>
     <div class="stat-item"><span class="stat-val" id="st-avgspd">--</span><span class="stat-label">Avg Spd</span></div>
-    <span class="stat-sep">│</span>
-    <div class="stat-item"><span class="stat-val" id="st-util">--</span><span class="stat-label">Utilization</span></div>
-    <span class="stat-sep">│</span>
-    <div class="stat-item"><span class="stat-val" id="st-starlink">--</span><span class="stat-label">⚡ Starlink</span></div>
   </div>
 </div>
 
@@ -1363,22 +1400,137 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   });
 })();
 
-// ═══ MOBILE BOTTOM NAV ═══
-document.querySelectorAll('#mobile-bottom-nav button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#mobile-bottom-nav button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    switchToTab(btn.dataset.tab);
+// ═══ MOBILE BOTTOM NAV (4 tabs + More menu) ═══
+(function(){
+  var moreBtn = document.getElementById('mobile-more-btn');
+  var moreMenu = document.getElementById('mobile-more-menu');
+  // Direct tab buttons (not More, not overflow)
+  document.querySelectorAll('#mobile-bottom-nav button[data-tab]:not(.bnav-overflow-item)').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#mobile-bottom-nav button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      if (moreMenu) moreMenu.classList.remove('open');
+      switchToTab(btn.dataset.tab);
+    });
   });
-});
+  // More button toggle
+  if (moreBtn && moreMenu) {
+    moreBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      moreMenu.classList.toggle('open');
+    });
+    // More menu items
+    moreMenu.querySelectorAll('button[data-tab]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        moreMenu.classList.remove('open');
+        document.querySelectorAll('#mobile-bottom-nav button').forEach(function(b) { b.classList.remove('active'); });
+        moreBtn.classList.add('active');
+        switchToTab(btn.dataset.tab);
+      });
+    });
+    // Dismiss on outside tap
+    document.addEventListener('click', function(e) {
+      if (!moreMenu.contains(e.target) && e.target !== moreBtn) {
+        moreMenu.classList.remove('open');
+      }
+    });
+  }
+})();
 // Sync bottom nav active state when switchToTab is called from elsewhere
 const _origSwitchToTab = switchToTab;
 switchToTab = function(tabId, updateHash) {
   _origSwitchToTab(tabId, updateHash);
-  document.querySelectorAll('#mobile-bottom-nav button').forEach(b => {
+  var overflowTabs = ['tab-weather','tab-analytics','tab-sources'];
+  var moreBtn = document.getElementById('mobile-more-btn');
+  document.querySelectorAll('#mobile-bottom-nav button[data-tab]:not(.bnav-overflow-item)').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tabId);
   });
+  if (moreBtn) moreBtn.classList.toggle('active', overflowTabs.indexOf(tabId) !== -1);
 };
+
+// ═══ MOBILE MAP CONTROLS TOGGLE (Change 1) ═══
+(function(){
+  var toggle = document.getElementById('mobile-ctrl-toggle');
+  var controls = document.getElementById('controls');
+  if (toggle && controls) {
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      controls.classList.toggle('ctrl-menu-open');
+    });
+    document.addEventListener('click', function(e) {
+      if (!controls.contains(e.target)) {
+        controls.classList.remove('ctrl-menu-open');
+      }
+    });
+  }
+})();
+
+// ═══ MOBILE TICKER ROTATION (Change 3) ═══
+(function(){
+  var isMobile = function() { return window.innerWidth <= 768; };
+  var rotateInterval = null;
+  var currentIndex = 0;
+
+  function setupMobileTicker() {
+    var ticker = document.getElementById('ticker');
+    if (!ticker) return;
+    var items = ticker.querySelectorAll('.ticker-item');
+    // Only take unique items (ticker duplicates items for seamless scroll)
+    var uniqueCount = Math.ceil(items.length / 2);
+    if (uniqueCount === 0) return;
+
+    // Reset all
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.remove('mobile-active', 'mobile-fade-out');
+    }
+
+    if (!isMobile()) return;
+
+    // Show first item
+    currentIndex = 0;
+    if (items[0]) items[0].classList.add('mobile-active');
+
+    clearInterval(rotateInterval);
+    if (uniqueCount <= 1) return;
+
+    rotateInterval = setInterval(function() {
+      if (!isMobile()) { clearInterval(rotateInterval); return; }
+      var items = ticker.querySelectorAll('.ticker-item');
+      var uniqueCount = Math.ceil(items.length / 2);
+      if (uniqueCount <= 1) return;
+
+      var current = items[currentIndex];
+      if (current) {
+        current.classList.add('mobile-fade-out');
+        setTimeout(function() {
+          current.classList.remove('mobile-active', 'mobile-fade-out');
+          currentIndex = (currentIndex + 1) % uniqueCount;
+          var next = items[currentIndex];
+          if (next) next.classList.add('mobile-active');
+        }, 400);
+      }
+    }, 5000);
+  }
+
+  // Run on load and whenever ticker content changes
+  var tickerEl = document.getElementById('ticker');
+  if (tickerEl) {
+    var observer = new MutationObserver(function() { setTimeout(setupMobileTicker, 50); });
+    observer.observe(tickerEl, { childList: true, subtree: true });
+  }
+  window.addEventListener('resize', function() {
+    if (isMobile()) setupMobileTicker();
+    else {
+      clearInterval(rotateInterval);
+      // Restore all items visibility for desktop
+      var items = (tickerEl || document.getElementById('ticker')).querySelectorAll('.ticker-item');
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.remove('mobile-active', 'mobile-fade-out');
+      }
+    }
+  });
+  setTimeout(setupMobileTicker, 1000);
+})();
 
 // ═══ MOBILE SEARCH TOGGLE ═══
 (function(){
@@ -4343,7 +4495,7 @@ function hideDisclaimer() {
 <!-- SITE FOOTER -->
 <div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8">
   <div>The Blue Board · Independent · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="/fleet" style="color:var(--ua-accent);text-decoration:none">Fleet Database</a> · <a href="#" data-action="show-disclaimer" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none">About & Disclaimer</a></div>
-  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px">
+  <div class="footer-hub-links" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px">
     <span>Hubs:</span>
     <a href="/hubs/ord" style="color:var(--ua-accent);text-decoration:none">ORD</a> ·
     <a href="/hubs/den" style="color:var(--ua-accent);text-decoration:none">DEN</a> ·
@@ -4355,7 +4507,7 @@ function hideDisclaimer() {
     <a href="/hubs/nrt" style="color:var(--ua-accent);text-decoration:none">NRT</a> ·
     <a href="/hubs/gum" style="color:var(--ua-accent);text-decoration:none">GUM</a>
   </div>
-  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
+  <div class="footer-data-sources" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
     <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
     <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Support Server Costs</a>
     <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
