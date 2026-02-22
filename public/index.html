@@ -2059,22 +2059,20 @@ function showFlightPopup(f, marker) {
     if (oApt && dApt && oApt.lat && dApt.lat) {
       const layers = [];
       const planePos = [f.lat, f.lon];
-      // Traveled segment: origin → plane (solid) — split at antimeridian
-      const traveledPts = greatCirclePoints(oApt.lat, oApt.lon, f.lat, f.lon, 60);
-      splitAtAntimeridian(traveledPts).forEach(seg => {
-        layers.push(L.polyline(seg, { color: '#005DAA', weight: 2.5, opacity: 0.8 }));
-      });
-      // Remaining segment: plane → destination (dashed) — split at antimeridian
-      const remainPts = greatCirclePoints(f.lat, f.lon, dApt.lat, dApt.lon, 60);
-      splitAtAntimeridian(remainPts).forEach(seg => {
-        layers.push(L.polyline(seg, { color: '#005DAA', weight: 1.5, dashArray: '6,4', opacity: 0.4 }));
-      });
-      // Origin marker
+      // Traveled segment: origin → plane (solid) — continuous lon for IDL crossing
+      const traveledPts = normalizeLonContinuity(greatCirclePoints(oApt.lat, oApt.lon, f.lat, f.lon, 60));
+      layers.push(L.polyline(traveledPts, { color: '#005DAA', weight: 2.5, opacity: 0.8 }));
+      // Remaining segment: plane → destination (dashed)
+      const remainPts = normalizeLonContinuity(greatCirclePoints(f.lat, f.lon, dApt.lat, dApt.lon, 60));
+      layers.push(L.polyline(remainPts, { color: '#005DAA', weight: 1.5, dashArray: '6,4', opacity: 0.4 }));
+      // Origin marker — use normalized lon from route start
+      const oLon = traveledPts[0][1];
       const oLabel = oApt.iata + (IATA_CITIES[oApt.iata] ? ' — ' + IATA_CITIES[oApt.iata] : '');
-      layers.push(L.circleMarker([oApt.lat, oApt.lon], {radius:5,color:'#005DAA',fillColor:'#005DAA',fillOpacity:0.7,weight:1}).bindTooltip(oLabel,{permanent:false,direction:'top'}));
-      // Destination marker
+      layers.push(L.circleMarker([oApt.lat, oLon], {radius:5,color:'#005DAA',fillColor:'#005DAA',fillOpacity:0.7,weight:1}).bindTooltip(oLabel,{permanent:false,direction:'top'}));
+      // Destination marker — use normalized lon from route end
+      const dLon = remainPts[remainPts.length - 1][1];
       const dLabel = dApt.iata + (IATA_CITIES[dApt.iata] ? ' — ' + IATA_CITIES[dApt.iata] : '');
-      layers.push(L.circleMarker([dApt.lat, dApt.lon], {radius:5,color:'#005DAA',fillColor:'#fff',fillOpacity:0.9,weight:2}).bindTooltip(dLabel,{permanent:false,direction:'top'}));
+      layers.push(L.circleMarker([dApt.lat, dLon], {radius:5,color:'#005DAA',fillColor:'#fff',fillOpacity:0.9,weight:2}).bindTooltip(dLabel,{permanent:false,direction:'top'}));
       routeGroup = L.layerGroup(layers).addTo(map);
     }
   }
@@ -2100,24 +2098,26 @@ function greatCirclePoints(lat1, lon1, lat2, lon2, n) {
   return pts;
 }
 
-// Split a polyline's point array at antimeridian crossings into multiple segments
-function splitAtAntimeridian(pts) {
-  if (!pts || pts.length < 2) return [pts];
-  const segments = [];
-  let current = [pts[0]];
+// Normalize a polyline so longitudes are continuous (no >180° jumps).
+// Leaflet handles coordinates outside [-180,180] fine — this lets
+// transpacific routes render correctly across the antimeridian.
+function normalizeLonContinuity(pts) {
+  if (!pts || pts.length < 2) return pts || [];
+  const out = [[pts[0][0], pts[0][1]]];
   for (let i = 1; i < pts.length; i++) {
-    const prevLon = current[current.length - 1][1];
-    const curLon = pts[i][1];
-    if (Math.abs(curLon - prevLon) > 180) {
-      // Crossing detected — end current segment and start new one
-      segments.push(current);
-      current = [pts[i]];
-    } else {
-      current.push(pts[i]);
-    }
+    let lon = pts[i][1];
+    const prevLon = out[i - 1][1];
+    // Shift lon to be within ±180 of previous point
+    while (lon - prevLon > 180) lon -= 360;
+    while (lon - prevLon < -180) lon += 360;
+    out.push([pts[i][0], lon]);
   }
-  if (current.length > 0) segments.push(current);
-  return segments;
+  return out;
+}
+
+// Legacy wrapper — no longer splits; just returns a single continuous segment
+function splitAtAntimeridian(pts) {
+  return [normalizeLonContinuity(pts)];
 }
 
 // ═══ STATS ═══
