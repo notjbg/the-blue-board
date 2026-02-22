@@ -159,7 +159,8 @@
   }
 }
 </script>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <style>
@@ -1027,6 +1028,9 @@ tbody td{padding:5px 8px;white-space:nowrap}
 //  10. Schema/SEO in <head> of this file
 // ═══════════════════════════════════════════════
 
+// ═══ DEBOUNCE UTILITY ═══
+function debounce(fn, ms) { let t; return function(...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; }
+
 // ═══ HTML SANITIZATION ═══
 function escapeHtml(str) {
   if (typeof str !== 'string') return str;
@@ -1264,11 +1268,14 @@ function switchToTab(tabId, updateHash) {
   btn.setAttribute('tabindex', '0');
   document.getElementById(tabId).classList.add('active');
   if (updateHash !== false && TAB_HASHES[tabId]) history.replaceState(null, '', TAB_HASHES[tabId]);
-  if (tabId === 'tab-live' && map) map.invalidateSize();
-  if (tabId === 'tab-schedule') initScheduleTab();
-  if (tabId === 'tab-fleet') { if (!allFlights.length && !flightsLoading) refreshFlights(); updateLiveFleetPanel(); }
-  if (tabId === 'tab-weather') initWeatherTab();
-  if (tabId === 'tab-analytics') updateAnalytics();
+  // Defer heavy tab-specific init to next frame so the click event completes fast (INP fix)
+  requestAnimationFrame(() => {
+    if (tabId === 'tab-live' && map) map.invalidateSize();
+    if (tabId === 'tab-schedule') initScheduleTab();
+    if (tabId === 'tab-fleet') { if (!allFlights.length && !flightsLoading) refreshFlights(); updateLiveFleetPanel(); }
+    if (tabId === 'tab-weather') initWeatherTab();
+    if (tabId === 'tab-analytics') updateAnalytics();
+  });
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1685,9 +1692,9 @@ async function refreshFlights() {
     updateStats();
     updateHubStats();
     updateTicker();
-    updateLiveFleetPanel();
-    // Update Stats tab if currently visible
-    if (document.getElementById('tab-analytics').style.display !== 'none') updateAnalytics();
+    // Only update tab-specific panels when their tab is actually active
+    if (document.getElementById('tab-fleet')?.classList.contains('active')) updateLiveFleetPanel();
+    if (document.getElementById('tab-analytics')?.classList.contains('active')) updateAnalytics();
     // Handle deep link: ?flight=UA1234 on first load
     if (!deepLinkHandled) {
       deepLinkHandled = true;
@@ -1731,15 +1738,23 @@ function isLonghaulFlight(f) {
   return num > 0 && num < 100;
 }
 
+// Icon cache: key = "hdg_rounded|isLonghaul|phase" → L.divIcon
+const _iconCache = {};
 function createPlaneIcon(hdg, isLonghaul, phase) {
+  // Round heading to nearest 5° to maximize cache hits (72 possible angles × 3 color combos = ~216 cached icons)
+  const hdgRounded = Math.round((hdg || 0) / 5) * 5;
+  const cacheKey = `${hdgRounded}|${isLonghaul?1:0}|${phase}`;
+  if (_iconCache[cacheKey]) return _iconCache[cacheKey];
   const color = isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa');
   const size = isLonghaul ? 14 : 10;
   // SVG plane pointing north (0°) — classic top-down aircraft silhouette, cross-platform consistent
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 256 256" fill="${color}" style="filter:drop-shadow(0 0 2px ${color})"><path d="M128 16c-4 0-8 3-9 7l-15 72-88 34c-3 1-4 4-4 7s2 5 5 6l87 20 4 52-28 18c-2 1-3 3-3 5v8c0 2 1 4 3 4l20-6h28l20 6c2 0 3-2 3-4v-8c0-2-1-4-3-5l-28-18 4-52 87-20c3-1 5-3 5-6s-1-6-4-7l-88-34-15-72c-1-4-5-7-9-7z"/></svg>`;
-  return L.divIcon({
-    html: `<div style="transform:rotate(${hdg||0}deg);line-height:0">${svg}</div>`,
+  const icon = L.divIcon({
+    html: `<div style="transform:rotate(${hdgRounded}deg);line-height:0">${svg}</div>`,
     iconSize: [size, size], iconAnchor: [size/2, size/2], className: ''
   });
+  _iconCache[cacheKey] = icon;
+  return icon;
 }
 
 function getFilteredFlights() {
@@ -2224,7 +2239,7 @@ function updateHubStats() {
 }
 
 // ═══ SEARCH ═══
-document.getElementById('search-input-side').addEventListener('input', function() {
+document.getElementById('search-input-side').addEventListener('input', debounce(function() {
   const q = this.value.trim().toUpperCase();
   const results = document.getElementById('search-results-side');
   if (q.length < 2) { results.innerHTML = ''; return; }
@@ -2254,7 +2269,7 @@ document.getElementById('search-input-side').addEventListener('input', function(
       return `<div class="search-result" data-action="focus-flight" data-icao24="${escapeHtml(f.icao24)}">${escapeHtml(f.flightIATA || f.callsign || f.icao24)} <span style="color:var(--ua-muted)">${escapeHtml(routeStr)} ${escapeHtml(f.reg || '')}</span></div>`;
     }).join('');
   }
-});
+}, 150));
 
 function focusFlight(icao24) {
   const f = allFlights.find(fl => fl.icao24 === icao24);
@@ -2331,9 +2346,10 @@ function initFleetTab() {
   initStarlinkFilters();
 
   // Filter listeners
+  const debouncedFleetRender = debounce(renderFleetTable, 120);
   ['fleet-filter-type','fleet-filter-wifi','fleet-filter-status','fleet-search'].forEach(id => {
-    document.getElementById(id).addEventListener('input', renderFleetTable);
-    document.getElementById(id).addEventListener('change', renderFleetTable);
+    document.getElementById(id).addEventListener('input', debouncedFleetRender);
+    document.getElementById(id).addEventListener('change', debouncedFleetRender);
   });
 }
 
@@ -3076,9 +3092,10 @@ function initScheduleTab() {
     // Filters
     document.getElementById('sched-hub').addEventListener('change', () => { schedCurrentHub = document.getElementById('sched-hub').value; updateSchedDayLabels(); loadScheduleData(); });
     document.getElementById('sched-dir').addEventListener('change', () => { schedCurrentDir = document.getElementById('sched-dir').value; loadScheduleData(); });
-    document.getElementById('sched-status').addEventListener('change', renderScheduleTable);
-    document.getElementById('sched-aircraft').addEventListener('change', renderScheduleTable);
-    document.getElementById('sched-search').addEventListener('input', renderScheduleTable);
+    const debouncedSchedRender = debounce(renderScheduleTable, 120);
+    document.getElementById('sched-status').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-aircraft').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-search').addEventListener('input', debouncedSchedRender);
     // Sort headers
     document.querySelectorAll('#sched-table th[data-sort]').forEach(th => {
       th.addEventListener('click', () => {
@@ -3537,7 +3554,7 @@ window.addEventListener('offline', updateOnlineStatus);
 updateOnlineStatus();
 
 // ═══ GLOBAL SEARCH ═══
-document.getElementById('global-search-input').addEventListener('input', function() {
+document.getElementById('global-search-input').addEventListener('input', debounce(function() {
   const q = this.value.trim().toUpperCase();
   const results = document.getElementById('global-search-results');
   if (q.length < 2) { results.style.display = 'none'; return; }
@@ -3584,7 +3601,7 @@ document.getElementById('global-search-input').addEventListener('input', functio
     }).join('') + fr24Option;
   }
   results.style.display = 'block';
-});
+}, 150));
 document.addEventListener('click', function(e) { if (!document.getElementById('global-search-wrap').contains(e.target)) document.getElementById('global-search-results').style.display = 'none'; });
 
 // ═══ EQUIPMENT SWAP DETECTION ═══
@@ -4248,8 +4265,10 @@ document.addEventListener('click', function(e) {
 // ═══ INIT ═══
 async function initApp() {
   updateWatchBadge();
-  await loadFleetData();
+  // Start fleet data load in parallel — don't block map init
+  const fleetReady = loadFleetData();
   initMap();
+  await fleetReady; // Ensure fleet data is loaded before fleet tab init
   initFleetTab();
   showConfigGallery('737-800'); // default
   updateTicker();
