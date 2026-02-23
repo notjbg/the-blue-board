@@ -2,7 +2,7 @@
 
 **An unofficial, real-time operations dashboard for United Airlines — built by flyers, for flyers.**
 
-**[→ Live Dashboard](https://theblueboard.co)** · **[☕ Support the Project](https://buymeacoffee.com/notjbg)** · **[💡 Suggest a Feature](https://github.com/notjbg/the-blue-board/issues)** · **[𝕏 Follow @theblueboard](https://x.com/theblueboard)**
+**[→ Live Dashboard](https://theblueboard.co)** · **[📋 Changelog](CHANGELOG.md)** · **[☕ Support the Project](https://buymeacoffee.com/notjbg)** · **[💡 Suggest a Feature](https://github.com/notjbg/the-blue-board/issues)** · **[𝕏 Follow @theblueboard](https://x.com/theblueboard)**
 
 ![The Blue Board — Live Operations Map](https://theblueboard.co/og-image.png)
 
@@ -31,7 +31,7 @@ Departure and arrival boards for all 9 UA hubs (ORD, DEN, IAH, EWR, SFO, IAD, LA
 Complete database of 1,175+ mainline aircraft — searchable and sortable by type, registration, seat config, WiFi, and IFE. Starlink tracker for 258+ equipped aircraft with sortable columns and filters by fleet, type, and operator. Live fleet status correlates airborne flights with the database.
 
 ### 🌦 [Delays · Weather · Hubs](https://theblueboard.co#weather)
-FAA NAS delay and ground stop alerts, METAR observations with plain-English explainers, NEXRAD radar overlay, and hub health indicators. Each hub gets a unified card with conditions, visibility, wind, ceiling, and current delay status. Radar map renders instantly; weather data loads in parallel via batched API calls.
+FAA NAS delay and ground stop alerts, METAR observations with plain-English explainers, NEXRAD radar overlay, and hub health indicators. Each hub gets a unified card with conditions, visibility, wind, ceiling, and current delay status. **Ops Impact Assessment** goes beyond standard flight categories to flag real operational risks — snow, gusts, freezing precipitation, thunderstorms — even when conditions are technically VFR. Radar map renders instantly; weather data loads in parallel via batched API calls.
 
 ### 📊 [Stats](https://theblueboard.co#stats)
 Live fleet utilization by aircraft type (airborne vs. total), flight phase distribution (climb/cruise/descent donut chart), hub-to-hub traffic flow matrix, top active routes, fleet delivery timeline with stacked histogram colored by aircraft family, and Starlink coverage metrics. All live data updates every 30 seconds.
@@ -40,14 +40,15 @@ Live fleet utilization by aircraft type (airborne vs. total), flight phase distr
 Look up any UA flight number from the header search bar. Returns live position, route, aircraft details, and scheduled/actual times via the official Flightradar24 API.
 
 ### 🏢 [Hub Pages](https://theblueboard.co/hubs/ord)
-Dedicated SEO-rich pages for each of United's 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM). Each page includes live flight counts, hub overview with terminal/concourse details, United Club and Polaris lounge locations, delay pattern analysis by season, Starlink WiFi info, construction alerts with links to official project pages, structured FAQ, and FAQPage + Airport schema markup for search engines. Jump navigation and scroll hints guide visitors through the content.
+Dedicated SEO-rich pages for each of United's 9 hubs ([ORD](https://theblueboard.co/hubs/ord) · [DEN](https://theblueboard.co/hubs/den) · [IAH](https://theblueboard.co/hubs/iah) · [EWR](https://theblueboard.co/hubs/ewr) · [SFO](https://theblueboard.co/hubs/sfo) · [IAD](https://theblueboard.co/hubs/iad) · [LAX](https://theblueboard.co/hubs/lax) · [NRT](https://theblueboard.co/hubs/nrt) · [GUM](https://theblueboard.co/hubs/gum)). Each page includes live flight counts, hub overview with terminal/concourse details, United Club and Polaris lounge locations, delay pattern analysis by season, Starlink WiFi info, construction alerts with links to official project pages, structured FAQ, and FAQPage + Airport schema markup for search engines. Jump navigation and scroll hints guide visitors through the content.
 
 ### More
 - **Deep-link hashes** — Share direct links to any tab (`#live`, `#schedule`, `#fleet`, `#weather`, `#stats`)
 - **Flight watch** — Pin a flight and get browser push notifications on status changes
-- **Hub health bar** — At-a-glance delay severity across all 9 hubs
+- **Hub health bar** — At-a-glance on-time performance across all 9 hubs, with cancellation rate detection (shows `100% CX` when a hub is shut down)
 - **Equipment swap alerts** — Badges when scheduled aircraft type changes
-- **Mobile responsive** — Full touch-optimized layout for phones and tablets
+- **📱 Mobile-first design** — Map-maximized layout with bottom tab bar navigation, collapsible filters
+- **PWA support** — Installable as a home screen app on iOS/Android with offline caching
 - **Click the title** — "THE BLUE BOARD" header always takes you back to Live Ops
 
 ---
@@ -142,11 +143,16 @@ Dedicated SEO-rich pages for each of United's 9 hubs (ORD, DEN, IAH, EWR, SFO, I
 │   │   ├── iah.html     # Houston Intercontinental hub page
 │   │   ├── sfo.html     # San Francisco International hub page
 │   │   ├── iad.html     # Washington Dulles hub page
-│   │   └── lax.html     # Los Angeles International hub page
+│   │   ├── lax.html     # Los Angeles International hub page
+│   │   ├── nrt.html     # Tokyo Narita hub page
+│   │   └── gum.html     # Guam hub page
 │   ├── data/
 │   │   ├── fleet.json   # Fleet database
 │   │   └── starlink.json # Starlink-equipped aircraft
 │   ├── og-image.png     # Social media preview image (1200×630)
+│   ├── manifest.json    # PWA manifest
+│   ├── sw.js            # Service worker (split caches, offline support)
+│   ├── icons/           # PWA app icons (192px, 512px)
 │   ├── robots.txt       # Search engine directives (blocks /api/ and /data/ from crawlers)
 │   └── sitemap.xml      # Sitemap (homepage + all hub pages)
 ├── api/
