@@ -2,6 +2,10 @@
 // computes disruption metrics, caches for 15 minutes.
 // Fetches hubs sequentially with delays to avoid FR24 rate limiting.
 
+import { createRateLimiter } from './_rate-limit.js';
+
+const isRateLimited = createRateLimiter('irrops', 60);
+
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 const HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes — hub health doesn't need real-time
@@ -229,6 +233,10 @@ export default async function handler(req, res) {
   const origin = req.headers?.origin || '';
   if (origin && origin !== 'https://theblueboard.co' && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
     return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (isRateLimited(req)) {
+    return res.status(429).json({ error: 'Rate limited — try again shortly' });
   }
 
   try {

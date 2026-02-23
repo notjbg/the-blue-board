@@ -1,3 +1,7 @@
+import { createRateLimiter } from './_rate-limit.js';
+
+const isRateLimited = createRateLimiter('fleet', 60);
+
 const SHEET_ID = process.env.FLEET_SHEET_ID || '1ZlYgN_IZmd6CSx_nXnuP0L0PiodapDRx3RmNkIpxXAo';
 const ALLOWED_GIDS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
@@ -9,6 +13,10 @@ export default async function handler(req, res) {
   const origin = req.headers?.origin || '';
   if (origin && origin !== 'https://theblueboard.co' && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
     return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (isRateLimited(req)) {
+    return res.status(429).json({ error: 'Rate limited — try again shortly' });
   }
 
   try {

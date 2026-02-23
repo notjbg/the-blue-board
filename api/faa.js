@@ -1,4 +1,7 @@
 import { XMLParser } from 'fast-xml-parser';
+import { createRateLimiter } from './_rate-limit.js';
+
+const isRateLimited = createRateLimiter('faa', 60);
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -15,6 +18,10 @@ export default async function handler(req, res) {
   const origin = req.headers?.origin || '';
   if (origin && origin !== 'https://theblueboard.co' && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
     return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (isRateLimited(req)) {
+    return res.status(429).json({ error: 'Rate limited — try again shortly' });
   }
 
   try {
