@@ -1,0 +1,43 @@
+---
+import { hubOrder, hubNavLabels } from '../data/hubs.js';
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>Page Not Found — The Blue Board</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style is:inline>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+a{color:var(--ua-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.code{font-size:120px;font-weight:700;color:var(--ua-blue);line-height:1;margin-bottom:8px;letter-spacing:-4px}
+.title{font-size:18px;font-weight:600;margin-bottom:8px}
+.subtitle{font-size:12px;color:var(--ua-muted);margin-bottom:32px;max-width:400px;line-height:1.6}
+.cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:10px 24px;border-radius:6px;font-size:12px;font-weight:600;font-family:var(--mono);text-decoration:none;margin-bottom:32px;transition:opacity .2s}
+.cta:hover{opacity:.85;text-decoration:none}
+.hubs{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;max-width:500px}
+.hub-link{font-size:10px;color:var(--ua-muted);padding:4px 10px;border:1px solid var(--ua-border);border-radius:4px;transition:all .2s}
+.hub-link:hover{color:var(--ua-accent);border-color:var(--ua-accent);text-decoration:none}
+.footer{position:fixed;bottom:16px;font-size:9px;color:var(--ua-muted)}
+</style>
+</head>
+<body>
+  <div class="code">404</div>
+  <div class="title">Flight not found.</div>
+  <div class="subtitle">This page doesn't exist — but every United flight does. Head back to the dashboard or check a hub below.</div>
+  <a href="/" class="cta">← Back to The Blue Board</a>
+  <div class="hubs">
+    {hubOrder.map(hub => (
+      <a href={`/hubs/${hub}`} class="hub-link">{hubNavLabels[hub]}</a>
+    ))}
+  </div>
+  <div class="footer">The Blue Board · Independent · Not affiliated with United Airlines, Inc.</div>
+</body>
+</html>
