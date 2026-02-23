@@ -140,25 +140,18 @@ nav.jump-nav a:hover{border-color:var(--ua-accent);color:var(--ua-accent);text-d
   <h1>✈️ United Airlines at Guam (GUM)</h1>
   <div class="subtitle">Live hub status · Updated every 30 seconds · <a href="/">Open Full Dashboard →</a></div>
 
-  <div class="live-bar">
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="live-dot"></div>
-      <span style="font-size:11px;font-weight:600">LIVE</span>
-    </div>
-    <div style="flex:1;min-width:200px">
-      <div style="font-size:11px;color:var(--ua-muted)">Active United flights at GUM</div>
-      <div style="font-size:24px;font-weight:700;color:var(--ua-accent)" id="active">—</div>
-    </div>
-    <div style="font-size:10px;color:var(--ua-muted)" id="updated-time">Loading...</div>
-  </div>
-
-  <div class="stat-row">
-    <div style="flex:1">
-      <div class="stat-card" style="height:100%">
-        <div class="label">ICAO: PGUM · Timezone: ChST (UTC+10)</div>
-        <div style="font-size:11px;color:var(--ua-muted);margin-top:8px">United's Western Pacific hub. Home of the Island Hopper.</div>
+  <div class="live-bar" style="flex-direction:column;align-items:stretch;gap:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="live-dot"></div>
+        <span style="font-size:11px;font-weight:600">LIVE</span>
+        <span style="font-size:24px;font-weight:700;color:var(--ua-accent)" id="active">—</span>
+        <span style="font-size:11px;color:var(--ua-muted)">active United flights at GUM</span>
       </div>
+      <div style="font-size:10px;color:var(--ua-muted)" id="updated-time">Loading...</div>
     </div>
+    <div style="font-size:10px;color:var(--ua-muted);border-top:1px solid var(--ua-border);padding-top:8px">ICAO: PGUM · Timezone: ChST (UTC+10) · United's Western Pacific hub · Home of the Island Hopper</div>
+    <a href="/?hub=gum" style="font-size:11px;color:var(--ua-accent);text-decoration:none;font-weight:600">Open GUM on The Blue Board →</a>
   </div>
 
   <div class="scroll-hint" id="scrollHint">↓ Scroll for hub details, routes, and FAQ ↓</div>
