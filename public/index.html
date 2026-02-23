@@ -188,8 +188,8 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 /* Ticker */
 .ticker-wrap{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);overflow:hidden;height:28px;position:relative;z-index:100;flex-shrink:0}
-.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;width:max-content;min-width:200%;animation:tickerScroll 40s linear infinite}
-@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;will-change:transform}
+@keyframes tickerScroll{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(var(--ticker-offset,-50%),0,0)}}
 .ticker-item{padding:0 40px;font-size:11px;font-weight:500;letter-spacing:.3px}
 .ticker-item.info{color:var(--ua-green)}.ticker-item.advisory{color:var(--ua-yellow)}.ticker-item.critical{color:var(--ua-red)}
 .ticker-label{background:var(--ua-blue);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;z-index:2;letter-spacing:1px}
@@ -2475,7 +2475,60 @@ function updateTicker() {
   }
 
   const tickerHtml = items.map(i => `<span class="ticker-item ${escapeHtml(i.cls)}">${escapeHtml(i.text)}</span>`).join('');
-  document.getElementById('ticker').innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
+  const tickerEl = document.getElementById('ticker');
+  tickerEl.innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
+  initTickerAnimation(tickerEl);
+}
+
+// JS-driven ticker animation — measures actual content width for reliable scrolling
+let _tickerRafId = null;
+function initTickerAnimation(tickerEl) {
+  // Cancel any previous animation
+  if (_tickerRafId) { cancelAnimationFrame(_tickerRafId); _tickerRafId = null; }
+  tickerEl.style.animation = 'none';
+  tickerEl.style.transform = '';
+
+  // Wait a frame for layout to settle, then measure
+  requestAnimationFrame(() => {
+    const items = tickerEl.querySelectorAll('.ticker-item');
+    const halfCount = Math.ceil(items.length / 2);
+    if (halfCount === 0) return;
+
+    // Measure the width of the first half (original content)
+    let contentWidth = 0;
+    for (let i = 0; i < halfCount; i++) {
+      contentWidth += items[i].offsetWidth;
+    }
+
+    if (contentWidth < 10) return; // no real content
+
+    // Set CSS custom property for the scroll offset and use CSS animation
+    tickerEl.style.setProperty('--ticker-offset', `-${contentWidth}px`);
+    // Speed: ~50px/s — adjust duration based on content width
+    const duration = Math.max(15, contentWidth / 50);
+    tickerEl.style.animation = `tickerScroll ${duration}s linear infinite`;
+
+    // JS fallback: detect if CSS animation isn't running after 500ms
+    let fallbackTimer = setTimeout(() => {
+      const computedAnim = getComputedStyle(tickerEl).animationName;
+      if (computedAnim === 'none' || computedAnim === '') {
+        // CSS animation failed — drive with rAF
+        tickerEl.style.animation = 'none';
+        let pos = 0;
+        const speed = 50; // px/s
+        let lastTime = performance.now();
+        function tickerStep(now) {
+          const dt = (now - lastTime) / 1000;
+          lastTime = now;
+          pos -= speed * dt;
+          if (pos <= -contentWidth) pos += contentWidth;
+          tickerEl.style.transform = `translate3d(${pos}px,0,0)`;
+          _tickerRafId = requestAnimationFrame(tickerStep);
+        }
+        _tickerRafId = requestAnimationFrame(tickerStep);
+      }
+    }, 500);
+  });
 }
 
 // ═══ FLEET TAB ═══
@@ -3482,12 +3535,21 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
   const cacheKey = `agg-${hub}-${dir}-${timestamp}`;
   if (schedCache[cacheKey]) return { ...schedCache[cacheKey], fromLocalCache: true };
   const url = `/api/schedule?hub=${encodeURIComponent(hub)}&dir=${encodeURIComponent(dir)}&timestamp=${timestamp}`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`Schedule API ${resp.status}`);
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error);
-  schedCache[cacheKey] = data;
-  return data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error(`Schedule API ${resp.status}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    schedCache[cacheKey] = data;
+    return data;
+  } catch (e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') throw new Error('Schedule request timed out');
+    throw e;
+  }
 }
 
 function classifySchedStatus(flight) {
@@ -3546,7 +3608,24 @@ async function loadScheduleData() {
     if (schedRawByHub[hubKey] && schedRawByHub[hubKey].length) {
       result = { flights: schedRawByHub[hubKey], cached: true, fromIrrops: true };
     } else {
-      result = await fetchScheduleAggregated(schedCurrentHub, schedCurrentDir, timestamp);
+      // Retry with exponential backoff (up to 3 attempts)
+      const MAX_RETRIES = 3;
+      let lastErr;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            const delay = Math.min(1000 * Math.pow(2, attempt - 1), 4000);
+            loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Retrying ${escapeHtml(schedCurrentHub)} (attempt ${attempt + 1}/${MAX_RETRIES})...<br><span style="font-size:10px">Waiting ${delay / 1000}s before retry</span>`;
+            await new Promise(r => setTimeout(r, delay));
+          }
+          result = await fetchScheduleAggregated(schedCurrentHub, schedCurrentDir, timestamp);
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      if (lastErr) throw lastErr;
     }
     const allUAFlights = result.flights || [];
 
@@ -3568,7 +3647,7 @@ async function loadScheduleData() {
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
     console.error('Schedule load error:', err);
-    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(err.message)}<br><span style="font-size:10px">Try again in a moment (rate limiting)</span>`;
+    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(err.message)}<br><span style="font-size:10px">Try again in a moment</span><br><button onclick="loadScheduleData()" style="margin-top:8px;padding:4px 12px;background:var(--ua-blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">↻ Retry</button>`;
   } finally {
     schedLoading = false;
     btn.disabled = false;

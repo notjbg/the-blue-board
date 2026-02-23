@@ -1,3 +1,15 @@
+import { XMLParser } from 'fast-xml-parser';
+import { createRateLimiter } from './_rate-limit.js';
+
+const isRateLimited = createRateLimiter('faa', 60);
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  allowBooleanAttributes: true,
+  parseTagValue: true,
+  trimValues: true,
+});
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -6,6 +18,10 @@ export default async function handler(req, res) {
   const origin = req.headers?.origin || '';
   if (origin && origin !== 'https://theblueboard.co' && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
     return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  if (isRateLimited(req)) {
+    return res.status(429).json({ error: 'Rate limited — try again shortly' });
   }
 
   try {
@@ -18,18 +34,61 @@ export default async function handler(req, res) {
     if (!upstream.ok) return res.status(502).json({ error: 'Upstream service unavailable' });
     const xml = await upstream.text();
 
-    // Parse XML to structured JSON
-    const delays = [];
-    // Parse Arrival/Departure delays
-    const delayRegex = /<Delay>\s*<ARPT>([^<]+)<\/ARPT>\s*<Reason>([^<]*)<\/Reason>[\s\S]*?<\/Delay>/g;
-    let m;
-    while ((m = delayRegex.exec(xml)) !== null) {
-      delays.push({ airportCode: m[1], type: 'delay', reason: m[2], delays: [{ reason: m[2] }] });
+    if (!xml || !xml.trim()) {
+      res.setHeader('Cache-Control', 's-maxage=60');
+      return res.status(200).json([]);
     }
-    // Parse closures
-    const closureRegex = /<Airport>\s*<ARPT>([^<]+)<\/ARPT>\s*<Reason>([^<]*)<\/Reason>[\s\S]*?<\/Airport>/g;
-    while ((m = closureRegex.exec(xml)) !== null) {
-      delays.push({ airportCode: m[1], type: 'closure', reason: m[2], delays: [{ reason: 'CLOSED: ' + m[2].split(' ').slice(0, 8).join(' ') }] });
+
+    let parsed;
+    try {
+      parsed = parser.parse(xml);
+    } catch (parseErr) {
+      console.error('FAA XML parse error:', parseErr.message);
+      return res.status(200).json([]);
+    }
+
+    const delays = [];
+
+    // Extract delay entries — structure varies, normalize to array
+    const delayEntries = toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Ground_Delay?.Delay ||
+      parsed?.Delay_type?.Ground_Delay?.Delay
+    ).concat(toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Ground_Stop?.Delay ||
+      parsed?.Delay_type?.Ground_Stop?.Delay
+    )).concat(toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Arrival_Departure_Delay?.Delay ||
+      parsed?.Delay_type?.Arrival_Departure_Delay?.Delay
+    ));
+
+    for (const entry of delayEntries) {
+      const arpt = String(entry?.ARPT || '').trim();
+      const reason = String(entry?.Reason || '').trim();
+      if (!arpt) continue;
+      delays.push({
+        airportCode: arpt,
+        type: 'delay',
+        reason,
+        delays: [{ reason }],
+      });
+    }
+
+    // Extract closure entries
+    const closureEntries = toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Airport_Closure?.Airport ||
+      parsed?.Delay_type?.Airport_Closure?.Airport
+    );
+
+    for (const entry of closureEntries) {
+      const arpt = String(entry?.ARPT || '').trim();
+      const reason = String(entry?.Reason || '').trim();
+      if (!arpt) continue;
+      delays.push({
+        airportCode: arpt,
+        type: 'closure',
+        reason,
+        delays: [{ reason: 'CLOSED: ' + reason.split(' ').slice(0, 8).join(' ') }],
+      });
     }
 
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
@@ -40,4 +99,10 @@ export default async function handler(req, res) {
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });
   }
+}
+
+// Normalize a value to an array (handles undefined, single object, or array)
+function toArray(val) {
+  if (!val) return [];
+  return Array.isArray(val) ? val : [val];
 }
