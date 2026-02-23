@@ -4,7 +4,7 @@
 
 **[→ Live Dashboard](https://theblueboard.co)** · **[📋 Changelog](CHANGELOG.md)** · **[☕ Support the Project](https://buymeacoffee.com/notjbg)** · **[💡 Suggest a Feature](https://github.com/notjbg/the-blue-board/issues)** · **[𝕏 Follow @theblueboard](https://x.com/theblueboard)**
 
-![The Blue Board — Live Operations Map](https://theblueboard.co/og-image.png)
+![The Blue Board — Live Operations Map](public/og-image.png)
 
 ---
 
