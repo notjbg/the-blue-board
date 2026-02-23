@@ -1,0 +1,12 @@
+---
+import HubLayout from '../../layouts/HubLayout.astro';
+import { hubs } from '../../data/hubs.js';
+
+export function getStaticPaths() {
+  return Object.keys(hubs).map((hub) => ({ params: { hub } }));
+}
+
+const { hub } = Astro.params;
+const data = hubs[hub];
+---
+<HubLayout data={data} />

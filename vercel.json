@@ -3,8 +3,8 @@
     "functions": {
         "api/irrops.js": { "maxDuration": 90 }
     },
-  "buildCommand": null,
-  "outputDirectory": "public",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/(.*)",

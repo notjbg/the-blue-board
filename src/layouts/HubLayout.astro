@@ -1,0 +1,286 @@
+---
+import { hubOrder, hubNavLabels } from '../data/hubs.js';
+
+const { data } = Astro.props;
+const iata = data.iata;
+const iataLower = iata.toLowerCase();
+const variant = data.variant;
+const airport = data.airportSchema;
+
+// Build Airport schema with optional icaoCode
+const airportSchemaObj: Record<string, any> = {
+  "@context": "https://schema.org",
+  "@type": "Airport",
+  "name": airport.name,
+  "iataCode": airport.iataCode,
+};
+if (airport.icaoCode) {
+  airportSchemaObj.icaoCode = airport.icaoCode;
+}
+airportSchemaObj.address = {
+  "@type": "PostalAddress",
+  "addressLocality": airport.addressLocality,
+  "addressRegion": airport.addressRegion,
+  "addressCountry": airport.addressCountry,
+};
+airportSchemaObj.geo = {
+  "@type": "GeoCoordinates",
+  "latitude": airport.latitude,
+  "longitude": airport.longitude,
+};
+airportSchemaObj.url = airport.url;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>{data.title}</title>
+<meta name="description" content={data.description}>
+<meta name="keywords" content={data.keywords}>
+<meta name="author" content="The Blue Board">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href={`https://theblueboard.co/hubs/${iataLower}`}>
+<meta property="og:type" content="website">
+<meta property="og:title" content={data.ogTitle}>
+<meta property="og:description" content={data.ogDescription}>
+<meta property="og:url" content={`https://theblueboard.co/hubs/${iataLower}`}>
+<meta property="og:site_name" content="The Blue Board">
+<meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta property="og:image:alt" content={data.ogImageAlt}>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@theblueboard">
+<meta name="twitter:title" content={data.twitterTitle}>
+<meta name="twitter:description" content={data.twitterDescription}>
+<meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:site" content="@theblueboard">
+
+<!-- Schema: BreadcrumbList -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "The Blue Board", "item": "https://theblueboard.co"},
+    {"@type": "ListItem", "position": 2, "name": "Hubs", "item": "https://theblueboard.co"},
+    {"@type": "ListItem", "position": 3, "name": data.breadcrumbName, "item": `https://theblueboard.co/hubs/${iataLower}`}
+  ]
+})} />
+<!-- Schema: FAQPage -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": data.faqSchema.map((faq: { question: string; answer: string }) => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer,
+    }
+  }))
+})} />
+{variant === 'full' ? (
+  <><!-- Schema: Place --></>
+) : (
+  <><!-- Schema: Airport --></>
+)}
+<script type="application/ld+json" set:html={JSON.stringify(airportSchemaObj)} />
+
+{variant === 'full' && (
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+)}
+
+{variant === 'full' ? (
+<style is:inline>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+
+/* Header */
+.hub-header{border-bottom:1px solid var(--ua-border);padding:20px 0 16px;margin-bottom:24px}
+.hub-header .nav{font-size:11px;color:var(--ua-muted);margin-bottom:12px}
+.hub-header .nav a{color:var(--ua-accent);font-size:11px}
+.hub-header h1{font-size:22px;font-weight:700;color:var(--ua-text);letter-spacing:-.5px;margin-bottom:4px}
+.hub-header .subtitle{font-size:12px;color:var(--ua-muted)}
+.hub-header .iata{color:var(--ua-blue);font-weight:700}
+
+/* Live Panel */
+.live-panel{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:20px;margin-bottom:28px}
+.live-panel .live-badge{display:inline-block;background:var(--ua-green);color:#000;font-size:9px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:1px;margin-bottom:12px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.live-panel .error{color:var(--ua-muted);font-size:11px;font-style:italic}
+
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.stat-card{background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:6px;padding:12px;text-align:center}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.stat-card .value{font-size:24px;font-weight:700}
+.stat-card .value.green{color:var(--ua-green)}.stat-card .value.yellow{color:var(--ua-yellow)}.stat-card .value.red{color:var(--ua-red)}
+
+.live-panel .updated{font-size:9px;color:var(--ua-muted);text-align:right}
+.live-panel .cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:8px 20px;border-radius:4px;font-size:11px;font-weight:600;margin-top:12px;text-decoration:none;letter-spacing:.5px}
+.live-panel .cta:hover{background:#0069c0;text-decoration:none}
+
+/* Content Sections */
+.section{margin-bottom:32px}
+.section h2{font-size:16px;font-weight:700;color:var(--ua-text);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
+.section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
+.section p{color:var(--ua-text);margin-bottom:12px}
+.section ul{padding-left:20px;margin-bottom:12px}
+.section li{color:var(--ua-text);margin-bottom:4px}
+
+.highlight-box{background:var(--ua-panel);border-left:3px solid var(--ua-blue);padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;font-size:12px}
+
+/* Hub Nav */
+.hub-nav{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.hub-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;font-weight:600;color:var(--ua-muted)}
+.hub-nav a:hover{border-color:var(--ua-blue);color:var(--ua-accent);text-decoration:none}
+.hub-nav a.active{border-color:var(--ua-blue);color:var(--ua-blue);background:rgba(0,93,170,.1)}
+
+/* Footer */
+
+
+/* Responsive */
+@media(max-width:600px){
+  .hub-header h1{font-size:18px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Jump Nav */
+.jump-nav{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0;margin-bottom:24px}
+.jump-nav a{color:var(--ua-text);background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;text-decoration:none;white-space:nowrap;transition:all .2s ease}
+.jump-nav a:hover{border-color:var(--ua-blue);color:#fff;background:var(--ua-blue);text-decoration:none;transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,93,170,.3)}
+
+/* Scroll Indicator */
+.scroll-hint{text-align:center;padding:16px 0 4px;transition:opacity .5s}
+.scroll-hint-inner{display:inline-flex;align-items:center;gap:8px;color:var(--ua-accent);font-size:11px;font-weight:500;letter-spacing:.5px;opacity:.85}
+.scroll-hint-arrow{display:inline-block;animation:bounce 1.5s ease-in-out infinite;font-size:14px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+</style>
+) : (
+<style is:inline>
+:root{--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:rgba(30,41,59,.6);--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#005DAA;--ua-blue:#005DAA;--ua-green:#22c55e;--ua-red:#ef4444;--mono:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+h1{font-size:22px;color:var(--ua-accent);margin:0 0 4px;font-weight:700}
+h2{font-size:16px;color:var(--ua-accent);border-bottom:1px solid var(--ua-border);padding-bottom:6px;margin:28px 0 12px}
+h3{font-size:13px;color:var(--ua-text);margin:16px 0 6px}
+.subtitle{color:var(--ua-muted);font-size:11px;margin-bottom:20px}
+.live-bar{display:flex;align-items:center;gap:12px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:12px 16px;margin-bottom:20px;flex-wrap:wrap}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--ua-green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.stat-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:12px 16px;text-align:center}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.stat-card .value{font-size:20px;font-weight:700;color:var(--ua-accent)}
+.section{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:16px;margin-bottom:16px}
+.section p{margin:6px 0;color:var(--ua-muted);font-size:12px}
+.section ul{margin:6px 0;padding-left:20px}
+.section li{color:var(--ua-muted);font-size:12px;margin:4px 0}
+.hub-nav{display:flex;flex-wrap:wrap;gap:8px}
+.hub-nav a{background:var(--ua-dark);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;color:var(--ua-muted);transition:all .2s}
+.hub-nav a:hover,.hub-nav a.active{background:var(--ua-accent);color:#fff;border-color:var(--ua-accent);text-decoration:none}
+.scroll-hint{text-align:center;color:var(--ua-muted);font-size:10px;margin:12px 0;opacity:.7}
+nav.jump-nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px}
+nav.jump-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:4px 10px;border-radius:3px;font-size:10px;color:var(--ua-muted)}
+nav.jump-nav a:hover{border-color:var(--ua-accent);color:var(--ua-accent);text-decoration:none}
+@media(max-width:600px){
+  h1{font-size:18px}
+  .live-bar{flex-direction:column;align-items:flex-start;gap:8px}
+  .stat-row{flex-direction:column}
+}
+</style>
+)}
+</head>
+<body>
+
+<div class="container">
+
+{variant === 'full' && (
+  <>
+  <!-- Header -->
+  <div class="hub-header">
+    <div class="nav"><a href="/">← The Blue Board</a> / Hubs / <span class="iata">{iata}</span></div>
+    <h1><Fragment set:html={data.headerTitle} /></h1>
+    <div class="subtitle">{data.subtitle}</div>
+  </div>
+
+  <!-- Live Status Panel -->
+  <div class="live-panel">
+    <div class="live-badge">● LIVE</div>
+    <div id="live-status">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div class="stat-card" style="flex:1;min-width:140px">
+          <div class="label">Active United Flights</div>
+          <div class="value green" id="active">—</div>
+        </div>
+        <div style="flex:2;min-width:200px">
+          <p style="color:var(--ua-muted);font-size:11px;margin:0">Live delay counts and on-time performance are calculated on the full dashboard using schedule comparison data.</p>
+        </div>
+      </div>
+      <div class="updated" id="updated-time">Connecting to live data...</div>
+    </div>
+    <a class="cta" href={`/?hub=${iataLower}`}>Open {iata} on The Blue Board →</a>
+  </div>
+
+
+  <div class="scroll-hint" id="scrollHint">
+    <div class="scroll-hint-inner">
+      <span>Explore hub details below</span>
+      <span class="scroll-hint-arrow">↓</span>
+    </div>
+  </div>
+
+
+  <!-- Jump Nav -->
+  <nav class="jump-nav">
+    {data.jumpNav.map((item: { href: string; label: string }) => (
+      <a href={item.href}>{item.label}</a>
+    ))}
+  </nav>
+  </>
+)}
+
+  <Fragment set:html={data.contentHtml} />
+
+  <!-- Other Hubs -->
+  <div class="section">
+    <h2 id="all-hubs">All United Hubs</h2>
+    <nav class="hub-nav">
+      {hubOrder.map((h) => (
+        <a href={`/hubs/${h}`} class={h === iataLower ? 'active' : ''}>{hubNavLabels[h]}</a>
+      ))}
+    </nav>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8;margin-top:40px">
+  <div><a href="/" style="color:var(--ua-accent);text-decoration:none">The Blue Board</a> · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="/" style="color:var(--ua-accent);text-decoration:none">Open Dashboard →</a></div>
+  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
+    <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
+    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Support Server Costs</a>
+    <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
+  </div>
+</div>
+
+<!-- Live Data Script -->
+<script is:inline define:vars={{ iata }}>
+async function loadLiveData(){try{const r=await fetch('/api/fr24-feed?airline=UAL');if(!r.ok)throw new Error('Feed unavailable');const d=await r.json();let a=0;const f=d.result?.response?.data||d;const e=Array.isArray(f)?f:(typeof f==='object'?Object.values(f):[]);e.forEach(x=>{const o=Array.isArray(x)?x[11]:x?.origin;const ds=Array.isArray(x)?x[12]:x?.dest;if(o===iata||ds===iata)a++});document.getElementById('active').textContent=a;const as=document.getElementById('active-stat');if(as)as.textContent=a;document.getElementById('updated-time').textContent='Updated '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',timeZoneName:'short'})}catch(e){document.getElementById('updated-time').textContent='Live data temporarily unavailable'}}
+loadLiveData();setInterval(loadLiveData,30000);
+</script>
+
+
+<script is:inline>
+(function(){var h=document.getElementById('scrollHint');if(h){var done=false;window.addEventListener('scroll',function(){if(!done&&window.scrollY>100){h.style.opacity='0';done=true;setTimeout(function(){h.style.display='none'},500)}});}})();
+</script>
+</body>
+</html>
