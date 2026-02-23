@@ -188,7 +188,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 /* Ticker */
 .ticker-wrap{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);overflow:hidden;height:28px;position:relative;z-index:100;flex-shrink:0}
-.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;width:max-content;animation:tickerScroll 40s linear infinite}
+.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;width:max-content;min-width:200%;animation:tickerScroll 40s linear infinite}
 @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .ticker-item{padding:0 40px;font-size:11px;font-weight:500;letter-spacing:.3px}
 .ticker-item.info{color:var(--ua-green)}.ticker-item.advisory{color:var(--ua-yellow)}.ticker-item.critical{color:var(--ua-red)}
@@ -3388,8 +3388,9 @@ function classifySchedStatus(flight) {
   return { text: txt || 'Unknown', cls: 'unknown', key: 'unknown' };
 }
 
+let _schedPendingReload = false;
 async function loadScheduleData() {
-  if (schedLoading) return;
+  if (schedLoading) { _schedPendingReload = true; return; }
   if (!schedCurrentHub) {
     document.getElementById('sched-loading').style.display = 'block';
     document.getElementById('sched-loading').innerHTML = '<div style="font-size:24px;margin-bottom:8px">📅</div>Select a hub to load schedule data';
@@ -3442,6 +3443,7 @@ async function loadScheduleData() {
     schedLoading = false;
     btn.disabled = false;
     btn.textContent = '↻ Refresh';
+    if (_schedPendingReload) { _schedPendingReload = false; loadScheduleData(); }
   }
 }
 
