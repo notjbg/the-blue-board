@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const PAGE_CACHE = `blueboard-pages-${CACHE_VERSION}`;
 const DATA_CACHE = `blueboard-data-${CACHE_VERSION}`;
 const STATIC_CACHE = `blueboard-static-${CACHE_VERSION}`;

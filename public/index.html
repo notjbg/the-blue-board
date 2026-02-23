@@ -188,7 +188,7 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 /* Ticker */
 .ticker-wrap{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);overflow:hidden;height:28px;position:relative;z-index:100;flex-shrink:0}
-.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;animation:tickerScroll 90s linear infinite}
+.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;width:max-content;animation:tickerScroll 40s linear infinite}
 @keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 .ticker-item{padding:0 40px;font-size:11px;font-weight:500;letter-spacing:.3px}
 .ticker-item.info{color:var(--ua-green)}.ticker-item.advisory{color:var(--ua-yellow)}.ticker-item.critical{color:var(--ua-red)}
@@ -216,6 +216,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #tab-live{flex:1;min-height:0}
 #tab-live .ops-layout{display:flex;height:100%;overflow:hidden}
 #tab-live .sidebar{width:260px;background:var(--ua-panel);border-right:1px solid var(--ua-border);overflow-y:auto;flex-shrink:0}
+#sidebar-filters-toggle{display:none}
 #tab-live .sidebar h3{font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;padding:12px 12px 6px;border-bottom:1px solid var(--ua-border)}
 .hub-row{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-bottom:1px solid rgba(30,41,59,.4);transition:background .15s;cursor:default}
 .hub-row:hover{background:rgba(0,93,170,.06)}
@@ -701,13 +702,12 @@ tbody td{padding:5px 8px;white-space:nowrap}
   <button data-tab="tab-live" class="active"><span class="bnav-icon">📡</span><span class="bnav-label">Live</span></button>
   <button data-tab="tab-schedule"><span class="bnav-icon">📅</span><span class="bnav-label">Schedule</span></button>
   <button data-tab="tab-fleet"><span class="bnav-icon">✈️</span><span class="bnav-label">Fleet</span></button>
-  <button data-tab="tab-weather" class="bnav-overflow-item"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
+  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
   <button data-tab="tab-analytics" class="bnav-overflow-item"><span class="bnav-icon">📊</span><span class="bnav-label">Stats</span></button>
   <button data-tab="tab-sources" class="bnav-overflow-item"><span class="bnav-icon">ℹ️</span><span class="bnav-label">Sources</span></button>
   <button id="mobile-more-btn" aria-label="More tabs"><span class="bnav-icon">▾</span><span class="bnav-label">More</span></button>
 </nav>
 <div id="mobile-more-menu">
-  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span> Weather</button>
   <button data-tab="tab-analytics"><span class="bnav-icon">📊</span> Stats</button>
   <button data-tab="tab-sources"><span class="bnav-icon">ℹ️</span> Sources</button>
 </div>
@@ -719,7 +719,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
     <div class="sidebar" id="sidebar">
       <h3>🏢 Hub Operations</h3>
       <div id="hub-stats"></div>
-      <button id="sidebar-filters-toggle" data-action="toggle-sidebar-filters" style="display:none;width:100%;background:none;border:none;border-bottom:1px solid var(--ua-border);color:var(--ua-accent);font-family:var(--mono);font-size:10px;padding:6px 12px;cursor:pointer;text-align:center">Filters ▾</button>
+      <button id="sidebar-filters-toggle" data-action="toggle-sidebar-filters" style="width:100%;background:none;border:none;border-bottom:1px solid var(--ua-border);color:var(--ua-accent);font-family:var(--mono);font-size:10px;padding:6px 12px;cursor:pointer;text-align:center">Filters ▾</button>
       <div id="sidebar-extra-filters">
       <h3 style="margin-top:4px">🔍 Search</h3>
       <div style="padding:8px 12px">
@@ -1324,7 +1324,7 @@ function switchToTab(tabId, updateHash) {
   // Defer heavy tab-specific init to next frame so the click event completes fast (INP fix)
   requestAnimationFrame(() => {
     if (tabId === 'tab-live' && map) map.invalidateSize();
-    if (tabId === 'tab-schedule') initScheduleTab();
+    if (tabId === 'tab-schedule') { initScheduleTab(); if (schedInitialized && !schedAllFlights.length && !schedLoading) loadScheduleData(); }
     if (tabId === 'tab-fleet') { if (!allFlights.length && !flightsLoading) refreshFlights(); updateLiveFleetPanel(); }
     if (tabId === 'tab-weather') initWeatherTab();
     if (tabId === 'tab-analytics') updateAnalytics();
@@ -1440,7 +1440,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
 const _origSwitchToTab = switchToTab;
 switchToTab = function(tabId, updateHash) {
   _origSwitchToTab(tabId, updateHash);
-  var overflowTabs = ['tab-weather','tab-analytics','tab-sources'];
+  var overflowTabs = ['tab-analytics','tab-sources'];
   var moreBtn = document.getElementById('mobile-more-btn');
   document.querySelectorAll('#mobile-bottom-nav button[data-tab]:not(.bnav-overflow-item)').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tabId);
@@ -4493,8 +4493,19 @@ function hideDisclaimer() {
 </div>
 
 <!-- SITE FOOTER -->
-<div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8">
-  <div>The Blue Board · Independent · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="/fleet" style="color:var(--ua-accent);text-decoration:none">Fleet Database</a> · <a href="#" data-action="show-disclaimer" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none">About & Disclaimer</a></div>
+<footer style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:10px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8">
+  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 10px">
+    <a href="#" data-action="show-disclaimer" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none">About</a>
+    <span>·</span>
+    <a href="#" data-action="show-disclaimer" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none">Disclaimer</a>
+    <span>·</span>
+    <a href="/fleet" style="color:var(--ua-accent);text-decoration:none">Fleet Database</a>
+    <span>·</span>
+    <a href="https://github.com/notjbg/the-blue-board/issues" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Support / Feedback</a>
+    <span>·</span>
+    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Donate</a>
+  </div>
+  <div style="margin-top:4px">The Blue Board · Independent · Not affiliated with United Airlines, Inc. · Data may be delayed</div>
   <div class="footer-hub-links" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px">
     <span>Hubs:</span>
     <a href="/hubs/ord" style="color:var(--ua-accent);text-decoration:none">ORD</a> ·
@@ -4512,7 +4523,7 @@ function hideDisclaimer() {
     <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Support Server Costs</a>
     <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
   </div>
-</div>
+</footer>
 
 <script defer src="/_vercel/insights/script.js"></script>
 <script defer src="/_vercel/speed-insights/script.js"></script>
