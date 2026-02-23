@@ -188,8 +188,8 @@ body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradi
 
 /* Ticker */
 .ticker-wrap{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);overflow:hidden;height:28px;position:relative;z-index:100;flex-shrink:0}
-.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;width:max-content;min-width:200%;animation:tickerScroll 40s linear infinite}
-@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker{display:flex;align-items:center;height:100%;white-space:nowrap;will-change:transform}
+@keyframes tickerScroll{0%{transform:translate3d(0,0,0)}100%{transform:translate3d(var(--ticker-offset,-50%),0,0)}}
 .ticker-item{padding:0 40px;font-size:11px;font-weight:500;letter-spacing:.3px}
 .ticker-item.info{color:var(--ua-green)}.ticker-item.advisory{color:var(--ua-yellow)}.ticker-item.critical{color:var(--ua-red)}
 .ticker-label{background:var(--ua-blue);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;z-index:2;letter-spacing:1px}
@@ -2475,7 +2475,60 @@ function updateTicker() {
   }
 
   const tickerHtml = items.map(i => `<span class="ticker-item ${escapeHtml(i.cls)}">${escapeHtml(i.text)}</span>`).join('');
-  document.getElementById('ticker').innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
+  const tickerEl = document.getElementById('ticker');
+  tickerEl.innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
+  initTickerAnimation(tickerEl);
+}
+
+// JS-driven ticker animation — measures actual content width for reliable scrolling
+let _tickerRafId = null;
+function initTickerAnimation(tickerEl) {
+  // Cancel any previous animation
+  if (_tickerRafId) { cancelAnimationFrame(_tickerRafId); _tickerRafId = null; }
+  tickerEl.style.animation = 'none';
+  tickerEl.style.transform = '';
+
+  // Wait a frame for layout to settle, then measure
+  requestAnimationFrame(() => {
+    const items = tickerEl.querySelectorAll('.ticker-item');
+    const halfCount = Math.ceil(items.length / 2);
+    if (halfCount === 0) return;
+
+    // Measure the width of the first half (original content)
+    let contentWidth = 0;
+    for (let i = 0; i < halfCount; i++) {
+      contentWidth += items[i].offsetWidth;
+    }
+
+    if (contentWidth < 10) return; // no real content
+
+    // Set CSS custom property for the scroll offset and use CSS animation
+    tickerEl.style.setProperty('--ticker-offset', `-${contentWidth}px`);
+    // Speed: ~50px/s — adjust duration based on content width
+    const duration = Math.max(15, contentWidth / 50);
+    tickerEl.style.animation = `tickerScroll ${duration}s linear infinite`;
+
+    // JS fallback: detect if CSS animation isn't running after 500ms
+    let fallbackTimer = setTimeout(() => {
+      const computedAnim = getComputedStyle(tickerEl).animationName;
+      if (computedAnim === 'none' || computedAnim === '') {
+        // CSS animation failed — drive with rAF
+        tickerEl.style.animation = 'none';
+        let pos = 0;
+        const speed = 50; // px/s
+        let lastTime = performance.now();
+        function tickerStep(now) {
+          const dt = (now - lastTime) / 1000;
+          lastTime = now;
+          pos -= speed * dt;
+          if (pos <= -contentWidth) pos += contentWidth;
+          tickerEl.style.transform = `translate3d(${pos}px,0,0)`;
+          _tickerRafId = requestAnimationFrame(tickerStep);
+        }
+        _tickerRafId = requestAnimationFrame(tickerStep);
+      }
+    }, 500);
+  });
 }
 
 // ═══ FLEET TAB ═══
