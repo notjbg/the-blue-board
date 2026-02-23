@@ -6,9 +6,12 @@ let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 300_000; // 5 minutes
 
 function getClientIp(req) {
+  // Prefer x-real-ip (set by Vercel edge, not spoofable) over x-forwarded-for
+  const realIp = req.headers?.['x-real-ip'];
+  if (realIp) return realIp;
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
-  return raw.split(',')[0]?.trim() || req.headers?.['x-real-ip'] || 'unknown';
+  return raw.split(',')[0]?.trim() || 'unknown';
 }
 
 /**
