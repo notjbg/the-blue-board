@@ -2772,6 +2772,26 @@ let weatherInitialized = false;
 const HUB_NAMES = {EWR:"Newark Liberty",IAH:"Houston Intercontinental",ORD:"O'Hare International",DEN:"Denver International",SFO:"San Francisco Int'l",LAX:"Los Angeles Int'l",IAD:"Washington Dulles",NRT:"Tokyo Narita",GUM:"Guam Int'l"};
 const CAT_COLORS = {VFR:'#22c55e',MVFR:'#eab308',IFR:'#ef4444',LIFR:'#c026d3'};
 
+// Compute flight category from raw METAR to cross-check API (which can be wrong)
+function computeFlightCategory(rawMetar) {
+  if (!rawMetar) return null;
+  // Parse visibility
+  let visSM = 99;
+  const vm = rawMetar.match(/\b(\d+)\s*SM\b/);
+  if (vm) visSM = parseInt(vm[1]);
+  const vf = rawMetar.match(/\b(\d+)\/(\d+)SM\b/);
+  if (vf) visSM = parseInt(vf[1]) / parseInt(vf[2]);
+  // Parse ceiling (lowest BKN or OVC)
+  let ceiling = 99999;
+  const cm = [...rawMetar.matchAll(/(BKN|OVC)(\d{3})/g)];
+  if (cm.length) ceiling = parseInt(cm[0][2]) * 100;
+  // Standard flight category rules
+  if (visSM < 1 || ceiling < 500) return 'LIFR';
+  if (visSM < 3 || ceiling < 1000) return 'IFR';
+  if (visSM <= 5 || ceiling <= 3000) return 'MVFR';
+  return 'VFR';
+}
+
 function parseMetarQuick(raw) {
   const r = {temp:'--',wind:'Calm',vis:'--',clouds:'Clear'};
   if (!raw) return r;
@@ -2843,9 +2863,13 @@ async function initWeatherTab() {
   // Build cards + map markers
   let cardsHtml = '';
   metarResults.forEach(({hub, data}) => {
-    const cat = data ? (data.fltCat || data.fltcat || 'UNK') : 'UNK';
-    const color = CAT_COLORS[cat] || '#64748b';
     const raw = data ? (data.rawOb || '') : '';
+    const apiCat = data ? (data.fltCat || data.fltcat || 'UNK') : 'UNK';
+    const localCat = computeFlightCategory(raw);
+    // Use the worse (more restrictive) of API vs local computation
+    const catRank = {LIFR:0,IFR:1,MVFR:2,VFR:3,UNK:3};
+    const cat = localCat && (catRank[localCat] ?? 3) < (catRank[apiCat] ?? 3) ? localCat : apiCat;
+    const color = CAT_COLORS[cat] || '#64748b';
     const m = parseMetarQuick(raw);
     const faa = faaIndex[hub];
     const hasDelay = faa && faa.delays && faa.delays.length > 0;
@@ -3126,7 +3150,7 @@ function explainMETAR(rawMetar, hub, cat) {
   const hubNames = {EWR:"Newark",IAH:"Houston Intercontinental",ORD:"O'Hare",DEN:"Denver International",SFO:"San Francisco",LAX:"Los Angeles",IAD:"Washington Dulles",NRT:"Tokyo Narita",GUM:"Guam"};
   const name = hubNames[hub] || hub;
 
-  const catExplain = {VFR:"Clear skies, good visibility — no impact on operations",MVFR:"Reduced visibility or low ceilings — some delays possible",IFR:"Instrument conditions — expect significant delays and possible diversions",LIFR:"Very low ceilings/visibility — major operational impact"};
+  // Build context-aware assessment instead of static category blurbs
 
   let parts = [];
 
@@ -3192,7 +3216,46 @@ function explainMETAR(rawMetar, hub, cat) {
   let text = `${name} is currently reporting ${cat || 'unknown'} conditions`;
   if (parts.length) text += '. ' + parts.join('. ') + '.';
 
-  if (cat && catExplain[cat]) text += ` ${catExplain[cat]}.`;
+  // Build dynamic operational assessment from actual conditions
+  const assessParts = [];
+  // Check for active weather phenomena
+  const wxMatch2 = rawMetar.match(/\s([+-]?(?:VC)?(?:MI|PR|BC|DR|BL|SH|TS|FZ)?(?:DZ|RA|SN|SG|IC|PL|GR|GS|UP|BR|FG|FU|VA|DU|SA|HZ|PY|PO|SQ|FC|SS|DS)+)\s/);
+  if (wxMatch2) {
+    const wx = wxMatch2[1];
+    if (wx.includes('SN') || wx.includes('FZ')) assessParts.push('winter weather active');
+    else if (wx.includes('TS')) assessParts.push('thunderstorm activity');
+    else if (wx.includes('RA') || wx.includes('DZ') || wx.includes('SH')) assessParts.push('precipitation');
+    else if (wx.includes('FG')) assessParts.push('fog');
+    else if (wx.includes('BR') || wx.includes('HZ')) assessParts.push('reduced visibility');
+  }
+  // Check winds
+  const wm2 = rawMetar.match(/\b\d{3}(\d{2,3})(G(\d{2,3}))?KT\b/);
+  if (wm2) {
+    const gust = wm2[3] ? parseInt(wm2[3]) : parseInt(wm2[1]);
+    if (gust >= 30) assessParts.push('strong/gusty winds');
+    else if (gust >= 20) assessParts.push('gusty conditions');
+  }
+  // Check ceiling
+  const ceil = [...rawMetar.matchAll(/(BKN|OVC)(\d{3})/g)];
+  if (ceil.length) {
+    const ceilFt = parseInt(ceil[0][2]) * 100;
+    if (ceilFt < 500) assessParts.push('very low ceilings');
+    else if (ceilFt < 1000) assessParts.push('low ceilings');
+    else if (ceilFt <= 3000) assessParts.push('low overcast');
+  }
+
+  if (cat === 'LIFR') {
+    text += ` Very low ceilings/visibility — major operational impact, expect ground stops and diversions.`;
+  } else if (cat === 'IFR') {
+    text += ` Instrument conditions${assessParts.length ? ' with ' + assessParts.join(', ') : ''} — expect significant delays and possible diversions.`;
+  } else if (cat === 'MVFR') {
+    text += ` Marginal conditions${assessParts.length ? ' with ' + assessParts.join(', ') : ''} — some delays possible.`;
+  } else if (assessParts.length) {
+    // VFR but with notable conditions
+    text += ` ${assessParts.join(', ').replace(/^./, c => c.toUpperCase())} — monitor for changes.`;
+  } else {
+    text += ` Clear skies, good visibility — no impact on operations.`;
+  }
 
   return text;
 }
