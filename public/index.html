@@ -3532,7 +3532,7 @@ async function loadScheduleData() {
   const tableWrap = document.getElementById('sched-table-wrap');
   loadEl.style.display = 'block';
   tableWrap.style.display = 'none';
-  loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${schedCurrentHub} ${schedCurrentDir} for ${getSchedDayLabel(schedCurrentDay)}...<br><span style="font-size:10px">Fetching via server cache</span>`;
+  loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${escapeHtml(schedCurrentHub)} ${escapeHtml(schedCurrentDir)} for ${escapeHtml(getSchedDayLabel(schedCurrentDay))}...<br><span style="font-size:10px">Fetching via server cache</span>`;
   const btn = document.getElementById('sched-refresh-btn');
   btn.disabled = true;
   btn.textContent = '⏳ Loading...';
@@ -3552,7 +3552,7 @@ async function loadScheduleData() {
 
     // Show cache indicator
     if (result.cached || result.fromLocalCache) {
-      loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${schedCurrentHub} ${schedCurrentDir}...<br><span style="font-size:10px;color:#4ecdc4">⚡ Served from cache · ${allUAFlights.length} UA flights</span>`;
+      loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px;animation:pulse 1.5s infinite">✈️</div>Loading ${escapeHtml(schedCurrentHub)} ${escapeHtml(schedCurrentDir)}...<br><span style="font-size:10px;color:#4ecdc4">⚡ Served from cache · ${allUAFlights.length} UA flights</span>`;
     }
 
     schedAllFlights = allUAFlights;
@@ -3568,7 +3568,7 @@ async function loadScheduleData() {
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
     console.error('Schedule load error:', err);
-    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${err.message}<br><span style="font-size:10px">Try again in a moment (rate limiting)</span>`;
+    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(err.message)}<br><span style="font-size:10px">Try again in a moment (rate limiting)</span>`;
   } finally {
     schedLoading = false;
     btn.disabled = false;
