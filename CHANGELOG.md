@@ -4,6 +4,31 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-02-23
+
+### Added
+- **Astro migration** — hub pages now built from shared templates instead of 9 copy-pasted HTML files
+  - `src/layouts/HubLayout.astro` — shared layout (CSS, footer, live script, nav)
+  - `src/data/hubs.js` — all hub content and metadata in one file
+  - `src/pages/hubs/[hub].astro` — single dynamic route generates all 9 pages
+  - Adding a new hub = adding one object to the data file
+- Branded 404 page — "Flight not found." with hub links and dashboard CTA
+- Ops Impact Assessment — weather intelligence beyond flight categories (snow, gusts, freezing precip flagged even when VFR)
+- Hub health cancellation rate detection (shows `100% CX` instead of grey dot when hub is shut down)
+
+### Changed
+- Build system: raw static files → Astro static site generator (build time ~600ms)
+- 3,001 lines of duplicated hub HTML deleted, replaced by 1,555 lines of templates
+- Updated OG image with latest UI screenshot
+- README updated with changelog link, PWA, ops impact, mobile redesign, 9 hubs
+
+### Fixed
+- XSS: all innerHTML interpolations now escaped (`err.message`, `schedCurrentHub`, aircraft type codes)
+- GUM/NRT hub pages: removed duplicate "Active Flights" stat, consolidated live panel layout
+
+### Security
+- Defense-in-depth escaping on all remaining innerHTML interpolations
+
 ## [1.1] - 2026-02-23
 
 80 commits since launch. Full release notes: [v1.1](https://github.com/notjbg/the-blue-board/releases/tag/v1.1)
@@ -68,5 +93,6 @@ Initial public launch. Full release notes: [v1.0](https://github.com/notjbg/the-
 - JSON-LD structured data, Open Graph metadata
 - Vercel hosting with edge caching
 
+[1.1.1]: https://github.com/notjbg/the-blue-board/compare/v1.1...v1.1.1
 [1.1]: https://github.com/notjbg/the-blue-board/compare/v1.0...v1.1
 [1.0]: https://github.com/notjbg/the-blue-board/releases/tag/v1.0

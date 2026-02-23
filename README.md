@@ -110,10 +110,11 @@ Dedicated SEO-rich pages for each of United's 9 hubs ([ORD](https://theblueboard
 
 ## Tech Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS — no framework, no build step, single file
+- **Frontend:** Vanilla HTML/CSS/JS — single-file dashboard, Astro-templated hub pages
 - **Map:** [Leaflet](https://leafletjs.com) + CartoDB dark tiles
 - **Radar:** Iowa State NEXRAD WMS tiles
 - **Font:** [JetBrains Mono](https://www.jetbrains.com/lp/mono/)
+- **Build:** [Astro](https://astro.build) (static site generator for hub pages)
 - **Hosting:** [Vercel](https://vercel.com) (serverless functions + edge CDN)
 - **Analytics:** Vercel Web Analytics + Speed Insights
 - **Design:** Dark NOC theme, inspired by Bloomberg terminals and airline ops centers
@@ -134,18 +135,17 @@ Dedicated SEO-rich pages for each of United's 9 hubs ([ORD](https://theblueboard
 ## Project Structure
 
 ```
+├── src/
+│   ├── layouts/
+│   │   └── HubLayout.astro  # Shared hub page template (CSS, footer, live script)
+│   ├── pages/
+│   │   ├── 404.astro        # Branded "Flight not found" 404 page
+│   │   └── hubs/
+│   │       └── [hub].astro  # Dynamic route → generates all 9 hub pages
+│   └── data/
+│       └── hubs.js          # Hub metadata, content, SEO, schemas (all 9 hubs)
 ├── public/
 │   ├── index.html       # The entire dashboard (single file)
-│   ├── hubs/
-│   │   ├── ord.html     # Chicago O'Hare hub page
-│   │   ├── den.html     # Denver International hub page
-│   │   ├── ewr.html     # Newark Liberty hub page
-│   │   ├── iah.html     # Houston Intercontinental hub page
-│   │   ├── sfo.html     # San Francisco International hub page
-│   │   ├── iad.html     # Washington Dulles hub page
-│   │   ├── lax.html     # Los Angeles International hub page
-│   │   ├── nrt.html     # Tokyo Narita hub page
-│   │   └── gum.html     # Guam hub page
 │   ├── data/
 │   │   ├── fleet.json   # Fleet database
 │   │   └── starlink.json # Starlink-equipped aircraft
