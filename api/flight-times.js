@@ -53,7 +53,7 @@ function corsHeaders(req) {
   };
 }
 
-function normalizeFlightNumber(raw) {
+export function normalizeFlightNumber(raw) {
   const str = Array.isArray(raw) ? raw[0] : (raw || '');
   let q = String(str).trim().toUpperCase().replace(/\s+/g, '');
   if (q.startsWith('UA') && !q.startsWith('UAL')) q = 'UAL' + q.slice(2);
@@ -61,7 +61,7 @@ function normalizeFlightNumber(raw) {
   return q;
 }
 
-function epochToISO(epoch) {
+export function epochToISO(epoch) {
   if (!epoch) return '';
   return new Date(epoch * 1000).toISOString();
 }
