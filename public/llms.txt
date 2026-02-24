@@ -12,7 +12,7 @@ The Blue Board tracks every United Airlines flight in real time on a live map up
 - **Hub Delay Alerts**: Real-time delay counts, cancellations, and on-time performance for all 9 hubs
 - **Ground Stop & FAA Monitoring**: NAS status alerts affecting United operations
 - **Starlink WiFi Checker**: 258+ United aircraft with Starlink satellite WiFi — search by tail number or flight
-- **Fleet Database**: 1,175+ aircraft with type, seat configuration, IFE details, and delivery dates
+- **Fleet Database**: 1,078+ aircraft with type, seat configuration, IFE details, and delivery dates
 - **Departure & Arrival Schedules**: Real-time schedules with on-time stats and equipment swap alerts
 - **NEXRAD Weather Radar**: Overlay on the live map showing precipitation affecting flights
 - **METAR Conditions**: Current weather observations at all hub airports

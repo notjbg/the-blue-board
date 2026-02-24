@@ -82,7 +82,7 @@ Initial public launch. Full release notes: [v1.0](https://github.com/notjbg/the-
 ### Added
 - Live flight tracking map (30s updates via FlightRadar24)
 - Schedule tab with departures & arrivals at 7 United hubs
-- Fleet database (1,175+ aircraft, Starlink WiFi status)
+- Fleet database (1,078+ aircraft, Starlink WiFi status)
 - Hub health bar with on-time performance
 - IRROPS monitor with disruption scoring
 - Weather & delays: METAR, FAA monitoring, radar map

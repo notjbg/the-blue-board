@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 }
 
 // Normalize a value to an array (handles undefined, single object, or array)
-function toArray(val) {
+export function toArray(val) {
   if (!val) return [];
   return Array.isArray(val) ? val : [val];
 }

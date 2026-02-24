@@ -73,7 +73,7 @@ function corsHeaders(req) {
   };
 }
 
-function normalizeFlightNumber(raw) {
+export function normalizeFlightNumber(raw) {
   let q = (raw || '').trim().toUpperCase().replace(/\s+/g, '');
   // "UAL838" → "UA838"
   if (q.startsWith('UAL') && /^\d/.test(q.slice(3))) q = 'UA' + q.slice(3);
@@ -102,7 +102,7 @@ async function fr24Fetch(path, params) {
   return resp;
 }
 
-function normalizeLiveResponse(data, flightNumber) {
+export function normalizeLiveResponse(data, flightNumber) {
   // FR24 live positions return { data: [ { ... } ] }
   const flights = data?.data || [];
   if (!flights.length) return null;
@@ -147,7 +147,7 @@ function normalizeLiveResponse(data, flightNumber) {
   };
 }
 
-function normalizeSummaryResponse(data, flightNumber) {
+export function normalizeSummaryResponse(data, flightNumber) {
   const flights = data?.data || [];
   if (!flights.length) return null;
 

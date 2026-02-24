@@ -94,7 +94,7 @@ async function fetchHubSchedule(hub, timestamp) {
   return allFlights;
 }
 
-function computeMetrics(flightsByHub) {
+export function computeMetrics(flightsByHub) {
   let allFlights = [];
   const hubMetrics = {};
 
@@ -172,7 +172,7 @@ function computeMetrics(flightsByHub) {
   };
 }
 
-function getStartOfDayForHub(hub) {
+export function getStartOfDayForHub(hub) {
   const tz = HUB_TZ[hub] || 'America/New_York';
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {

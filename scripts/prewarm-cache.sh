@@ -4,7 +4,7 @@
 # This ensures real users always hit CDN cache, never cold serverless functions
 
 BASE="https://theblueboard.co/api"
-HUBS=("ORD" "DEN" "IAH" "EWR" "SFO" "LAX" "IAD")
+HUBS=("ORD" "DEN" "IAH" "EWR" "SFO" "LAX" "IAD" "NRT" "GUM")
 DIRS=("departures" "arrivals")
 
 # Get today's start-of-day timestamp (UTC)
@@ -33,7 +33,7 @@ done
 
 # Also warm IRROPS and METAR
 curl -s -o /dev/null -w "  ✅ IRROPS — %{http_code}\n" --max-time 60 "${BASE}/irrops"
-curl -s -o /dev/null -w "  ✅ METAR — %{http_code}\n" --max-time 10 "${BASE}/metar?ids=KORD,KDEN,KIAH,KEWR,KSFO,KLAX,KIAD"
+curl -s -o /dev/null -w "  ✅ METAR — %{http_code}\n" --max-time 10 "${BASE}/metar?ids=KORD,KDEN,KIAH,KEWR,KSFO,KLAX,KIAD,RJAA,PGUM"
 curl -s -o /dev/null -w "  ✅ FAA — %{http_code}\n" --max-time 10 "${BASE}/faa"
 
 echo "Done: ${WARMED} warmed, ${FAILED} failed"
