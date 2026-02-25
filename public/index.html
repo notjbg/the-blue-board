@@ -464,8 +464,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:14px!important;padding:8px 10px!important}
   #tab-schedule button{min-height:44px}
   #sched-stats.metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  /* iOS Safari can fail to paint tbody inside nested overflow+sticky containers */
+  #tab-schedule .card[style*="overflow:hidden"]{overflow:visible!important}
   #sched-table-wrap{max-height:none}
   .fleet-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #sched-table th{position:static}
   table{min-width:600px}
   /* Fleet tab mobile */
   #tab-fleet{padding:10px}
