@@ -416,6 +416,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .tab-content.active{animation:fadeIn .2s ease}
 
+#sched-table-wrap{max-height:calc(100vh - 260px)}
 /* ═══ MOBILE RESPONSIVE ═══ */
 @media(max-width:768px){
   body{font-size:14px;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
@@ -431,6 +432,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   /* ── Hide top tab bar, show bottom nav ── */
   #tab-bar{display:none!important}
   #mobile-bottom-nav{display:flex!important}
+  main{padding-bottom:56px}
   /* ── Live Ops ── */
   #tab-live{flex:1;min-height:0}
   #tab-live .ops-layout{flex-direction:column}
@@ -462,6 +464,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:14px!important;padding:8px 10px!important}
   #tab-schedule button{min-height:44px}
   #sched-stats.metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  #sched-table-wrap{max-height:calc(100vh - 320px);max-height:calc(100dvh - 320px)}
   .fleet-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   table{min-width:600px}
   /* Fleet tab mobile */
@@ -821,7 +824,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
       <div style="font-size:24px;margin-bottom:8px">📅</div>
       Select a hub and click Refresh to load schedule data
     </div>
-    <div class="fleet-table-wrap" style="max-height:calc(100vh - 260px);display:none" id="sched-table-wrap">
+    <div class="fleet-table-wrap" style="display:none" id="sched-table-wrap">
       <table id="sched-table">
         <thead>
           <tr>
