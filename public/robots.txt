@@ -8,8 +8,20 @@ Sitemap: https://theblueboard.co/sitemap.xml
 # See https://llmstxt.org
 User-agent: ChatGPT-User
 User-agent: GPTBot
+User-agent: OAI-SearchBot
 User-agent: Google-Extended
 User-agent: PerplexityBot
 User-agent: ClaudeBot
 User-agent: anthropic-ai
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: cohere-ai
+User-agent: Diffbot
+User-agent: FacebookBot
+User-agent: ImagesiftBot
+User-agent: Meta-ExternalAgent
+User-agent: Timpibot
+User-agent: YouBot
 Allow: /llms.txt
+Allow: /llms-full.txt

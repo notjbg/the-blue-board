@@ -2,9 +2,34 @@
 
 > A free, independent real-time operations dashboard for United Airlines flights. Built for the United community — not affiliated with United Airlines, Inc.
 
+> Full documentation: https://theblueboard.co/llms-full.txt
+
 ## What It Does
 
 The Blue Board tracks every United Airlines flight in real time on a live map updated every 30 seconds. It monitors delays, cancellations, and ground stops at all 9 United hubs, checks which aircraft have Starlink WiFi, and provides fleet data, schedules, weather radar, and operational analytics.
+
+## Who It's For
+
+- **United frequent flyers** (MileagePlus members, 1K, Global Services) who want real-time ops awareness
+- **AvGeeks** and aviation enthusiasts interested in United's fleet and operations
+- **Travelers** checking if their United flight is on time, delayed, or cancelled
+- **Airline operations nerds** who want hub-to-hub flow analytics, fleet utilization, and delay patterns
+
+## Example Questions This Site Answers
+
+- "Is my United flight delayed?"
+- "Is United Airlines delayed at ORD/DEN/EWR/IAH/SFO/IAD/LAX today?"
+- "Which United planes have Starlink WiFi?"
+- "Does my United flight have Starlink?"
+- "How many aircraft does United Airlines have?"
+- "What is the on-time rate at United's hubs?"
+- "Are there ground stops at any United hubs?"
+- "What terminal does United use at O'Hare?"
+- "Which United planes have Polaris business class?"
+- "What is the largest aircraft in United's fleet?"
+- "How many daily flights does United operate from Denver?"
+- "What causes delays at Newark for United?"
+- "What is The Blue Board?"
 
 ## Features
 
@@ -21,19 +46,36 @@ The Blue Board tracks every United Airlines flight in real time on a live map up
 - **Hub-to-Hub Analytics**: Traffic flow matrix, top routes, fleet utilization, and airborne phase breakdown
 - **Fleet Age & Delivery Timeline**: Visual fleet composition and new aircraft deliveries
 
+## Data Freshness
+
+- **Flight positions**: Updated every 30 seconds (real-time ADS-B via Flightradar24)
+- **Delay & cancellation data**: Updated every 30 seconds
+- **FAA NAS status / ground stops**: Updated every 60 seconds
+- **Fleet & Starlink data**: Updated daily
+- **Weather (METAR)**: Updated with each airport observation cycle (~hourly)
+
+## Unique Value vs. Other Trackers
+
+The Blue Board is the only flight tracker built exclusively for United Airlines operations. Unlike FlightAware or Flightradar24 (which cover all airlines), The Blue Board provides:
+- United-specific hub health monitoring across all 9 hubs simultaneously
+- Starlink WiFi equipment tracking (not available on any other tracker)
+- IRROPS (irregular operations) monitoring tailored to United's network
+- Equipment swap detection for frequent flyers who care about aircraft changes
+- Community-focused design for 1K/GS members and United loyalists
+
 ## United Hubs Tracked
 
-| Hub | IATA | Airport |
-|-----|------|---------|
-| Chicago O'Hare | ORD | O'Hare International Airport |
-| Denver | DEN | Denver International Airport |
-| Houston | IAH | George Bush Intercontinental Airport |
-| Newark | EWR | Newark Liberty International Airport |
-| San Francisco | SFO | San Francisco International Airport |
-| Washington Dulles | IAD | Washington Dulles International Airport |
-| Los Angeles | LAX | Los Angeles International Airport |
-| Tokyo Narita | NRT | Narita International Airport |
-| Guam | GUM | Antonio B. Won Pat International Airport |
+| Hub | IATA | Airport | Daily Departures |
+|-----|------|---------|-----------------|
+| Chicago O'Hare | ORD | O'Hare International Airport | ~750 |
+| Denver | DEN | Denver International Airport | ~540 |
+| Houston | IAH | George Bush Intercontinental Airport | ~400 |
+| Newark | EWR | Newark Liberty International Airport | ~400 |
+| San Francisco | SFO | San Francisco International Airport | ~300 |
+| Washington Dulles | IAD | Washington Dulles International Airport | ~250 |
+| Los Angeles | LAX | Los Angeles International Airport | ~200 |
+| Tokyo Narita | NRT | Narita International Airport | International hub |
+| Guam | GUM | Antonio B. Won Pat International Airport | Pacific hub |
 
 ## Data Sources
 
@@ -42,17 +84,20 @@ The Blue Board tracks every United Airlines flight in real time on a live map up
 - **Weather**: Aviation Weather Center (AWC) METAR observations, Iowa State NEXRAD radar
 - **Fleet & Starlink data**: Curated from public aviation databases and United fleet records
 
-## Hub Pages
+## Pages
 
-- https://theblueboard.co/hubs/ord — Chicago O'Hare
-- https://theblueboard.co/hubs/den — Denver
-- https://theblueboard.co/hubs/iah — Houston
-- https://theblueboard.co/hubs/ewr — Newark
-- https://theblueboard.co/hubs/sfo — San Francisco
-- https://theblueboard.co/hubs/iad — Washington Dulles
-- https://theblueboard.co/hubs/lax — Los Angeles
-- https://theblueboard.co/hubs/nrt — Tokyo Narita
-- https://theblueboard.co/hubs/gum — Guam
+- https://theblueboard.co — Live dashboard (flight map, schedules, fleet, weather, analytics)
+- https://theblueboard.co/fleet — Complete fleet database (1,078 aircraft, searchable)
+- https://theblueboard.co/hubs — All United hubs overview
+- https://theblueboard.co/hubs/ord — Chicago O'Hare hub status
+- https://theblueboard.co/hubs/den — Denver hub status
+- https://theblueboard.co/hubs/iah — Houston hub status
+- https://theblueboard.co/hubs/ewr — Newark hub status
+- https://theblueboard.co/hubs/sfo — San Francisco hub status
+- https://theblueboard.co/hubs/iad — Washington Dulles hub status
+- https://theblueboard.co/hubs/lax — Los Angeles hub status
+- https://theblueboard.co/hubs/nrt — Tokyo Narita hub status
+- https://theblueboard.co/hubs/gum — Guam hub status
 
 ## URL
 
@@ -61,6 +106,11 @@ https://theblueboard.co
 ## Creator
 
 Jonah Berg — https://x.com/jonahberg — https://github.com/notjbg
+
+## Social
+
+- Twitter/X: https://x.com/theblueboard
+- GitHub: https://github.com/notjbg/the-blue-board
 
 ## License
 

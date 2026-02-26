@@ -39,6 +39,7 @@
 <meta name="author" content="The Blue Board">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content="The Blue Board — United Flight Tracker | Live Status, Delays & Fleet Database">
 <meta property="og:description" content="Free United Airlines flight tracker — track any UA flight live, check delays at all 9 hubs, see which planes have Starlink WiFi, and monitor disruptions. Updated every 30 seconds.">
 <meta property="og:url" content="https://theblueboard.co">
@@ -55,6 +56,7 @@
 <meta name="twitter:creator" content="@theblueboard">
 <link rel="canonical" href="https://theblueboard.co">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<link rel="alternate" type="application/rss+xml" title="The Blue Board — United Airlines Flight Tracker" href="/feed.xml">
 <link rel="dns-prefetch" href="https://unpkg.com">
 <link rel="dns-prefetch" href="https://mesonet.agron.iastate.edu">
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
@@ -91,6 +93,7 @@
   "isAccessibleForFree": true,
   "browserRequirements": "Requires JavaScript",
   "softwareVersion": "2.0",
+  "sameAs": ["https://x.com/theblueboard", "https://github.com/notjbg/the-blue-board"],
   "sourceOrganization": {"@type": "Organization", "name": "The Blue Board", "url": "https://github.com/notjbg/the-blue-board"}
 }
 </script>
@@ -164,6 +167,23 @@
     "@type": "DataDownload",
     "encodingFormat": "text/html",
     "contentUrl": "https://theblueboard.co"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "The Blue Board",
+  "alternateName": ["United Flight Tracker", "UA Flight Tracker"],
+  "url": "https://theblueboard.co",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://theblueboard.co/?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
   }
 }
 </script>
@@ -651,9 +671,27 @@ tbody td{padding:5px 8px;white-space:nowrap}
 </div>
 <div id="offline-banner" aria-live="assertive" role="alert">⚠ You are offline — data may be outdated. Reconnect to see live updates.</div>
 <noscript>
-<div style="background:#111827;color:#e2e8f0;padding:40px;text-align:center;font-family:monospace">
-<h2>The Blue Board — United Airlines Flight Tracker & Live Status</h2>
-<p>Track every United Airlines flight in real time with The Blue Board — a free, independent operations dashboard. See live flight positions on an interactive map updated every 30 seconds. Check delays, cancellations, and ground stops at all 9 United hubs: Chicago O'Hare (ORD), Denver (DEN), Houston (IAH), Newark (EWR), San Francisco (SFO), Washington Dulles (IAD), Los Angeles (LAX), Tokyo Narita (NRT), and Guam (GUM). Look up any flight by number to see status, aircraft type, and route. Browse the full United fleet database of 1,078+ aircraft and check which planes have Starlink WiFi. View departure and arrival schedules with on-time performance stats and equipment swap alerts. Monitor weather conditions with radar, METAR observations, and FAA NAS alerts. Explore fleet utilization, route analytics, and hub-to-hub traffic patterns. Built for the United community. Not affiliated with United Airlines, Inc. JavaScript is required.</p>
+<div style="background:#111827;color:#e2e8f0;padding:40px;font-family:monospace;max-width:900px;margin:0 auto">
+<h2 style="text-align:center;margin-bottom:16px">The Blue Board — United Airlines Flight Tracker & Live Status</h2>
+<p>Track every United Airlines flight in real time with The Blue Board — a free, independent operations dashboard built for United frequent flyers, 1K members, and AvGeeks. See live flight positions on an interactive map updated every 30 seconds. Check delays, cancellations, and ground stops at all 9 United hubs. Look up any flight by number to see status, aircraft type, and route. Browse the full United fleet database of 1,078+ aircraft and check which planes have Starlink WiFi. View departure and arrival schedules with on-time performance stats and equipment swap alerts. Monitor weather conditions with radar, METAR observations, and FAA NAS alerts. Explore fleet utilization, route analytics, and hub-to-hub traffic patterns.</p>
+<h3 style="margin:20px 0 10px">United Airlines Hub Status Pages</h3>
+<nav style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+<a href="/hubs/ord" style="color:#8ab4f8">United at Chicago O'Hare (ORD)</a> ·
+<a href="/hubs/den" style="color:#8ab4f8">United at Denver (DEN)</a> ·
+<a href="/hubs/iah" style="color:#8ab4f8">United at Houston (IAH)</a> ·
+<a href="/hubs/ewr" style="color:#8ab4f8">United at Newark (EWR)</a> ·
+<a href="/hubs/sfo" style="color:#8ab4f8">United at San Francisco (SFO)</a> ·
+<a href="/hubs/iad" style="color:#8ab4f8">United at Washington Dulles (IAD)</a> ·
+<a href="/hubs/lax" style="color:#8ab4f8">United at Los Angeles (LAX)</a> ·
+<a href="/hubs/nrt" style="color:#8ab4f8">United at Tokyo Narita (NRT)</a> ·
+<a href="/hubs/gum" style="color:#8ab4f8">United at Guam (GUM)</a>
+</nav>
+<h3 style="margin-bottom:10px">More Resources</h3>
+<nav style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+<a href="/fleet" style="color:#8ab4f8">United Airlines Fleet Database (1,078 Aircraft)</a> ·
+<a href="/hubs" style="color:#8ab4f8">All United Airlines Hubs</a>
+</nav>
+<p style="font-size:11px;color:#64748b">Built for the United community by <a href="https://github.com/notjbg" style="color:#8ab4f8">Jonah Berg</a>. Not affiliated with United Airlines, Inc. JavaScript is required for the live dashboard.</p>
 </div>
 </noscript>
 <div class="sr-only">The Blue Board is a free, independent United Airlines flight tracker and operations dashboard. Track every United flight in real time on a live map updated every 30 seconds. Check if your United flight is on time, delayed, or cancelled. Monitor delays and ground stops at all 9 United hubs: Chicago O'Hare ORD, Denver DEN, Houston IAH, Newark EWR, San Francisco SFO, Washington Dulles IAD, Los Angeles LAX, Tokyo Narita NRT, and Guam GUM. Search flights by number, tail number, or route. Check which United planes have Starlink WiFi. Browse the full fleet database of 1,078+ aircraft with seat configurations and IFE details. View departure and arrival schedules with on-time performance and equipment swap alerts. Weather radar, METAR conditions, and FAA delay alerts for all hub airports. Fleet utilization analytics, hub-to-hub route flow, and network health stats. Built for the United community. Not affiliated with United Airlines, Inc.</div>
@@ -4727,18 +4765,19 @@ function hideDisclaimer() {
     <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Donate</a>
   </div>
   <div style="margin-top:4px">The Blue Board · Independent · Not affiliated with United Airlines, Inc. · Data may be delayed</div>
-  <div class="footer-hub-links" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px">
-    <span>Hubs:</span>
-    <a href="/hubs/ord" style="color:var(--ua-accent);text-decoration:none">ORD</a> ·
-    <a href="/hubs/den" style="color:var(--ua-accent);text-decoration:none">DEN</a> ·
-    <a href="/hubs/iah" style="color:var(--ua-accent);text-decoration:none">IAH</a> ·
-    <a href="/hubs/ewr" style="color:var(--ua-accent);text-decoration:none">EWR</a> ·
-    <a href="/hubs/sfo" style="color:var(--ua-accent);text-decoration:none">SFO</a> ·
-    <a href="/hubs/iad" style="color:var(--ua-accent);text-decoration:none">IAD</a> ·
-    <a href="/hubs/lax" style="color:var(--ua-accent);text-decoration:none">LAX</a> ·
-    <a href="/hubs/nrt" style="color:var(--ua-accent);text-decoration:none">NRT</a> ·
-    <a href="/hubs/gum" style="color:var(--ua-accent);text-decoration:none">GUM</a>
-  </div>
+  <nav class="footer-hub-links" aria-label="United Airlines Hub Pages" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px">
+    <span>United Hubs:</span>
+    <a href="/hubs/ord" style="color:var(--ua-accent);text-decoration:none">Chicago O'Hare (ORD)</a> ·
+    <a href="/hubs/den" style="color:var(--ua-accent);text-decoration:none">Denver (DEN)</a> ·
+    <a href="/hubs/iah" style="color:var(--ua-accent);text-decoration:none">Houston (IAH)</a> ·
+    <a href="/hubs/ewr" style="color:var(--ua-accent);text-decoration:none">Newark (EWR)</a> ·
+    <a href="/hubs/sfo" style="color:var(--ua-accent);text-decoration:none">San Francisco (SFO)</a> ·
+    <a href="/hubs/iad" style="color:var(--ua-accent);text-decoration:none">Washington Dulles (IAD)</a> ·
+    <a href="/hubs/lax" style="color:var(--ua-accent);text-decoration:none">Los Angeles (LAX)</a> ·
+    <a href="/hubs/nrt" style="color:var(--ua-accent);text-decoration:none">Tokyo Narita (NRT)</a> ·
+    <a href="/hubs/gum" style="color:var(--ua-accent);text-decoration:none">Guam (GUM)</a> ·
+    <a href="/hubs" style="color:var(--ua-accent);text-decoration:none">All Hubs</a>
+  </nav>
   <div class="footer-data-sources" style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
     <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
     <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--mono);white-space:nowrap">☕ Support Server Costs</a>
