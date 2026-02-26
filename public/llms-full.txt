@@ -1,0 +1,167 @@
+# The Blue Board — Full Documentation
+
+> A free, independent real-time operations dashboard for United Airlines flights.
+> Built for United frequent flyers, 1K/Global Services members, MileagePlus members, and AvGeeks.
+> Not affiliated with United Airlines, Inc.
+
+## Overview
+
+The Blue Board (https://theblueboard.co) is the only real-time flight tracker built exclusively for United Airlines operations. It tracks every United Airlines flight in the air on a live map updated every 30 seconds, monitors delays and cancellations at all 9 United hubs, tracks which aircraft have Starlink satellite WiFi, provides a searchable fleet database of 1,078+ aircraft, and offers operational analytics including hub-to-hub traffic flow, fleet utilization, and route patterns.
+
+The site is designed as a dark-themed operations dashboard, inspired by airline operations centers. It is free, community-built, and fully independent from United Airlines, Inc.
+
+---
+
+## Target Audience
+
+- **United Airlines frequent flyers**: MileagePlus Premier members (Silver, Gold, Platinum, 1K, Global Services) who fly United regularly and want real-time awareness of network operations
+- **AvGeeks and aviation enthusiasts**: People passionate about aircraft, airlines, and aviation operations who enjoy tracking fleet movements and operational data
+- **Travelers with upcoming United flights**: Anyone wanting to check if their specific United flight is on time, delayed, or cancelled
+- **Airline operations enthusiasts**: People interested in hub-to-hub flow analytics, fleet utilization statistics, and delay pattern analysis
+
+---
+
+## Site Pages & Content
+
+### Main Dashboard (https://theblueboard.co)
+The primary interface with 6 tabs:
+
+1. **Live Ops**: Interactive map showing all 600+ airborne United flights. Click any flight for details (flight number, aircraft type, route, altitude, speed, delay status). Hub health bar at top shows on-time % at all 9 hubs. IRROPS ticker shows real-time disruption alerts.
+
+2. **Schedule**: Departure and arrival schedules at any United hub. Shows flight number, destination/origin, scheduled time, actual time, delay status, aircraft type, and equipment swap alerts. Filterable by hub.
+
+3. **Fleet**: Searchable database of all 1,078+ United mainline aircraft. Includes aircraft type, registration (tail number), seat configuration (first/business/economy plus/economy), WiFi type, IFE system, delivery date, and operational status. Dedicated Starlink WiFi tracker section showing 258+ equipped aircraft.
+
+4. **Delays · Weather · Hubs**: Weather conditions at all hub airports (METAR observations), NEXRAD radar overlay on the map, FAA NAS status alerts, ground delay programs (GDPs), and ground stops.
+
+5. **Stats**: Fleet utilization (% of fleet airborne), airborne phase breakdown (climb/cruise/descent), hub-to-hub traffic flow matrix, top routes, and average fleet age by aircraft type.
+
+6. **Sources**: Data source attribution and credits.
+
+### Fleet Database (https://theblueboard.co/fleet)
+Dedicated page for the complete United Airlines fleet database. 1,078 mainline aircraft across 19 types. Searchable by aircraft type, tail number, seat configuration, WiFi type, and Starlink status. Includes Dataset schema markup for structured data consumers.
+
+### Hubs Overview (https://theblueboard.co/hubs)
+Index page listing all 9 United Airlines hub airports with key stats (daily departures, terminals, role in network). Links to individual hub status pages.
+
+### Individual Hub Pages (https://theblueboard.co/hubs/{iata})
+Dedicated pages for each of the 9 United hubs:
+
+- **https://theblueboard.co/hubs/ord** — Chicago O'Hare: United's largest hub, ~750 daily departures, Terminal 1 (B & C), Terminal 2 (Express). United's global headquarters.
+- **https://theblueboard.co/hubs/den** — Denver: Second-largest hub, ~540 daily departures, Concourse B. Major domestic connecting hub.
+- **https://theblueboard.co/hubs/iah** — Houston Intercontinental: ~400 daily departures, Terminals C & E. Primary Latin America gateway.
+- **https://theblueboard.co/hubs/ewr** — Newark Liberty: ~400 daily departures, Terminal C + new Terminal A. East Coast transatlantic gateway.
+- **https://theblueboard.co/hubs/sfo** — San Francisco: ~300 daily departures, Terminal 3 & International G. Asia-Pacific gateway.
+- **https://theblueboard.co/hubs/iad** — Washington Dulles: ~250 daily departures, Concourses C & D. D.C. hub with transatlantic service.
+- **https://theblueboard.co/hubs/lax** — Los Angeles: ~200 daily departures, Terminals 7 & 8. Pacific gateway hub.
+- **https://theblueboard.co/hubs/nrt** — Tokyo Narita: Asian hub connecting to Pacific routes.
+- **https://theblueboard.co/hubs/gum** — Guam: Pacific island hub connecting Micronesia and Pacific routes.
+
+Each hub page includes: live flight count, hub overview, delay patterns and seasonal trends, Starlink WiFi information, terminal/lounge details, construction updates (where applicable), and FAQs.
+
+---
+
+## Key Features in Detail
+
+### Live Flight Tracking
+- Tracks every United Airlines flight airborne worldwide
+- Updated every 30 seconds using ADS-B data via Flightradar24
+- Interactive Leaflet map with dark theme tile layer
+- Click any flight icon to see: flight number, route, aircraft type/tail, altitude, speed, heading, delay status
+- Flight search by UA flight number (e.g., "UA 1234"), tail number (e.g., "N12345"), or airport code (e.g., "ORD")
+
+### Hub Health Monitoring
+- Real-time on-time percentage for all 9 hubs displayed in a health bar
+- Color-coded: green (>70% on-time), yellow (50-70%), red (<50%)
+- Based on schedule comparison — flights departing within 30 minutes of schedule count as "on-time"
+- IRROPS ticker scrolls real-time disruption alerts (delays, cancellations, ground stops)
+
+### Starlink WiFi Tracker
+- Tracks 258+ United Airlines aircraft equipped with SpaceX Starlink satellite internet
+- Includes both mainline and United Express regional jets
+- Searchable by tail number or aircraft type
+- Shows Starlink status when looking up a specific flight
+- This data is not available on any other flight tracker
+
+### Fleet Database
+- 1,078+ mainline aircraft across 19 types
+- Aircraft families: Boeing 737 (MAX 8, MAX 9, MAX 10, -700, -800, -900), Boeing 757 (-200, -300), Boeing 767 (-300ER, -400ER), Boeing 777 (-200ER, -300ER), Boeing 787 (-8, -9, -10), Airbus A319, A320, A321neo
+- Data per aircraft: registration, type, seat config (F/J/W/Y+/Y), WiFi type, IFE system, delivery date, status
+- Polaris business class on all widebody aircraft (777 and 787 families)
+
+### Equipment Swap Detection
+- Alerts when the aircraft assigned to a flight changes from what was originally scheduled
+- Important for frequent flyers who selected seats based on a specific aircraft configuration
+- Shows both original and new equipment type
+
+### Flight Watch
+- Set alerts on specific flights
+- Browser push notifications when watched flights change status (delay, gate change, cancellation)
+- Persistent across browser sessions
+
+---
+
+## Data Sources
+
+| Data | Source | Update Frequency |
+|------|--------|-----------------|
+| Flight positions & routes | Flightradar24 ADS-B network | Every 30 seconds |
+| Delays & schedule comparison | Flightradar24 schedule data | Every 30 seconds |
+| Ground stops & NAS alerts | FAA National Airspace System Status | Every 60 seconds |
+| Weather (METAR) | Aviation Weather Center (AWC) | Each observation cycle (~hourly) |
+| Weather (radar) | Iowa State NEXRAD | Every 5 minutes |
+| Fleet composition | Public aviation databases & United records | Daily |
+| Starlink WiFi status | Curated tracking data | Daily |
+
+---
+
+## Aviation Glossary
+
+Terms frequently used on The Blue Board:
+
+- **1K**: United Airlines MileagePlus Premier 1K status (100,000+ PQP annually). Top published elite tier.
+- **GS (Global Services)**: United's invitation-only top-tier elite status.
+- **MileagePlus**: United Airlines' frequent flyer loyalty program.
+- **PQP**: Premier Qualifying Points, the metric for earning United elite status.
+- **IRROPS**: Irregular Operations — disruptions to normal flight schedules (delays, cancellations, diversions).
+- **GDP**: Ground Delay Program — FAA-issued program that delays flights destined for a congested airport.
+- **Ground Stop**: FAA-issued halt to all departures to a specific airport, typically due to severe weather or capacity.
+- **NAS**: National Airspace System — the FAA-managed air traffic system.
+- **METAR**: Meteorological Aerodrome Report — standardized weather observation at airports.
+- **NEXRAD**: Next-Generation Radar — national network of Doppler weather radars.
+- **ADS-B**: Automatic Dependent Surveillance-Broadcast — aircraft position reporting technology.
+- **OTP**: On-Time Performance — percentage of flights departing or arriving on schedule.
+- **Equipment Swap**: When an airline changes the aircraft type assigned to a flight.
+- **Polaris**: United Airlines' premium business class product on international widebody flights.
+- **Economy Plus**: United's extra-legroom economy seating.
+- **Starlink**: SpaceX's satellite internet service being installed on United aircraft for high-speed WiFi.
+- **Tail Number**: Aircraft registration number (e.g., N12345) that uniquely identifies a specific airplane.
+- **Narrowbody**: Single-aisle aircraft (737, A319/A320/A321) used for domestic and short-haul routes.
+- **Widebody**: Twin-aisle aircraft (767, 777, 787) used for long-haul and international routes.
+
+---
+
+## Technical Details
+
+- **Framework**: Astro 5.0 (static site generation)
+- **Hosting**: Vercel with edge CDN
+- **Map**: Leaflet with CartoDB dark tile layer
+- **Data delivery**: Serverless API functions with rate limiting
+- **Rendering**: Homepage is a single-page application (SPA) with JavaScript; hub pages and fleet page are fully pre-rendered static HTML
+- **PWA**: Installable as a Progressive Web App on mobile and desktop
+
+---
+
+## Creator
+
+Built by Jonah Berg.
+- Twitter/X: https://x.com/jonahberg
+- GitHub: https://github.com/notjbg
+- Project: https://github.com/notjbg/the-blue-board
+- The Blue Board Twitter/X: https://x.com/theblueboard
+
+---
+
+## License
+
+Free to use. Open source on GitHub. Not affiliated with United Airlines, Inc. All trademarks belong to their respective owners.

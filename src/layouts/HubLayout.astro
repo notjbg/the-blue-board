@@ -44,6 +44,7 @@ airportSchemaObj.url = airport.url;
 <meta name="robots" content="index, follow">
 <link rel="canonical" href={`https://theblueboard.co/hubs/${iataLower}`}>
 <meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content={data.ogTitle}>
 <meta property="og:description" content={data.ogDescription}>
 <meta property="og:url" content={`https://theblueboard.co/hubs/${iataLower}`}>
@@ -63,7 +64,7 @@ airportSchemaObj.url = airport.url;
   "@type": "BreadcrumbList",
   "itemListElement": [
     {"@type": "ListItem", "position": 1, "name": "The Blue Board", "item": "https://theblueboard.co"},
-    {"@type": "ListItem", "position": 2, "name": "Hubs", "item": "https://theblueboard.co"},
+    {"@type": "ListItem", "position": 2, "name": "Hubs", "item": "https://theblueboard.co/hubs"},
     {"@type": "ListItem", "position": 3, "name": data.breadcrumbName, "item": `https://theblueboard.co/hubs/${iataLower}`}
   ]
 })} />
