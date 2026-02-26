@@ -1536,6 +1536,7 @@ switchToTab = function(tabId, updateHash) {
 (function(){
   var isMobile = function() { return window.innerWidth <= 768; };
   var rotateInterval = null;
+  var fadeTimeout = null;
   var currentIndex = 0;
 
   function setupMobileTicker() {
@@ -1545,6 +1546,10 @@ switchToTab = function(tabId, updateHash) {
     // Only take unique items (ticker duplicates items for seamless scroll)
     var uniqueCount = Math.ceil(items.length / 2);
     if (uniqueCount === 0) return;
+
+    // Cancel any in-flight fade timeout to prevent stale currentIndex updates
+    if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
+    clearInterval(rotateInterval);
 
     // Reset all
     for (var i = 0; i < items.length; i++) {
@@ -1557,7 +1562,6 @@ switchToTab = function(tabId, updateHash) {
     currentIndex = 0;
     if (items[0]) items[0].classList.add('mobile-active');
 
-    clearInterval(rotateInterval);
     if (uniqueCount <= 1) return;
 
     rotateInterval = setInterval(function() {
@@ -1569,7 +1573,8 @@ switchToTab = function(tabId, updateHash) {
       var current = items[currentIndex];
       if (current) {
         current.classList.add('mobile-fade-out');
-        setTimeout(function() {
+        fadeTimeout = setTimeout(function() {
+          fadeTimeout = null;
           current.classList.remove('mobile-active', 'mobile-fade-out');
           currentIndex = (currentIndex + 1) % uniqueCount;
           var next = items[currentIndex];
@@ -1588,6 +1593,7 @@ switchToTab = function(tabId, updateHash) {
   window.addEventListener('resize', function() {
     if (isMobile()) setupMobileTicker();
     else {
+      if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
       clearInterval(rotateInterval);
       // Restore all items visibility for desktop
       var items = (tickerEl || document.getElementById('ticker')).querySelectorAll('.ticker-item');
@@ -2552,6 +2558,14 @@ let _tickerRafId = null;
 function initTickerAnimation(tickerEl) {
   // Cancel any previous animation
   if (_tickerRafId) { cancelAnimationFrame(_tickerRafId); _tickerRafId = null; }
+
+  // Mobile uses fade-rotation via setupMobileTicker — skip desktop scroll animation
+  if (window.innerWidth <= 768) {
+    tickerEl.style.animation = '';
+    tickerEl.style.transform = '';
+    return;
+  }
+
   tickerEl.style.animation = 'none';
   tickerEl.style.transform = '';
 
