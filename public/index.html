@@ -1494,10 +1494,14 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   if (next >= 0) { e.preventDefault(); tabs[next].focus(); tabs[next].click(); }
 });
 
-// Deep-link hash on load
+// Deep-link hash on load — visual only (no data loads until initApp finishes)
 (function(){
   const h = location.hash;
-  if (h && HASH_TABS[h]) switchToTab(HASH_TABS[h], false);
+  if (h && HASH_TABS[h]) {
+    const tabId = HASH_TABS[h];
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = p.id === tabId ? 'block' : 'none');
+  }
 })();
 
 // ═══ QUERY PARAM DEEP-LINKING (hub pages) ═══
@@ -1521,7 +1525,9 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
 
   const tabId = TAB_MAP[tab];
   if (!tabId) return;
-  switchToTab(tabId, false);
+  // Visual-only tab switch — data loads deferred to initApp
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = p.id === tabId ? 'block' : 'none');
 
   // After tab switch, handle sub-navigation
   requestAnimationFrame(() => {
@@ -2009,13 +2015,10 @@ async function refreshFlights() {
     document.getElementById('btn-refresh').textContent = '🔄 Refresh';
     flightsLoading = false;
     isRefreshing = false;
-    updateMarkers();
-    updateStats();
-    updateHubStats();
-    updateTicker();
-    // Only update tab-specific panels when their tab is actually active
-    if (document.getElementById('tab-fleet')?.classList.contains('active')) updateLiveFleetPanel();
-    if (document.getElementById('tab-analytics')?.classList.contains('active')) updateAnalytics();
+    // Each updater is independent — one failure must not block the rest
+    [updateMarkers, updateStats, updateHubStats, updateTicker].forEach(fn => { try { fn(); } catch(e) { console.error(fn.name + ':', e); } });
+    try { if (document.getElementById('tab-fleet')?.classList.contains('active')) updateLiveFleetPanel(); } catch(e) { console.error('updateLiveFleetPanel:', e); }
+    try { if (document.getElementById('tab-analytics')?.classList.contains('active')) updateAnalytics(); } catch(e) { console.error('updateAnalytics:', e); }
     // Handle deep link: ?flight=UA1234 on first load
     if (!deepLinkHandled) {
       deepLinkHandled = true;
@@ -4923,6 +4926,10 @@ async function initApp() {
   initFleetTab();
   showConfigGallery('737-800'); // default
   updateTicker();
+  // Now that map + fleet data are ready, activate the hash-linked tab's data layer.
+  // The hash IIFE only set the visual state; this triggers the actual data loads.
+  const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+  if (activeTab && activeTab !== 'tab-live') switchToTab(activeTab, false);
   // Defer IRROPS + schedule preload to idle — they're only needed for Weather/Schedule tabs
   // Background preload: fetch top 3 hubs on idle so Schedule tab is fast without hammering mobile
   const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); };
