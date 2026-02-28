@@ -940,7 +940,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     <h2>United Airlines Fleet Database — 1,078 Aircraft</h2>
     <p>Complete searchable database of all 1,078 United Airlines mainline aircraft across 19 types: Boeing 737-700 (40), 737-800 (141), 737-900 (12), 737-900ER (136), 737 MAX 8 (123), 737 MAX 9 (129), 757-200 (40), 757-300 (21), 767-300ER (37), 767-400ER (16), 777-200 (19), 777-200ER (55), 777-300ER (22), 787-8 (12), 787-9 (48), 787-10 (21), and Airbus A319 (76), A320 (68), A321neo (62). Includes registration, seat configuration, WiFi type, IFE system, delivery date, and operational status. 258 aircraft equipped with SpaceX Starlink satellite WiFi. Live fleet utilization updated every 30 seconds. <a href="/fleet">View full fleet database</a>.</p>
   </section>
-  <div class="live-fleet-panel" id="live-fleet-panel">
+  <div class="live-fleet-panel" id="live-fleet-panel" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">🛩 Live Fleet Status</h3>
       <div style="display:flex;align-items:center;gap:8px"><span class="live-badge"><span class="pulse-dot"></span> LIVE</span><span id="fleet-live-time" style="font-size:9px;color:var(--ua-muted)"></span></div>
@@ -950,10 +950,6 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
   <div class="card" id="fleet-health-card">
     <h3>🏥 Fleet Health</h3>
     <div id="fleet-health-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading fleet health data...</div></div>
-  </div>
-  <div class="card" id="special-aircraft-card">
-    <h3>⭐ Special &amp; Named Aircraft</h3>
-    <div id="special-aircraft-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading special aircraft...</div></div>
   </div>
   <div class="card">
     <h3 id="fleet-overview-title">Fleet Overview</h3>
@@ -994,6 +990,10 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
         <tbody id="fleet-tbody"></tbody>
       </table>
     </div>
+  </div>
+  <div class="card" id="special-aircraft-card">
+    <h3>⭐ Special &amp; Named Aircraft</h3>
+    <div id="special-aircraft-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading special aircraft...</div></div>
   </div>
   <div class="card">
     <h3>⚡ Starlink Tracker — <span id="starlink-count">258</span> Aircraft</h3>
@@ -2106,6 +2106,7 @@ function getPhaseGroup(phase) {
 }
 
 function updateMarkers() {
+  if (!map) return;
   const filtered = getFilteredFlights();
   const filteredIcaos = new Set(filtered.map(f => f.icao24));
   const allIcaos = new Set(allFlights.map(f => f.icao24));
@@ -3515,6 +3516,7 @@ function updateLiveFleetPanel() {
 
   document.getElementById('fleet-live-content').innerHTML = html;
   document.getElementById('fleet-live-time').textContent = 'Updated ' + new Date().toUTCString().slice(17, 25) + 'Z';
+  document.getElementById('live-fleet-panel').style.display = '';
   renderSpecialAircraftPanel();
 }
 
