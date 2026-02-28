@@ -517,6 +517,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
   .fleet-controls{flex-direction:column}
   .fleet-controls select,.fleet-controls input{width:100%;min-height:44px;font-size:14px}
   .two-col{grid-template-columns:1fr}
+  .fleet-health-bar .fh-label{min-width:80px;font-size:9px}
+  .fleet-health-bar .fh-count{min-width:55px;font-size:9px}
+  .special-aircraft-grid{grid-template-columns:1fr}
+  .special-aircraft-item{padding:10px 12px}
   /* Weather tab mobile */
   #radar-map{height:300px}
   .hub-cards{grid-template-columns:1fr;padding:10px}
@@ -1217,12 +1221,12 @@ async function loadFleetData() {
 
 // ═══ FLEET HEALTH CATEGORIZATION ═══
 const FLEET_HEALTH_CATEGORIES = [
-  { key: 'active',          label: 'Active',          color: '#22c55e' },
-  { key: 'maintenance',     label: 'Maintenance',     color: '#eab308' },
-  { key: 'stored',          label: 'Stored',           color: '#ef4444' },
+  { key: 'active',          label: 'Active',          color: 'var(--ua-green)' },
+  { key: 'maintenance',     label: 'Maintenance',     color: 'var(--ua-yellow)' },
+  { key: 'stored',          label: 'Stored',           color: 'var(--ua-red)' },
   { key: 'next_retrofit',   label: 'NEXT Retrofit',    color: '#8b5cf6' },
   { key: 'painting',        label: 'Painting',         color: '#06b6d4' },
-  { key: 'starlink_install',label: 'Starlink Install', color: '#22c55e' },
+  { key: 'starlink_install',label: 'Starlink Install', color: '#10b981' },
   { key: 'future_gum',      label: 'Future GUM',       color: '#f97316' }
 ];
 
