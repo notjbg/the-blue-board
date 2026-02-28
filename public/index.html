@@ -348,6 +348,24 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .refresh-btn{background:var(--ua-blue);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-ui);font-size:10px;font-weight:600;transition:background-color .2s cubic-bezier(.4,0,.2,1),transform .15s cubic-bezier(.4,0,.2,1)}
 .refresh-btn:hover{background:#0070cc}
 
+/* Fleet Health Dashboard */
+.fleet-health-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.fleet-health-bar .fh-label{font-size:10px;color:var(--ua-muted);min-width:110px;text-align:right;font-family:var(--font-ui)}
+.fleet-health-bar .fh-track{flex:1;height:16px;background:rgba(15,23,41,.8);border-radius:3px;overflow:hidden}
+.fleet-health-bar .fh-fill{height:100%;border-radius:3px;transition:width .5s}
+.fleet-health-bar .fh-count{font-size:10px;color:var(--ua-accent);font-weight:700;min-width:70px;text-align:right;font-family:var(--font-mono)}
+.fh-legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+
+/* Special Aircraft Badge & Tracker */
+.special-badge{background:rgba(139,92,246,.2);color:#a78bfa;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-mono)}
+.special-airborne-badge{background:rgba(34,197,94,.25);color:var(--ua-green);padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-mono);animation:pulse 1.5s ease-in-out infinite}
+.special-aircraft-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.special-aircraft-item{background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:4px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.special-aircraft-item .sa-name{font-size:11px;font-weight:700;color:#a78bfa}
+.special-aircraft-item .sa-reg{font-size:10px;color:var(--ua-accent);font-weight:700;font-family:var(--font-mono)}
+.special-aircraft-item .sa-type{font-size:9px;color:var(--ua-muted)}
+.special-aircraft-item .sa-status{font-size:9px;color:var(--ua-muted);text-align:right;flex-shrink:0}
+
 /* ═══ TAB 3: WEATHER ═══ */
 #tab-weather{padding:0;flex:1;min-height:0;overflow-y:auto}
 .wx-hero{position:relative}
@@ -925,6 +943,14 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     </div>
     <div id="fleet-live-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading live fleet data...<br><button class="retry-btn" data-action="refresh-flights" style="margin-top:8px">⏳ Load Now</button></div></div>
   </div>
+  <div class="card" id="fleet-health-card">
+    <h3>🏥 Fleet Health</h3>
+    <div id="fleet-health-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading fleet health data...</div></div>
+  </div>
+  <div class="card" id="special-aircraft-card">
+    <h3>⭐ Special &amp; Named Aircraft</h3>
+    <div id="special-aircraft-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading special aircraft...</div></div>
+  </div>
   <div class="card">
     <h3 id="fleet-overview-title">Fleet Overview</h3>
     <div class="fleet-chips" id="fleet-chips"></div>
@@ -954,7 +980,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     <div class="fleet-controls">
       <select id="fleet-filter-type" aria-label="Fleet type filter"><option value="">All Types</option></select>
       <select id="fleet-filter-wifi" aria-label="Fleet WiFi filter"><option value="">All WiFi</option></select>
-      <select id="fleet-filter-status" aria-label="Fleet status filter"><option value="">All Status</option><option value="active">Active</option><option value="stored">Stored/Maint</option><option value="starlink">⚡ Starlink</option></select>
+      <select id="fleet-filter-status" aria-label="Fleet status filter"><option value="">All Status</option><option value="active">Active</option><option value="stored">Stored/Maint</option><option value="starlink">⚡ Starlink</option><option value="special">⭐ Special/Named</option></select>
       <input type="text" id="fleet-search" aria-label="Fleet search" placeholder="Search reg, config...">
       <button class="refresh-btn" data-action="refresh-fleet-data">↻ Refresh Fleet Data</button>
     </div>
@@ -1186,6 +1212,56 @@ async function loadFleetData() {
   STARLINK_TAILS = new Set(STARLINK_DB.map(s => s.tail));
   Object.keys(FLEET_BY_REG).forEach(key => delete FLEET_BY_REG[key]);
   FLEET_DB.forEach(a => { FLEET_BY_REG[a.r] = a; });
+  buildSpecialAircraftIndex();
+}
+
+// ═══ FLEET HEALTH CATEGORIZATION ═══
+const FLEET_HEALTH_CATEGORIES = [
+  { key: 'active',          label: 'Active',          color: '#22c55e' },
+  { key: 'maintenance',     label: 'Maintenance',     color: '#eab308' },
+  { key: 'stored',          label: 'Stored',           color: '#ef4444' },
+  { key: 'next_retrofit',   label: 'NEXT Retrofit',    color: '#8b5cf6' },
+  { key: 'painting',        label: 'Painting',         color: '#06b6d4' },
+  { key: 'starlink_install',label: 'Starlink Install', color: '#22c55e' },
+  { key: 'future_gum',      label: 'Future GUM',       color: '#f97316' }
+];
+
+function categorizeFleetStatus(s) {
+  if (!s) return 'active';
+  if (s.startsWith('*')) return 'active';
+  if (/100 Year Sticker|Eco Demonstrator/i.test(s)) return 'active';
+  if (/stored/i.test(s)) return 'stored';
+  if (/\bpaint\b/i.test(s)) return 'painting';
+  if (/starlink/i.test(s)) return 'starlink_install';
+  if (/\bmod\s*next\b/i.test(s)) return 'next_retrofit';
+  if (/future\s*gum/i.test(s)) return 'future_gum';
+  if (/maint|induction/i.test(s)) return 'maintenance';
+  // Notes about NEXT status (Partial NEXT, NEXT???, Confirmed w.o NEXT) — aircraft is active
+  if (/next/i.test(s)) return 'active';
+  // Remaining non-empty statuses are likely maintenance at MRO locations
+  if (s.trim()) return 'maintenance';
+  return 'active';
+}
+
+// ═══ SPECIAL AIRCRAFT DETECTION ═══
+const SPECIAL_AIRCRAFT = {};
+
+function buildSpecialAircraftIndex() {
+  Object.keys(SPECIAL_AIRCRAFT).forEach(k => delete SPECIAL_AIRCRAFT[k]);
+  FLEET_DB.forEach(a => {
+    if (!a.s) return;
+    if (a.s.startsWith('*')) {
+      SPECIAL_AIRCRAFT[a.r] = { name: a.s.replace(/^\*+|\*+$/g, '').trim(), type: 'named' };
+    } else if (/100 Year Sticker/i.test(a.s)) {
+      SPECIAL_AIRCRAFT[a.r] = { name: '100 Year Sticker', type: 'livery' };
+    } else if (/Eco Demonstrator/i.test(a.s)) {
+      SPECIAL_AIRCRAFT[a.r] = { name: 'Eco Demonstrator Explorer', type: 'livery' };
+    }
+  });
+}
+
+function isSpecialAircraft(reg) {
+  return SPECIAL_AIRCRAFT[reg] || null;
 }
 
 // ═══ AIRPORT DATABASE (150 airports) ═══
@@ -2135,6 +2211,8 @@ function showFlightPopup(f, marker) {
     html += `<div class="popup-aircraft-type">${escapeHtml(aircraft.t)} <span style="color:var(--ua-muted);font-size:10px">${escapeHtml(aircraft.r)}</span></div>`;
     html += `<div style="font-size:10px;color:var(--ua-muted)">${escapeHtml(aircraft.c || '')} | ${escapeHtml(aircraft.w || '')} | ${escapeHtml(aircraft.i || '')}</div>`;
     if (isStarlink) html += `<span class="starlink-badge">⚡ STARLINK</span> `;
+    const popupSpecial = isSpecialAircraft(aircraft.r);
+    if (popupSpecial) html += `<span class="special-badge">⭐ ${escapeHtml(popupSpecial.name)}</span> `;
     if (aircraft.seats && Object.keys(aircraft.seats).length > 0) {
       html += `<div class="popup-seats">`;
       for (const [cls, cnt] of Object.entries(aircraft.seats)) {
@@ -2647,6 +2725,8 @@ function initFleetTab() {
   renderAgeChart();
   renderStarlinkTable();
   initStarlinkFilters();
+  renderFleetHealth();
+  renderSpecialAircraftPanel();
 
   // Filter listeners
   const debouncedFleetRender = debounce(renderFleetTable, 120);
@@ -2669,6 +2749,7 @@ function renderFleetTable() {
     if (statusF === 'active' && a.s) return false;
     if (statusF === 'stored' && !a.s) return false;
     if (statusF === 'starlink' && !STARLINK_TAILS.has(a.r)) return false;
+    if (statusF === 'special' && !isSpecialAircraft(a.r)) return false;
     if (searchF && !a.r.toUpperCase().includes(searchF) && !a.c.toUpperCase().includes(searchF) && !a.t.toUpperCase().includes(searchF)) return false;
     return true;
   });
@@ -2683,9 +2764,10 @@ function renderFleetTable() {
 
   document.getElementById('fleet-tbody').innerHTML = data.map(a => {
     const isSL = STARLINK_TAILS.has(a.r);
-    const rowCls = a.s ? (a.s.toLowerCase().includes('stored') ? 'row-stored' : 'row-maint') : '';
+    const special = isSpecialAircraft(a.r);
+    const rowCls = a.s ? (a.s.toLowerCase().includes('stored') ? 'row-stored' : (special ? '' : 'row-maint')) : '';
     return `<tr class="${rowCls}">
-      <td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.r)}</td>
+      <td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.r)}${special ? ' <span class="special-badge">⭐ ' + escapeHtml(special.name) + '</span>' : ''}</td>
       <td>${escapeHtml(a.t)}</td><td>${escapeHtml(a.a)}</td><td>${escapeHtml(a.c)}</td>
       <td>${escapeHtml(a.tot || '')}</td><td>${escapeHtml(a.w)}</td><td>${escapeHtml(a.i)}</td><td>${escapeHtml(a.d)}</td>
       <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.s)}</td>
@@ -2703,6 +2785,91 @@ document.querySelectorAll('#fleet-table thead th[data-sort]').forEach(th => {
     renderFleetTable();
   });
 });
+
+// ═══ FLEET HEALTH DASHBOARD ═══
+function renderFleetHealth() {
+  if (!FLEET_DB.length) return;
+  const counts = {};
+  FLEET_HEALTH_CATEGORIES.forEach(c => { counts[c.key] = 0; });
+  FLEET_DB.forEach(a => {
+    const cat = categorizeFleetStatus(a.s);
+    counts[cat] = (counts[cat] || 0) + 1;
+  });
+  const total = FLEET_DB.length;
+  const nonActive = total - counts.active;
+
+  let html = `<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">`;
+  html += `<div class="big-number">${total}</div>`;
+  html += `<div><div class="big-number-label">Total Mainline Aircraft</div>`;
+  html += `<div style="font-size:10px;color:var(--ua-green);margin-top:2px">${counts.active} active (${(counts.active / total * 100).toFixed(1)}%) · ${nonActive} out of service</div></div>`;
+  html += `</div>`;
+
+  FLEET_HEALTH_CATEGORIES.forEach(cat => {
+    const count = counts[cat.key] || 0;
+    if (count === 0) return;
+    const pct = (count / total * 100).toFixed(1);
+    const barWidth = total > 0 ? (count / total * 100) : 0;
+    html += `<div class="fleet-health-bar">`;
+    html += `<span class="fh-label"><span class="fh-legend-dot" style="background:${cat.color}"></span>${escapeHtml(cat.label)}</span>`;
+    html += `<div class="fh-track"><div class="fh-fill" style="width:${barWidth}%;background:${cat.color}"></div></div>`;
+    html += `<span class="fh-count">${count} <span style="font-size:9px;color:var(--ua-muted);font-weight:400">(${pct}%)</span></span>`;
+    html += `</div>`;
+  });
+
+  document.getElementById('fleet-health-content').innerHTML = html;
+}
+
+// ═══ SPECIAL AIRCRAFT TRACKER ═══
+function renderSpecialAircraftPanel() {
+  if (!FLEET_DB.length) return;
+  const specialRegs = Object.keys(SPECIAL_AIRCRAFT);
+  if (!specialRegs.length) {
+    document.getElementById('special-aircraft-content').innerHTML =
+      '<div style="color:var(--ua-muted);font-size:11px;text-align:center;padding:10px 0">No special aircraft found</div>';
+    return;
+  }
+
+  // Cross-reference with live flights for airborne status
+  const airborneSpecial = {};
+  if (allFlights && allFlights.length) {
+    allFlights.forEach(f => {
+      if (f.onGround) return;
+      const reg = f.reg ? f.reg.replace('-', '') : null;
+      if (reg && SPECIAL_AIRCRAFT[reg]) {
+        airborneSpecial[reg] = {
+          flight: f.flightIATA || f.callsign || '',
+          route: (f.origin || '???') + '→' + (f.dest || '???')
+        };
+      }
+    });
+  }
+
+  let html = '<div class="special-aircraft-grid">';
+  specialRegs.forEach(reg => {
+    const special = SPECIAL_AIRCRAFT[reg];
+    const ac = FLEET_BY_REG[reg];
+    if (!ac) return;
+    const airborne = airborneSpecial[reg];
+
+    html += `<div class="special-aircraft-item">`;
+    html += `<div>`;
+    html += `<div class="sa-name">${escapeHtml(special.name)}</div>`;
+    html += `<div><span class="sa-reg">${escapeHtml(reg)}</span> <span class="sa-type">${escapeHtml(ac.t)} · Del ${escapeHtml(ac.d || '?')}</span></div>`;
+    html += `</div>`;
+    html += `<div class="sa-status">`;
+    if (airborne) {
+      html += `<span class="special-airborne-badge"><span class="pulse-dot" style="width:6px;height:6px;display:inline-block;margin-right:3px"></span>AIRBORNE</span>`;
+      html += `<div style="font-size:9px;color:var(--ua-green);margin-top:2px">${escapeHtml(airborne.flight)} ${escapeHtml(airborne.route)}</div>`;
+    } else {
+      html += `<span class="special-badge">${special.type === 'named' ? '★ NAMED' : '✦ LIVERY'}</span>`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+  });
+  html += '</div>';
+
+  document.getElementById('special-aircraft-content').innerHTML = html;
+}
 
 function filterFleetType(type) {
   document.getElementById('fleet-filter-type').value = type;
@@ -3336,13 +3503,15 @@ function updateLiveFleetPanel() {
   if (airborne.length) {
     html += `<div class="live-table-wrap"><table><thead><tr><th>Reg</th><th>Type</th><th>Flight</th><th>Route</th><th>Alt</th><th>Phase</th><th></th></tr></thead><tbody>`;
     airborne.forEach(a => {
-      html += `<tr><td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.reg)}</td><td>${escapeHtml(a.type)}</td><td>${escapeHtml(a.flight)}</td><td>${escapeHtml(a.route)}</td><td>${escapeHtml(a.alt)}</td><td>${escapeHtml(a.phase)}</td><td>${a.starlink ? '⚡' : ''}</td></tr>`;
+      const sp = isSpecialAircraft(a.reg);
+      html += `<tr><td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.reg)}${sp ? ' <span class="special-badge">⭐</span>' : ''}</td><td>${escapeHtml(a.type)}</td><td>${escapeHtml(a.flight)}</td><td>${escapeHtml(a.route)}</td><td>${escapeHtml(a.alt)}</td><td>${escapeHtml(a.phase)}</td><td>${a.starlink ? '⚡' : ''}</td></tr>`;
     });
     html += `</tbody></table></div>`;
   }
 
   document.getElementById('fleet-live-content').innerHTML = html;
   document.getElementById('fleet-live-time').textContent = 'Updated ' + new Date().toUTCString().slice(17, 25) + 'Z';
+  renderSpecialAircraftPanel();
 }
 
 // ═══ WEATHER EXPLAINERS ═══
@@ -3909,6 +4078,9 @@ function renderScheduleTable() {
       equipBadge = `<div class="equip-change-badge">⚠️ ${escapeHtml(eqChange.oldAc)} → ${escapeHtml(eqChange.newAc)}</div>`;
     }
 
+    // Special aircraft detection
+    const schedSpecial = reg !== '—' ? (isSpecialAircraft(reg.replace('-','')) || isSpecialAircraft(reg)) : null;
+
     // FAA delay context
     let faaContext = '';
     if (status.cls === 'delayed' || (status.key === 'estimated' && status.cls === 'delayed')) {
@@ -3930,7 +4102,7 @@ function renderScheduleTable() {
       <td style="font-weight:600;color:var(--ua-accent)">${escapeHtml(ident)}</td>
       <td>${routeStr}</td>
       <td title="${escapeHtml(acText)}">${escapeHtml(acCode)}${acShort ? `<div style="font-size:9px;color:var(--ua-muted)">${escapeHtml(acShort)}</div>` : ''}${equipBadge}</td>
-      <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<a href="#fleet" data-action="fleet-search" data-reg="${escapeHtml(reg)}" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none;cursor:pointer">${escapeHtml(reg)}</a>` : '—'}${fleetEnrich}</td>
+      <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<a href="#fleet" data-action="fleet-search" data-reg="${escapeHtml(reg)}" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none;cursor:pointer">${escapeHtml(reg)}</a>` : '—'}${schedSpecial ? ' <span class="special-badge">⭐ ' + escapeHtml(schedSpecial.name) + '</span>' : ''}${fleetEnrich}</td>
       <td>${escapeHtml(gate)}</td>
       <td><span class="sched-status ${escapeHtml(status.cls)}">${escapeHtml(status.text)}</span>${faaContext}</td>
       <td>${fleetMatch}</td>
