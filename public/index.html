@@ -5066,7 +5066,7 @@ function hideDisclaimer() {
   };
 
   var visited=localStorage.getItem('bb-visited');
-  if(!visited){localStorage.setItem('bb-visited','1');overlay.style.display='none'}
+  if(!visited){localStorage.setItem('bb-visited','1')}
   else if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
   btn.addEventListener('click',hideOverlay);
   overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
