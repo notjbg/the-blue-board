@@ -298,6 +298,30 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .seat-F{background:rgba(139,92,246,.3);color:#a78bfa}
 .seat-E\\+{background:rgba(34,197,94,.3);color:#4ade80}
 .seat-Y{background:rgba(100,116,139,.3);color:#94a3b8}
+/* ═══ AIRCRAFT DETAIL MODAL ═══ */
+#aircraft-detail-modal{position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.ac-modal-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;max-width:440px;width:90%;color:var(--ua-text);font-family:var(--font-mono);position:relative;overflow:hidden;max-height:85vh;display:flex;flex-direction:column}
+.ac-modal-header{background:linear-gradient(135deg,rgba(0,93,170,.3),rgba(0,50,100,.2));padding:16px 20px;border-bottom:1px solid var(--ua-border);flex-shrink:0}
+.ac-modal-body{padding:16px 20px;overflow-y:auto;flex:1;min-height:0}
+.ac-modal-close{position:absolute;top:8px;right:12px;background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:16px}
+.ac-modal-reg{font-size:20px;font-weight:700;color:var(--ua-accent);letter-spacing:1px}
+.ac-modal-type{font-size:13px;color:var(--ua-text);margin-top:2px}
+.ac-modal-acnum{font-size:10px;color:var(--ua-muted)}
+.ac-section{margin-top:12px;padding:10px;background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.15);border-radius:4px}
+.ac-section-title{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.ac-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+.ac-detail-label{font-size:9px;color:var(--ua-muted)}
+.ac-detail-value{font-size:11px;font-weight:600}
+.ac-status-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:600}
+.ac-live-flight{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2)}
+.ac-live-ground{background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.2)}
+.ac-seat-bar{display:flex;height:18px;border-radius:4px;overflow:hidden;margin-top:4px}
+.ac-seat-bar>div{display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;min-width:20px}
+.ac-modal-footer{padding:10px 20px;border-top:1px solid var(--ua-border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex-shrink:0}
+.ac-action-btn{background:rgba(0,93,170,.15);border:1px solid rgba(0,93,170,.3);color:var(--ua-accent);padding:4px 10px;border-radius:4px;font-size:10px;font-family:var(--font-mono);cursor:pointer;text-decoration:none;transition:background .2s}
+.ac-action-btn:hover{background:rgba(0,93,170,.25)}
+.ac-reg-link{color:var(--ua-accent);cursor:pointer;text-decoration:none;border-bottom:1px dotted rgba(138,180,248,.3);transition:border-color .2s}
+.ac-reg-link:hover{border-bottom-color:var(--ua-accent)}
 .starlink-badge{background:rgba(34,197,94,.2);color:var(--ua-green);padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700}
 .squawk-alert{background:var(--ua-red);color:#fff;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.5}}
@@ -1268,6 +1292,17 @@ function isSpecialAircraft(reg) {
   return SPECIAL_AIRCRAFT[reg] || null;
 }
 
+// ═══ ENGINE TYPE LOOKUP ═══
+const ENGINE_BY_TYPE = {
+  'A319':'IAE V2524-A5','A320':'IAE V2527-A5','A321neo':'CFM LEAP-1A',
+  '737-700':'CFM56-7B22','737-800':'CFM56-7B26','737-900':'CFM56-7B26',
+  '737-900ER':'CFM56-7B27','737 MAX 8':'CFM LEAP-1B28','737 MAX 9':'CFM LEAP-1B28',
+  '757-200':'RB211-535E4B','757-300':'RB211-535E4B',
+  '767-300ER':'CF6-80C2B7F','767-400ER':'CF6-80C2B8F',
+  '777-200':'PW4077','777-200ER':'PW4090','777-300ER':'GE90-115B',
+  '787-8':'GEnx-1B64','787-9':'GEnx-1B74','787-10':'GEnx-1B76'
+};
+
 // ═══ AIRPORT DATABASE (150 airports) ═══
 const AIRPORTS = [
   // United Hubs
@@ -2216,7 +2251,7 @@ function showFlightPopup(f, marker) {
   // Aircraft info — FR24 type + fleet DB match
   if (aircraft) {
     html += `<div class="popup-aircraft">`;
-    html += `<div class="popup-aircraft-type">${escapeHtml(aircraft.t)} <span style="color:var(--ua-muted);font-size:10px">${escapeHtml(aircraft.r)}</span></div>`;
+    html += `<div class="popup-aircraft-type">${escapeHtml(aircraft.t)} <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(aircraft.r)}" style="font-size:10px">${escapeHtml(aircraft.r)}</span></div>`;
     html += `<div style="font-size:10px;color:var(--ua-muted)">${escapeHtml(aircraft.c || '')} | ${escapeHtml(aircraft.w || '')} | ${escapeHtml(aircraft.i || '')}</div>`;
     if (isStarlink) html += `<span class="starlink-badge">⚡ STARLINK</span> `;
     const popupSpecial = isSpecialAircraft(aircraft.r);
@@ -2775,7 +2810,7 @@ function renderFleetTable() {
     const special = isSpecialAircraft(a.r);
     const rowCls = a.s ? (a.s.toLowerCase().includes('stored') ? 'row-stored' : (special ? '' : 'row-maint')) : '';
     return `<tr class="${rowCls}">
-      <td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.r)}${special ? ' <span class="special-badge">⭐ ' + escapeHtml(special.name) + '</span>' : ''}</td>
+      <td style="font-weight:700"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(a.r)}">${escapeHtml(a.r)}</span>${special ? ' <span class="special-badge">⭐ ' + escapeHtml(special.name) + '</span>' : ''}</td>
       <td>${escapeHtml(a.t)}</td><td>${escapeHtml(a.a)}</td><td>${escapeHtml(a.c)}</td>
       <td>${escapeHtml(a.tot || '')}</td><td>${escapeHtml(a.w)}</td><td>${escapeHtml(a.i)}</td><td>${escapeHtml(a.d)}</td>
       <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.s)}</td>
@@ -2862,7 +2897,7 @@ function renderSpecialAircraftPanel() {
     html += `<div class="special-aircraft-item">`;
     html += `<div>`;
     html += `<div class="sa-name">${escapeHtml(special.name)}</div>`;
-    html += `<div><span class="sa-reg">${escapeHtml(reg)}</span> <span class="sa-type">${escapeHtml(ac.t)} · Del ${escapeHtml(ac.d || '?')}</span></div>`;
+    html += `<div><span class="sa-reg ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">${escapeHtml(reg)}</span> <span class="sa-type">${escapeHtml(ac.t)} · Del ${escapeHtml(ac.d || '?')}</span></div>`;
     html += `</div>`;
     html += `<div class="sa-status">`;
     if (airborne) {
@@ -3512,7 +3547,7 @@ function updateLiveFleetPanel() {
     html += `<div class="live-table-wrap"><table><thead><tr><th>Reg</th><th>Type</th><th>Flight</th><th>Route</th><th>Alt</th><th>Phase</th><th></th></tr></thead><tbody>`;
     airborne.forEach(a => {
       const sp = isSpecialAircraft(a.reg);
-      html += `<tr><td style="font-weight:700;color:var(--ua-accent)">${escapeHtml(a.reg)}${sp ? ' <span class="special-badge">⭐</span>' : ''}</td><td>${escapeHtml(a.type)}</td><td>${escapeHtml(a.flight)}</td><td>${escapeHtml(a.route)}</td><td>${escapeHtml(a.alt)}</td><td>${escapeHtml(a.phase)}</td><td>${a.starlink ? '⚡' : ''}</td></tr>`;
+      html += `<tr><td style="font-weight:700"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(a.reg)}">${escapeHtml(a.reg)}</span>${sp ? ' <span class="special-badge">⭐</span>' : ''}</td><td>${escapeHtml(a.type)}</td><td>${escapeHtml(a.flight)}</td><td>${escapeHtml(a.route)}</td><td>${escapeHtml(a.alt)}</td><td>${escapeHtml(a.phase)}</td><td>${a.starlink ? '⚡' : ''}</td></tr>`;
     });
     html += `</tbody></table></div>`;
   }
@@ -4111,7 +4146,7 @@ function renderScheduleTable() {
       <td style="font-weight:600;color:var(--ua-accent)">${escapeHtml(ident)}</td>
       <td>${routeStr}</td>
       <td title="${escapeHtml(acText)}">${escapeHtml(acCode)}${acShort ? `<div style="font-size:9px;color:var(--ua-muted)">${escapeHtml(acShort)}</div>` : ''}${equipBadge}</td>
-      <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<a href="#fleet" data-action="fleet-search" data-reg="${escapeHtml(reg)}" data-prevent-default="1" style="color:var(--ua-accent);text-decoration:none;cursor:pointer">${escapeHtml(reg)}</a>` : '—'}${schedSpecial ? ' <span class="special-badge">⭐ ' + escapeHtml(schedSpecial.name) + '</span>' : ''}${fleetEnrich}</td>
+      <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">${escapeHtml(reg)}</span>` : '—'}${schedSpecial ? ' <span class="special-badge">⭐ ' + escapeHtml(schedSpecial.name) + '</span>' : ''}${fleetEnrich}</td>
       <td>${escapeHtml(gate)}</td>
       <td><span class="sched-status ${escapeHtml(status.cls)}">${escapeHtml(status.text)}</span>${faaContext}</td>
       <td>${fleetMatch}</td>
@@ -4899,6 +4934,31 @@ document.addEventListener('click', function(e) {
       if (modal) modal.style.display = 'none';
       break;
     }
+    case 'aircraft-detail': {
+      const reg = actionEl.dataset.reg;
+      if (reg) showAircraftDetail(reg);
+      break;
+    }
+    case 'close-aircraft-modal': {
+      const acm = document.getElementById('aircraft-detail-modal');
+      if (acm) acm.style.display = 'none';
+      break;
+    }
+    case 'share-aircraft': {
+      const shareReg = actionEl.dataset.reg;
+      if (shareReg) {
+        const shareUrl = new URL(window.location);
+        shareUrl.searchParams.set('aircraft', shareReg);
+        navigator.clipboard.writeText(shareUrl.toString()).then(function() {
+          actionEl.textContent = '✓ Copied!';
+          setTimeout(function() { actionEl.textContent = '📤 Share'; }, 2000);
+        }).catch(function() {
+          actionEl.textContent = '⚠ Failed';
+          setTimeout(function() { actionEl.textContent = '📤 Share'; }, 2000);
+        });
+      }
+      break;
+    }
     default:
       break;
   }
@@ -4924,6 +4984,9 @@ async function initApp() {
   initMap();
   await fleetReady; // Ensure fleet data is loaded before fleet tab init
   initFleetTab();
+  // Handle ?aircraft= deep link (fleet data is ready now)
+  var acDeepLink = new URLSearchParams(location.search).get('aircraft');
+  if (acDeepLink && FLEET_DB.length > 0) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
   showConfigGallery('737-800'); // default
   updateTicker();
   // Now that map + fleet data are ready, activate the hash-linked tab's data layer.
@@ -5073,6 +5136,165 @@ function hideDisclaimer() {
   helpBtn.addEventListener('click',showOverlay);
 })();
 
+// ═══ AIRCRAFT DETAIL MODAL ═══
+const SEAT_BAR_COLORS = {
+  'J':'rgba(0,93,170,.5)','F':'rgba(139,92,246,.5)',
+  'PP':'rgba(20,184,166,.5)','PE':'rgba(20,184,166,.5)',
+  'E+':'rgba(34,197,94,.5)','Y':'rgba(100,116,139,.5)'
+};
+
+function showAircraftDetail(reg) {
+  if (!reg) return;
+  reg = reg.replace(/-/g, '').toUpperCase();
+
+  let modal = document.getElementById('aircraft-detail-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'aircraft-detail-modal';
+    modal.style.display = 'none';
+    modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && modal.style.display !== 'none') modal.style.display = 'none';
+    });
+    document.body.appendChild(modal);
+  }
+
+  const ac = FLEET_BY_REG[reg];
+  if (!ac) {
+    modal.style.display = 'flex';
+    modal.innerHTML = '<div class="ac-modal-card"><div class="ac-modal-header">' +
+      '<button class="ac-modal-close" data-action="close-aircraft-modal" aria-label="Close">✕</button>' +
+      '<div class="ac-modal-reg">' + escapeHtml(reg) + '</div>' +
+      '<div class="ac-modal-type" style="color:var(--ua-muted)">Not in mainline fleet database</div>' +
+      '</div><div class="ac-modal-body">' +
+      '<div style="text-align:center;padding:20px;color:var(--ua-muted);font-size:11px">' +
+      'This aircraft is not in the United mainline fleet database.<br>It may be a United Express (regional) aircraft.</div>' +
+      '</div><div class="ac-modal-footer">' +
+      '<a class="ac-action-btn" href="https://www.planespotters.net/search?q=' + encodeURIComponent(reg) + '" target="_blank" rel="noopener noreferrer">Planespotters ↗</a>' +
+      '</div></div>';
+    return;
+  }
+
+  modal.style.display = 'flex';
+  modal.innerHTML = buildAircraftDetailHTML(ac, reg);
+}
+
+function buildAircraftDetailHTML(ac, reg) {
+  const special = isSpecialAircraft(reg);
+  const isSL = STARLINK_TAILS.has(reg);
+  const age = ac.d ? (new Date().getFullYear() - parseInt(ac.d)) : null;
+  const engine = ENGINE_BY_TYPE[ac.t] || 'Unknown';
+  const category = categorizeFleetStatus(ac.s);
+  const catInfo = FLEET_HEALTH_CATEGORIES.find(c => c.key === category) || { label: 'Active', color: 'var(--ua-green)' };
+
+  // Live flight lookup
+  const liveFlight = allFlights.find(function(f) {
+    var fReg = (f.reg || '').replace(/-/g, '');
+    return fReg === reg && !f.onGround;
+  });
+
+  var html = '<div class="ac-modal-card">';
+
+  // ── Header ──
+  html += '<div class="ac-modal-header">';
+  html += '<button class="ac-modal-close" data-action="close-aircraft-modal" aria-label="Close">✕</button>';
+  html += '<div class="ac-modal-reg">' + escapeHtml(reg) + '</div>';
+  html += '<div class="ac-modal-type">' + escapeHtml(ac.t);
+  if (ac.a) html += ' <span class="ac-modal-acnum">AC# ' + escapeHtml(ac.a) + '</span>';
+  html += '</div>';
+  if (special) html += '<span class="special-badge" style="margin-top:4px;display:inline-block">⭐ ' + escapeHtml(special.name) + '</span> ';
+  if (isSL) html += '<span class="starlink-badge" style="margin-top:4px;display:inline-block">⚡ STARLINK</span>';
+  html += '</div>';
+
+  // ── Body ──
+  html += '<div class="ac-modal-body">';
+
+  // Biography section
+  html += '<div class="ac-section"><div class="ac-section-title">Biography</div>';
+  html += '<div class="ac-detail-grid">';
+  html += '<div><div class="ac-detail-label">Delivered</div><div class="ac-detail-value">' + escapeHtml(ac.d || '—') + (age !== null ? ' (' + age + ' yrs)' : '') + '</div></div>';
+  html += '<div><div class="ac-detail-label">Total Seats</div><div class="ac-detail-value">' + escapeHtml(String(ac.tot || '—')) + '</div></div>';
+  html += '<div><div class="ac-detail-label">WiFi</div><div class="ac-detail-value">' + escapeHtml(ac.w || '—') + '</div></div>';
+  html += '<div><div class="ac-detail-label">IFE</div><div class="ac-detail-value">' + escapeHtml(ac.i || '—') + '</div></div>';
+  html += '<div><div class="ac-detail-label">Power</div><div class="ac-detail-value">' + escapeHtml(ac.p || '—') + '</div></div>';
+  html += '<div><div class="ac-detail-label">Engine</div><div class="ac-detail-value">' + escapeHtml(engine) + '</div></div>';
+  html += '<div><div class="ac-detail-label">Starlink</div><div class="ac-detail-value" style="color:' + (isSL ? 'var(--ua-green)' : 'var(--ua-muted)') + '">' + (isSL ? 'Yes ⚡' : 'No') + '</div></div>';
+  if (ac.c) html += '<div><div class="ac-detail-label">Config</div><div class="ac-detail-value">' + escapeHtml(ac.c) + '</div></div>';
+  html += '</div></div>';
+
+  // Fleet health status
+  html += '<div class="ac-section"><div class="ac-section-title">Status</div>';
+  html += '<span class="ac-status-badge" style="background:' + catInfo.color + '22;color:' + catInfo.color + ';border:1px solid ' + catInfo.color + '44">' + escapeHtml(catInfo.label) + '</span>';
+  if (ac.s && !ac.s.startsWith('*')) html += '<span style="font-size:10px;color:var(--ua-muted);margin-left:8px">' + escapeHtml(ac.s) + '</span>';
+  html += '</div>';
+
+  // Live flight status
+  html += '<div class="ac-section ' + (liveFlight ? 'ac-live-flight' : 'ac-live-ground') + '">';
+  html += '<div class="ac-section-title">Live Status</div>';
+  if (liveFlight) {
+    var fltNum = liveFlight.flightIATA || liveFlight.callsign || '?';
+    var origCode = liveFlight.origin || '?';
+    var destCode = liveFlight.dest || '?';
+    var origCity = IATA_CITIES[origCode] || '';
+    var destCity = IATA_CITIES[destCode] || '';
+    var altFt = liveFlight.alt ? Math.round(liveFlight.alt * 3.28084) : null;
+    var spdKts = liveFlight.spd ? Math.round(liveFlight.spd * 1.944) : null;
+    var phaseInfo = getPhase(liveFlight.alt, liveFlight.vr, liveFlight.spd);
+
+    html += '<div style="font-size:13px;font-weight:700;color:var(--ua-green);margin-bottom:6px">' + phaseInfo.icon + ' Airborne — ' + escapeHtml(fltNum) + '</div>';
+    html += '<div style="font-size:12px;font-weight:600;margin-bottom:4px">';
+    if (origCity && destCity) html += escapeHtml(origCity) + ' → ' + escapeHtml(destCity) + ' ';
+    html += '<span style="color:var(--ua-muted);font-size:10px">' + escapeHtml(origCode) + ' → ' + escapeHtml(destCode) + '</span></div>';
+    html += '<div class="ac-detail-grid" style="margin-top:6px">';
+    html += '<div><div class="ac-detail-label">Altitude</div><div class="ac-detail-value">' + (altFt ? altFt.toLocaleString() + ' ft' : '—') + '</div></div>';
+    html += '<div><div class="ac-detail-label">Speed</div><div class="ac-detail-value">' + (spdKts ? spdKts + ' kts' : '—') + '</div></div>';
+    html += '<div><div class="ac-detail-label">Heading</div><div class="ac-detail-value">' + (liveFlight.hdg ? Math.round(liveFlight.hdg) + '°' : '—') + '</div></div>';
+    html += '<div><div class="ac-detail-label">Phase</div><div class="ac-detail-value">' + escapeHtml(phaseInfo.phase) + '</div></div>';
+    html += '</div>';
+  } else {
+    html += '<div style="font-size:11px;color:var(--ua-muted)">On ground / Not currently tracked</div>';
+  }
+  html += '</div>';
+
+  // Seat configuration
+  if (ac.seats && Object.keys(ac.seats).length > 0) {
+    html += '<div class="ac-section"><div class="ac-section-title">Seat Configuration</div>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">';
+    for (var cls in ac.seats) {
+      html += '<span class="seat-block seat-' + cls + '">' + ac.seats[cls] + cls + '</span>';
+    }
+    if (ac.tot) html += '<span style="font-size:9px;color:var(--ua-muted);align-self:center;margin-left:2px">(' + ac.tot + ' total)</span>';
+    html += '</div>';
+    // Proportional bar
+    html += '<div class="ac-seat-bar">';
+    for (var cls2 in ac.seats) {
+      var pct = ac.tot ? (ac.seats[cls2] / ac.tot * 100) : 0;
+      var barColor = SEAT_BAR_COLORS[cls2] || 'rgba(100,116,139,.5)';
+      html += '<div style="flex:' + ac.seats[cls2] + ';background:' + barColor + '">' + (pct > 8 ? ac.seats[cls2] + cls2 : '') + '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+
+  html += '</div>'; // end body
+
+  // ── Footer ──
+  html += '<div class="ac-modal-footer">';
+  if (liveFlight) {
+    var watchFlt = liveFlight.flightIATA || liveFlight.callsign || '';
+    var watchRoute = (liveFlight.origin || '?') + '→' + (liveFlight.dest || '?');
+    var watched = watchFlt ? isFlightWatched(watchFlt) : false;
+    html += '<button class="ac-action-btn watch-btn' + (watched ? ' watching' : '') + '" data-action="toggle-watch-flight" data-flight="' + escapeHtml(watchFlt) + '" data-route="' + escapeHtml(watchRoute) + '" data-status="airborne">' + (watched ? '👁️ Watching' : '👁 Watch') + '</button>';
+  }
+  html += '<a class="ac-action-btn" href="https://www.planespotters.net/search?q=' + encodeURIComponent(reg) + '" target="_blank" rel="noopener noreferrer">Planespotters ↗</a>';
+  html += '<a class="ac-action-btn" href="https://flightaware.com/resources/registration/' + encodeURIComponent(reg) + '" target="_blank" rel="noopener noreferrer">FlightAware ↗</a>';
+  html += '<button class="ac-action-btn" data-action="share-aircraft" data-reg="' + escapeHtml(reg) + '">📤 Share</button>';
+  html += '</div>';
+
+  html += '</div>'; // end card
+  return html;
+}
+
 // ═══ FR24 FLIGHT LOOKUP ═══
 function lookupFR24Flight(query) {
   let q = query.trim().toUpperCase().replace(/\s+/g, '');
@@ -5163,7 +5385,7 @@ function renderFR24Modal(f, source, cached) {
   html += '</div>';
   // Aircraft
   if (f.aircraft && (f.aircraft.type || f.aircraft.reg)) {
-    html += '<div style="font-size:10px;margin-bottom:4px"><span style="color:var(--ua-muted)">Aircraft:</span> ' + escapeHtml(f.aircraft.type || '?') + (f.aircraft.reg ? ' • ' + escapeHtml(f.aircraft.reg) : '') + '</div>';
+    html += '<div style="font-size:10px;margin-bottom:4px"><span style="color:var(--ua-muted)">Aircraft:</span> ' + escapeHtml(f.aircraft.type || '?') + (f.aircraft.reg ? ' • <span class="ac-reg-link" data-action="aircraft-detail" data-reg="' + escapeHtml(f.aircraft.reg) + '">' + escapeHtml(f.aircraft.reg) + '</span>' : '') + '</div>';
   }
   // Times
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;font-size:10px">';
