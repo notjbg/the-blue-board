@@ -1540,7 +1540,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   if (h && HASH_TABS[h]) {
     const tabId = HASH_TABS[h];
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = p.id === tabId ? 'block' : 'none');
+    document.querySelectorAll('.tab-content').forEach(p => p.classList.toggle('active', p.id === tabId));
   }
 })();
 
@@ -1567,7 +1567,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   if (!tabId) return;
   // Visual-only tab switch — data loads deferred to initApp
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = p.id === tabId ? 'block' : 'none');
+  document.querySelectorAll('.tab-content').forEach(p => p.classList.toggle('active', p.id === tabId));
 
   // After tab switch, handle sub-navigation
   requestAnimationFrame(() => {
@@ -5150,7 +5150,8 @@ async function initApp() {
   initFleetTab();
   // Handle ?aircraft= deep link (fleet data is ready now)
   var acDeepLink = new URLSearchParams(location.search).get('aircraft');
-  if (acDeepLink && FLEET_DB.length > 0) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
+  var onboardingEl = document.getElementById('onboarding-overlay');
+  if (acDeepLink && FLEET_DB.length > 0 && (!onboardingEl || onboardingEl.style.display === 'none')) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
   showConfigGallery('737-800'); // default
   updateTicker();
   // Now that map + fleet data are ready, activate the hash-linked tab's data layer.
@@ -5349,7 +5350,7 @@ function buildAircraftDetailHTML(ac, reg) {
   const age = ac.d ? (new Date().getFullYear() - parseInt(ac.d)) : null;
   const engine = ENGINE_BY_TYPE[ac.t] || 'Unknown';
   const category = categorizeFleetStatus(ac.s);
-  const catInfo = FLEET_HEALTH_CATEGORIES.find(c => c.key === category) || { label: 'Active', color: 'var(--ua-green)' };
+  const catInfo = FLEET_HEALTH_CATEGORIES.find(c => c.key === category) || { label: 'Active', color: '#22c55e' };
 
   // Live flight lookup
   const liveFlight = allFlights.find(function(f) {
