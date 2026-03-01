@@ -4,6 +4,41 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2] - 2026-03-01
+
+### Added
+- **Fleet Health Dashboard** — live fleet status with health categories, pie chart, and aircraft count by type
+- **Special Aircraft Tracker** — named and special-livery aircraft panel in Fleet tab
+- **Aircraft Detail Modal** — click any tail number for registration, type, engine, status, live flight, and history
+- **Equipment Swap Impact Analysis** — schedule tab highlights equipment changes with seat and amenity impact
+- **Unit test suite** — tests for API endpoints and operational logic
+- **Shared API rate limiting** — all endpoints protected with per-IP rate limits
+
+### Changed
+- **Design/UX audit** — typography scale, contrast improvements, interaction polish across the app
+- Hub weather cards moved above IRROPS monitor in weather tab
+- FAA endpoint: fragile regex XML parsing replaced with `fast-xml-parser`
+- SEO & LLM discoverability improvements (structured data, meta tags)
+- Typography unified: `var(--font-ui)` replaces `var(--mono)` on UI buttons
+- Rate limiter prefers `x-real-ip` over `x-forwarded-for`
+
+### Fixed
+- Schedule tab loading: timeout, retry with backoff, clear error states on reload
+- Ticker scrolling: proper content width measurement, GPU-accelerated animation, JS fallback
+- Mobile schedule/fleet tabs hidden behind bottom navigation bar
+- iOS Safari table rendering bug (overflow:hidden + sticky header killed tbody paint)
+- Mobile ticker not rotating: skip desktop animation path, fix race condition
+- Live Fleet Status panel empty on direct `#fleet` hash navigation
+- Hash deep links fired data loads before app initialization
+- Onboarding overlay logic inverted for first-time visitors
+- Tab deep-link selector targeted `.tab-panel` instead of `.tab-content` with wrong display toggle
+- Fleet status badge fallback color used CSS variable instead of raw hex
+- Aircraft deep-link modal opened over onboarding overlay
+- Nested scroll trap on mobile schedule tab
+
+### Security
+- Shared rate limiting on all API endpoints with per-IP tracking
+
 ## [1.1.1] - 2026-02-23
 
 ### Added
@@ -93,6 +128,7 @@ Initial public launch. Full release notes: [v1.0](https://github.com/notjbg/the-
 - JSON-LD structured data, Open Graph metadata
 - Vercel hosting with edge caching
 
+[1.2]: https://github.com/notjbg/the-blue-board/compare/v1.1.1...v1.2
 [1.1.1]: https://github.com/notjbg/the-blue-board/compare/v1.1...v1.1.1
 [1.1]: https://github.com/notjbg/the-blue-board/compare/v1.0...v1.1
 [1.0]: https://github.com/notjbg/the-blue-board/releases/tag/v1.0
