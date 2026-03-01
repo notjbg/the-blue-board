@@ -1245,9 +1245,9 @@ async function loadFleetData() {
 
 // ═══ FLEET HEALTH CATEGORIZATION ═══
 const FLEET_HEALTH_CATEGORIES = [
-  { key: 'active',          label: 'Active',          color: 'var(--ua-green)' },
-  { key: 'maintenance',     label: 'Maintenance',     color: 'var(--ua-yellow)' },
-  { key: 'stored',          label: 'Stored',           color: 'var(--ua-red)' },
+  { key: 'active',          label: 'Active',          color: '#22c55e' },
+  { key: 'maintenance',     label: 'Maintenance',     color: '#eab308' },
+  { key: 'stored',          label: 'Stored',           color: '#ef4444' },
   { key: 'next_retrofit',   label: 'NEXT Retrofit',    color: '#8b5cf6' },
   { key: 'painting',        label: 'Painting',         color: '#06b6d4' },
   { key: 'starlink_install',label: 'Starlink Install', color: '#10b981' },
@@ -4907,15 +4907,6 @@ document.addEventListener('click', function(e) {
       lookupFR24Flight(actionEl.dataset.query || '');
       if (actionEl.dataset.closeGlobal) hideGlobalSearchResults();
       break;
-    case 'fleet-search': {
-      switchToTab('tab-fleet');
-      if (actionEl.dataset.reg) {
-        const input = document.getElementById('fleet-search');
-        if (input) input.value = actionEl.dataset.reg;
-      }
-      renderFleetTable();
-      break;
-    }
     case 'show-disclaimer':
       showDisclaimer();
       break;
@@ -4953,7 +4944,13 @@ document.addEventListener('click', function(e) {
           actionEl.textContent = '✓ Copied!';
           setTimeout(function() { actionEl.textContent = '📤 Share'; }, 2000);
         }).catch(function() {
-          actionEl.textContent = '⚠ Failed';
+          const ta = document.createElement('textarea');
+          ta.value = shareUrl.toString();
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          actionEl.textContent = '✓ Copied!';
           setTimeout(function() { actionEl.textContent = '📤 Share'; }, 2000);
         });
       }
@@ -5260,18 +5257,18 @@ function buildAircraftDetailHTML(ac, reg) {
   if (ac.seats && Object.keys(ac.seats).length > 0) {
     html += '<div class="ac-section"><div class="ac-section-title">Seat Configuration</div>';
     html += '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">';
-    for (var cls in ac.seats) {
-      html += '<span class="seat-block seat-' + cls + '">' + ac.seats[cls] + cls + '</span>';
-    }
+    Object.entries(ac.seats).forEach(function(entry) {
+      html += '<span class="seat-block seat-' + entry[0] + '">' + entry[1] + entry[0] + '</span>';
+    });
     if (ac.tot) html += '<span style="font-size:9px;color:var(--ua-muted);align-self:center;margin-left:2px">(' + ac.tot + ' total)</span>';
     html += '</div>';
     // Proportional bar
     html += '<div class="ac-seat-bar">';
-    for (var cls2 in ac.seats) {
-      var pct = ac.tot ? (ac.seats[cls2] / ac.tot * 100) : 0;
-      var barColor = SEAT_BAR_COLORS[cls2] || 'rgba(100,116,139,.5)';
-      html += '<div style="flex:' + ac.seats[cls2] + ';background:' + barColor + '">' + (pct > 8 ? ac.seats[cls2] + cls2 : '') + '</div>';
-    }
+    Object.entries(ac.seats).forEach(function(entry) {
+      var pct = ac.tot ? (entry[1] / ac.tot * 100) : 0;
+      var barColor = SEAT_BAR_COLORS[entry[0]] || 'rgba(100,116,139,.5)';
+      html += '<div style="flex:' + entry[1] + ';background:' + barColor + '">' + (pct > 8 ? entry[1] + entry[0] : '') + '</div>';
+    });
     html += '</div>';
     html += '</div>';
   }
