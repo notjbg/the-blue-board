@@ -649,6 +649,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
 /* Equipment Change Badge */
 .equip-change-badge{display:inline-block;background:rgba(245,158,11,.15);color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;margin-top:2px}
 #equip-change-summary{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:6px 12px;margin:4px 16px;font-size:10px;color:#f59e0b;display:none}
+.equip-swap-detail{margin-top:3px;font-size:9px;line-height:1.5}
+.equip-swap-item{display:inline-block;padding:0 4px;border-radius:2px;margin-right:2px;font-weight:600;white-space:nowrap}
+.equip-swap-upgrade{background:rgba(34,197,94,.15);color:#22c55e}
+.equip-swap-downgrade{background:rgba(239,68,68,.15);color:#ef4444}
+.equip-swap-lateral{background:rgba(100,116,139,.15);color:#94a3b8}
 
 /* Fleet Enrichment Tooltip */
 .fleet-enrich-icon{cursor:pointer;color:var(--ua-accent);font-size:10px;margin-left:3px;opacity:.7;transition:opacity .15s}
@@ -4115,11 +4120,25 @@ function renderScheduleTable() {
       }
     }
 
-    // Equipment change detection
+    // Equipment change detection with impact analysis
     let equipBadge = '';
     const eqChange = getEquipChangeForFlight(ident);
     if (eqChange) {
-      equipBadge = `<div class="equip-change-badge">⚠️ ${escapeHtml(eqChange.oldAc)} → ${escapeHtml(eqChange.newAc)}</div>`;
+      const oldType = ICAO_TO_FLEET_TYPE[eqChange.oldAc] || eqChange.oldAc;
+      const newType = ICAO_TO_FLEET_TYPE[eqChange.newAc] || eqChange.newAc;
+      const impacts = analyzeSwapImpact(eqChange.oldAc, eqChange.newAc, reg);
+      const hasDown = impacts.some(i => i.cls === 'downgrade');
+      const hasUp = impacts.some(i => i.cls === 'upgrade');
+      const icon = hasDown ? '🔴' : hasUp ? '🟢' : '⚠️';
+      const regLink = reg !== '—' ? ` <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}" style="font-size:8px">${escapeHtml(reg)}</span>` : '';
+      equipBadge = `<div class="equip-change-badge" style="background:${hasDown ? 'rgba(239,68,68,.15);color:#ef4444' : hasUp ? 'rgba(34,197,94,.15);color:#22c55e' : ''}">${icon} ${escapeHtml(oldType)} → ${escapeHtml(newType)}${regLink}</div>`;
+      if (impacts.length) {
+        equipBadge += `<div class="equip-swap-detail">`;
+        impacts.forEach(i => {
+          equipBadge += `<span class="equip-swap-item equip-swap-${i.cls}">${escapeHtml(i.text)}</span>`;
+        });
+        equipBadge += `</div>`;
+      }
     }
 
     // Special aircraft detection
@@ -4284,15 +4303,153 @@ document.getElementById('global-search-input').addEventListener('input', debounc
 document.addEventListener('click', function(e) { if (!document.getElementById('global-search-wrap').contains(e.target)) document.getElementById('global-search-results').style.display = 'none'; });
 
 // ═══ EQUIPMENT SWAP DETECTION ═══
+const ICAO_TO_FLEET_TYPE = {
+  'A319':'A319','A320':'A320','A21N':'A321neo',
+  'B737':'737-700','B738':'737-800','B739':'737-900',
+  'B39M':'737 MAX 9','B38M':'737 MAX 8',
+  'B752':'757-200','B753':'757-300',
+  'B763':'767-300ER','B764':'767-400ER',
+  'B772':'777-200','B77E':'777-200ER','B77W':'777-300ER',
+  'B788':'787-8','B789':'787-9','B78X':'787-10'
+};
+
+// Cabin class rankings: higher = more premium
+const CABIN_RANK = { 'J': 4, 'F': 3, 'PP': 2, 'PE': 2, 'E+': 1, 'Y': 0 };
+
+// WiFi quality ranking: higher = better
+const WIFI_RANK = { 'Starlink': 3, 'ViaSatKA': 2, 'Satl Ka': 1, 'Satl Ka US': 1, 'Satl Ku': 1, 'Satl KU': 1, 'NO': 0 };
+
+// IFE quality ranking
+const IFE_RANK = { 'AVOD': 3, 'AVOD+PDE': 3, 'AVOD/PDE': 3, 'Seatback': 2, 'DTV/PDE': 1, 'PDE': 0 };
+
+function getTypicalFleetStats(icaoCode) {
+  const fleetType = ICAO_TO_FLEET_TYPE[icaoCode];
+  if (!fleetType || !FLEET_DB.length) return null;
+  // Find all aircraft of this type to get typical stats
+  const ofType = FLEET_DB.filter(a => a.t === fleetType && categorizeFleetStatus(a.s) === 'active');
+  if (!ofType.length) return null;
+  // Use the most common config (mode)
+  const configCounts = {};
+  ofType.forEach(a => { const k = a.c || ''; configCounts[k] = (configCounts[k] || 0) + 1; });
+  const topConfig = Object.entries(configCounts).sort((a, b) => b[1] - a[1])[0][0];
+  const representative = ofType.find(a => (a.c || '') === topConfig) || ofType[0];
+  // Collect WiFi types used by this fleet type
+  const wifiCounts = {};
+  ofType.forEach(a => { if (a.w) wifiCounts[a.w] = (wifiCounts[a.w] || 0) + 1; });
+  const topWifi = Object.entries(wifiCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+  // Check if any have Starlink
+  const hasStarlink = ofType.some(a => STARLINK_TAILS.has(a.r));
+  // Premium cabin: highest cabin class available
+  const topCabin = representative.seats ? Object.keys(representative.seats).reduce((best, cls) =>
+    (CABIN_RANK[cls] || 0) > (CABIN_RANK[best] || 0) ? cls : best, 'Y') : 'Y';
+  return {
+    type: fleetType,
+    seats: representative.seats || {},
+    tot: representative.tot || 0,
+    wifi: topWifi,
+    ife: representative.i || '',
+    topCabin,
+    hasStarlink
+  };
+}
+
+function analyzeSwapImpact(oldAcCode, newAcCode, newReg) {
+  const impacts = [];
+  const oldStats = getTypicalFleetStats(oldAcCode);
+  const newStats = getTypicalFleetStats(newAcCode);
+
+  // If we have the actual new aircraft registration, use it for precise data
+  let newActual = null;
+  if (newReg && newReg !== '—') {
+    const regClean = newReg.replace(/-/g, '');
+    newActual = FLEET_BY_REG[regClean] || FLEET_BY_REG[newReg];
+  }
+
+  if (!oldStats && !newStats) return impacts;
+
+  // Cabin class comparison
+  if (oldStats && (newActual || newStats)) {
+    const oldTop = oldStats.topCabin;
+    const newSeats = newActual?.seats || newStats?.seats || {};
+    const newTop = Object.keys(newSeats).reduce((best, cls) =>
+      (CABIN_RANK[cls] || 0) > (CABIN_RANK[best] || 0) ? cls : best, 'Y');
+    const oldRank = CABIN_RANK[oldTop] || 0;
+    const newRank = CABIN_RANK[newTop] || 0;
+    const cabinLabels = { 'J': 'Polaris', 'F': 'First', 'PP': 'Premium Plus', 'PE': 'Premium Plus', 'E+': 'Economy Plus', 'Y': 'Economy' };
+    if (oldRank > newRank) {
+      impacts.push({ text: 'Lost ' + (cabinLabels[oldTop] || oldTop), cls: 'downgrade' });
+    } else if (newRank > oldRank) {
+      impacts.push({ text: '+ ' + (cabinLabels[newTop] || newTop), cls: 'upgrade' });
+    }
+  }
+
+  // Seat count comparison
+  const oldTot = oldStats?.tot || 0;
+  const newTot = newActual?.tot || newStats?.tot || 0;
+  if (oldTot && newTot && oldTot !== newTot) {
+    const delta = newTot - oldTot;
+    impacts.push({
+      text: (delta > 0 ? '+' : '') + delta + ' seats',
+      cls: delta > 0 ? 'lateral' : 'downgrade'
+    });
+  }
+
+  // WiFi comparison
+  const oldWifi = oldStats?.wifi || '';
+  const newWifi = newActual?.w || newStats?.wifi || '';
+  if (oldWifi && newWifi && oldWifi !== newWifi) {
+    const oldWR = WIFI_RANK[oldWifi] ?? 1;
+    const newWR = WIFI_RANK[newWifi] ?? 1;
+    if (oldWR !== newWR) {
+      const shortWifi = (newActual && STARLINK_TAILS.has(newActual.r)) ? 'Starlink' : newWifi.replace('ViaSatKA', 'ViaSat').replace('Satl ', '');
+      impacts.push({
+        text: shortWifi + ' WiFi',
+        cls: newWR > oldWR ? 'upgrade' : 'downgrade'
+      });
+    }
+  }
+
+  // Starlink specifically (even if WiFi field doesn't change, Starlink is special)
+  if (newActual && STARLINK_TAILS.has(newActual.r) && oldStats && !oldStats.hasStarlink) {
+    if (!impacts.some(i => i.text.includes('Starlink'))) {
+      impacts.push({ text: '⚡ Starlink', cls: 'upgrade' });
+    }
+  } else if (newActual && !STARLINK_TAILS.has(newActual.r) && oldStats?.hasStarlink) {
+    if (!impacts.some(i => i.text.includes('Starlink'))) {
+      impacts.push({ text: 'Lost Starlink', cls: 'downgrade' });
+    }
+  }
+
+  // IFE comparison
+  const oldIfe = oldStats?.ife || '';
+  const newIfe = newActual?.i || newStats?.ife || '';
+  if (oldIfe && newIfe && oldIfe !== newIfe) {
+    const oldIR = IFE_RANK[oldIfe] ?? 1;
+    const newIR = IFE_RANK[newIfe] ?? 1;
+    if (oldIR !== newIR) {
+      impacts.push({
+        text: newIfe.replace('AVOD/PDE', 'AVOD').replace('AVOD+PDE', 'AVOD').replace('DTV/PDE', 'DTV'),
+        cls: newIR > oldIR ? 'upgrade' : 'downgrade'
+      });
+    }
+  }
+
+  return impacts;
+}
+
 let equipmentChanges = [];
 
 function detectEquipmentSwaps(flights, hub, dir, day) {
   const storageKey = `bb_sched_${hub}_${dir}_${day}`;
   const newMap = {};
+  const regMap = {};
   flights.forEach(fl => {
     const fnum = fl.identification?.number?.default;
     const acCode = fl.aircraft?.model?.code;
-    if (fnum && acCode) newMap[fnum] = acCode;
+    if (fnum && acCode) {
+      newMap[fnum] = acCode;
+      regMap[fnum] = fl.aircraft?.registration || '';
+    }
   });
   equipmentChanges = [];
   try {
@@ -4301,7 +4458,7 @@ function detectEquipmentSwaps(flights, hub, dir, day) {
       const oldMap = JSON.parse(oldData);
       for (const [fnum, newAc] of Object.entries(newMap)) {
         if (oldMap[fnum] && oldMap[fnum] !== newAc) {
-          equipmentChanges.push({ flight: fnum, oldAc: oldMap[fnum], newAc });
+          equipmentChanges.push({ flight: fnum, oldAc: oldMap[fnum], newAc, reg: regMap[fnum] || '' });
         }
       }
     }
@@ -4314,7 +4471,17 @@ function updateEquipChangeSummary() {
   const el = document.getElementById('equip-change-summary');
   if (equipmentChanges.length > 0) {
     el.style.display = 'block';
-    el.innerHTML = `⚠️ ${equipmentChanges.length} equipment change${equipmentChanges.length > 1 ? 's' : ''} detected since last check`;
+    // Count upgrades/downgrades/lateral
+    let ups = 0, downs = 0;
+    equipmentChanges.forEach(c => {
+      const impacts = analyzeSwapImpact(c.oldAc, c.newAc, c.reg);
+      if (impacts.some(i => i.cls === 'downgrade')) downs++;
+      else if (impacts.some(i => i.cls === 'upgrade')) ups++;
+    });
+    let detail = '';
+    if (downs) detail += ` · <span style="color:#ef4444">${downs} downgrade${downs > 1 ? 's' : ''}</span>`;
+    if (ups) detail += ` · <span style="color:#22c55e">${ups} upgrade${ups > 1 ? 's' : ''}</span>`;
+    el.innerHTML = `⚠️ ${equipmentChanges.length} equipment swap${equipmentChanges.length > 1 ? 's' : ''} detected${detail}`;
   } else {
     el.style.display = 'none';
   }
