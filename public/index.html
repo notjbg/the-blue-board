@@ -3945,23 +3945,20 @@ function updateSchedDayLabels() {
 }
 
 async function preloadScheduleData() {
-  // Fetch all 9 hubs IN PARALLEL — no sequential waiting
-  // Only preload top 3 domestic hubs on startup; rest load on demand
+  // Fetch hubs sequentially to avoid overwhelming FR24 with concurrent aggregations
   const preloadHubs = ['ORD','DEN','EWR'];
   const timestamp = getSchedDayTimestamp(0); // today
-  const results = await Promise.allSettled(
-    preloadHubs.map(hub => fetchScheduleAggregated(hub, 'departures', timestamp).then(r => ({hub, result: r})))
-  );
   let loaded = 0;
-  results.forEach(r => {
-    if (r.status !== 'fulfilled') return;
-    const {hub, result} = r.value;
-    const hubKey = `${hub}-departures-0`;
-    if (result.flights && result.flights.length && !schedRawByHub[hubKey]) {
-      schedRawByHub[hubKey] = result.flights;
-      loaded++;
-    }
-  });
+  for (const hub of preloadHubs) {
+    try {
+      const result = await fetchScheduleAggregated(hub, 'departures', timestamp);
+      const hubKey = `${hub}-departures-0`;
+      if (result.flights?.length && !schedRawByHub[hubKey]) {
+        schedRawByHub[hubKey] = result.flights;
+        loaded++;
+      }
+    } catch (e) { /* preload is best-effort */ }
+  }
   if (loaded > 0) {
     updateHubHealth();
     updateIrrops();
