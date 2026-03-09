@@ -3345,9 +3345,18 @@ function computeOpsImpact(rawMetar, fltCat) {
     bump('caution'); reasons.push('low clouds with active weather');
   }
 
+  // Extract gust speed for delay risk engine
+  const gustMatch = rawMetar.match(/\b\d{3}\d{2,3}G(\d{2,3})KT\b/);
+  const gustKt = gustMatch ? parseInt(gustMatch[1]) : 0;
+
   // Deduplicate reasons
   const unique = [...new Set(reasons)];
-  return {level, reasons: unique, color: OPS_COLORS[level]};
+  return {level, reasons: unique, color: OPS_COLORS[level], gustKt,
+    hasThunderstorms: unique.includes('thunderstorms'),
+    hasFreezingPrecip: unique.includes('freezing precipitation'),
+    hasSnow: unique.includes('snow'),
+    hasFog: unique.includes('fog'),
+  };
 }
 
 function parseMetarQuick(raw) {
@@ -3412,9 +3421,20 @@ async function initWeatherTab() {
   });
   const metarResults = hubs.map(hub => ({hub, data: metarByHub[hub] || null}));
 
-  // Index FAA delays by airport code
+  // Index FAA delays by airport code — merge multiple entries per airport
   const faaIndex = {};
-  if (Array.isArray(faaData)) faaData.forEach(d => { faaIndex[d.airportCode||d.airport] = d; });
+  if (Array.isArray(faaData)) faaData.forEach(d => {
+    const code = d.airportCode || d.airport;
+    if (!code) return;
+    if (!faaIndex[code]) faaIndex[code] = { delays: [] };
+    faaIndex[code].delays.push(...(d.delays || []));
+    // Set typed boolean flags the delay engine expects
+    if (d.type === 'ground_stop') faaIndex[code].groundStop = true;
+    else if (d.type === 'ground_delay') { faaIndex[code].groundDelay = true; faaIndex[code].avgDelay = d.avgDelay; }
+    else if (d.type === 'departure_delay') { faaIndex[code].departureDelay = true; faaIndex[code].minDelay = d.minDelay; faaIndex[code].maxDelay = d.maxDelay; }
+    else if (d.type === 'arrival_delay') { faaIndex[code].arrivalDelay = true; }
+    else if (d.type === 'closure') faaIndex[code].closure = true;
+  });
   // Store globally for IRROPS & schedule cross-reference
   faaDelayIndex = faaIndex;
 
@@ -3435,7 +3455,9 @@ async function initWeatherTab() {
     // Compute ops impact (weather + wind + phenomena)
     const ops = computeOpsImpact(raw, cat);
     // Store globally for delay risk engine
-    weatherOpsByHub[hub] = { level: ops.level, reasons: ops.reasons, fltCat: cat };
+    weatherOpsByHub[hub] = { level: ops.level, reasons: ops.reasons, fltCat: cat,
+      hasThunderstorms: ops.hasThunderstorms, hasFreezingPrecip: ops.hasFreezingPrecip,
+      hasSnow: ops.hasSnow, hasFog: ops.hasFog, gustKt: ops.gustKt || 0 };
     // Card border uses worst of: flight category color or ops impact color
     const borderColor = ops.level !== 'normal' ? ops.color : catColor;
 
@@ -4818,6 +4840,7 @@ function updateHubHealth() {
 // ═══ IRROPS DASHBOARD ═══
 let faaDelayIndex = {};
 let weatherOpsByHub = {};  // Global METAR-derived ops impact per hub — populated by initWeatherTab()
+let irropsHubData = {};    // Global IRROPS cancellation/delay rates per hub — for delay risk engine
 
 function updateIrrops() {
   const content = document.getElementById('irrops-content');
@@ -4857,8 +4880,7 @@ function updateIrrops() {
 
   // Ground stops from FAA
   const groundStops = Object.values(faaDelayIndex).filter(d => {
-    if (!d.delays) return false;
-    return d.delays.some(dl => (dl.type||'').toLowerCase().includes('ground stop'));
+    return d.groundStop || (d.delays && d.delays.some(dl => (dl.type||'') === 'ground_stop'));
   }).length;
 
   const score = totalFlights > 0 ? ((cancellations * 3 + delayed60 * 2 + delayed30 + diversions * 2) / totalFlights * 100).toFixed(1) : 0;
@@ -4933,6 +4955,19 @@ function renderIrropsFromAPI(data) {
         // schedule API do a full fetch when the user opens the Schedule tab.
       }
     });
+  }
+
+  // Store IRROPS hub data globally for delay risk engine
+  if (data.hubMetrics) {
+    for (const [hub, m] of Object.entries(data.hubMetrics)) {
+      if (m && m.total > 0) {
+        irropsHubData[hub] = {
+          cancellationRate: Math.round(((m.cancellations || 0) / m.total) * 100),
+          delayed60Rate: Math.round(((m.delayed60 || 0) / m.total) * 100),
+          total: m.total,
+        };
+      }
+    }
   }
 
   // Use hub metrics from IRROPS API to populate hub health bar immediately
@@ -5387,8 +5422,9 @@ function updateMyFlightsCountdowns() {
   });
 }
 
-// ═══ DELAY RISK ENGINE v2 — Multi-Signal Scoring ═══
-// 8 signals: actual delay, FAA programs, weather, hub OTP, time-of-day, inbound aircraft, hub profile
+// ═══ DELAY RISK ENGINE v3 — Multi-Signal Scoring ═══
+// 10 signals: actual delay, FAA programs (origin/dest), weather (phenomena-aware),
+// hub OTP, time-of-day, inbound aircraft (ETA-based), hub profile, IRROPS stress
 
 // United hub-specific base risk profiles (historical delay tendencies)
 const HUB_RISK_PROFILES = {
@@ -5402,6 +5438,27 @@ const HUB_RISK_PROFILES = {
   NRT: { base: 1, name: 'NRT international ops' },
   GUM: { base: 1, name: 'GUM baseline' },
 };
+
+// Hub coordinates for inbound ETA calculation
+const HUB_COORDINATES = {
+  ORD: { lat: 41.974, lon: -87.907 },
+  DEN: { lat: 39.856, lon: -104.674 },
+  IAH: { lat: 29.990, lon: -95.336 },
+  EWR: { lat: 40.693, lon: -74.169 },
+  SFO: { lat: 37.621, lon: -122.379 },
+  IAD: { lat: 38.953, lon: -77.456 },
+  LAX: { lat: 33.942, lon: -118.408 },
+  NRT: { lat: 35.764, lon: 140.386 },
+  GUM: { lat: 13.484, lon: 144.797 },
+};
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
   let score = 0;
@@ -5421,36 +5478,51 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
     }
   }
 
-  // ── Signal 2: FAA PROGRAMS AT ORIGIN (0-30) ──
+  // ── Signal 2: FAA PROGRAMS AT ORIGIN (0-35) ──
   const faaOrig = faaDelayIndex[origHub];
   if (faaOrig) {
-    if (faaOrig.groundStop)         { score += 30; factors.push('Ground stop at ' + origHub); }
-    else if (faaOrig.groundDelay)   { score += 20; factors.push('Ground delay program at ' + origHub); }
-    else if (faaOrig.departureDelay){ score += 12; factors.push('Departure delays at ' + origHub); }
-    else if (faaOrig.arrivalDelay)  { score += 8; factors.push('Arrival delays at ' + origHub); }
+    if (faaOrig.closure)              { score += 35; factors.push('Airport closed at ' + origHub); }
+    else if (faaOrig.groundStop)      { score += 30; factors.push('Ground stop at ' + origHub); }
+    else if (faaOrig.groundDelay)     { score += 20; factors.push('Ground delay program at ' + origHub + (faaOrig.avgDelay ? ' (avg ' + faaOrig.avgDelay + ')' : '')); }
+    else if (faaOrig.departureDelay)  { score += 12; factors.push('Departure delays at ' + origHub); }
+    else if (faaOrig.arrivalDelay)    { score += 8; factors.push('Arrival delays at ' + origHub); }
   }
 
-  // ── Signal 3: FAA PROGRAMS AT DESTINATION (0-20) ──
+  // ── Signal 3: FAA PROGRAMS AT DESTINATION (0-25) ──
   const faaDest = faaDelayIndex[destHub];
   if (faaDest) {
-    if (faaDest.groundStop)         { score += 20; factors.push('Ground stop at ' + destHub); }
-    else if (faaDest.groundDelay)   { score += 15; factors.push('Ground delay at ' + destHub); }
-    else if (faaDest.arrivalDelay)  { score += 8; factors.push('Arrival delays at ' + destHub); }
+    if (faaDest.closure)              { score += 25; factors.push('Airport closed at ' + destHub); }
+    else if (faaDest.groundStop)      { score += 20; factors.push('Ground stop at ' + destHub); }
+    else if (faaDest.groundDelay)     { score += 15; factors.push('Ground delay at ' + destHub); }
+    else if (faaDest.arrivalDelay)    { score += 8; factors.push('Arrival delays at ' + destHub); }
   }
 
-  // ── Signal 4: WEATHER AT ORIGIN & DESTINATION (0-25) ──
+  // ── Signal 4: WEATHER AT ORIGIN & DESTINATION (0-30) ──
   const wxOrig = weatherOpsByHub[origHub];
   if (wxOrig) {
-    if (wxOrig.level === 'severe')       { score += 20; factors.push(origHub + ' severe weather \u2014 ' + wxOrig.reasons.join(', ')); }
-    else if (wxOrig.level === 'warning') { score += 14; factors.push(origHub + ' weather: ' + wxOrig.reasons.join(', ')); }
-    else if (wxOrig.level === 'caution') { score += 6; factors.push(origHub + ' weather: ' + wxOrig.reasons.join(', ')); }
+    // Base level scoring
+    if (wxOrig.level === 'severe')       { score += 15; }
+    else if (wxOrig.level === 'warning') { score += 10; }
+    else if (wxOrig.level === 'caution') { score += 4; }
+    // Phenomena-specific bonuses (stack on top)
+    if (wxOrig.hasThunderstorms)  { score += 8; factors.push(origHub + ' thunderstorms'); }
+    if (wxOrig.hasFreezingPrecip) { score += 6; factors.push(origHub + ' freezing precipitation'); }
+    if (wxOrig.hasSnow)           { score += 4; factors.push(origHub + ' snow'); }
+    if (wxOrig.gustKt >= 35)      { score += 5; factors.push(origHub + ' gusts ' + wxOrig.gustKt + 'kt'); }
+    // Generic weather factor if no specific phenomena listed
+    if (!wxOrig.hasThunderstorms && !wxOrig.hasFreezingPrecip && !wxOrig.hasSnow && wxOrig.level !== 'normal') {
+      factors.push(origHub + ' weather: ' + wxOrig.reasons.join(', '));
+    }
+    // Flight category
     if (wxOrig.fltCat === 'LIFR')        { score += 10; factors.push(origHub + ' LIFR conditions'); }
     else if (wxOrig.fltCat === 'IFR')    { score += 5; factors.push(origHub + ' IFR conditions'); }
   }
+  // Destination weather (lower weights — ~60% of origin)
   const wxDest = weatherOpsByHub[destHub];
   if (wxDest) {
     if (wxDest.level === 'severe')       { score += 10; factors.push(destHub + ' severe weather'); }
     else if (wxDest.level === 'warning') { score += 5; factors.push(destHub + ' weather advisory'); }
+    if (wxDest.hasThunderstorms)         { score += 5; factors.push(destHub + ' thunderstorms (arrival)'); }
     if (wxDest.fltCat === 'LIFR')        { score += 5; factors.push(destHub + ' LIFR (arrival impact)'); }
   }
 
@@ -5475,8 +5547,8 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
   else if (hubHour >= 16) { score += 8; factors.push('Evening \u2014 cascade risk'); }
   else if (hubHour >= 13) { score += 4; factors.push('Afternoon \u2014 moderate cascade'); }
 
-  // ── Signal 7: INBOUND AIRCRAFT DELAY (0-25) ──
-  // If inbound aircraft is still airborne close to departure, turnaround is at risk
+  // ── Signal 7: INBOUND AIRCRAFT (0-30) ──
+  // ETA-based turnaround analysis with propagation signals
   if (timeData && !liveFlight) {
     const reg = (timeData.aircraft || '').replace('-', '');
     if (reg && typeof allFlights !== 'undefined') {
@@ -5487,11 +5559,45 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
       });
       if (inbound) {
         const schedDep = timeData.departure?.gate?.scheduled || timeData.departure?.gate?.estimated;
-        if (schedDep) {
+        // 7a: ETA-based turnaround analysis
+        const hubCoords = HUB_COORDINATES[origHub];
+        if (hubCoords && inbound.lat && inbound.lon && inbound.spd > 0 && schedDep) {
+          const distKm = haversine(inbound.lat, inbound.lon, hubCoords.lat, hubCoords.lon);
+          const spdKmH = inbound.spd * 3.6; // m/s to km/h
+          const etaMin = (distKm / spdKmH) * 60 + 15; // +15 min for approach/taxi/gate
+          const depTime = new Date(schedDep);
+          const estArrival = new Date(Date.now() + etaMin * 60000);
+          // Minimum turnaround: 45min narrowbody, 75min widebody
+          const isWidebody = /^(B77|B78|A35|A33|A38)/.test(inbound.acType || '');
+          const minTurnaround = isWidebody ? 75 : 45;
+          const turnaroundBuffer = (depTime - estArrival) / 60000 - minTurnaround;
+          if (turnaroundBuffer < 0)        { score += 30; factors.push('Inbound aircraft cannot make turnaround \u2014 delay likely (' + Math.round(etaMin) + 'min to arrival, needs ' + minTurnaround + 'min turn)'); }
+          else if (turnaroundBuffer < 15)  { score += 22; factors.push('Inbound aircraft \u2014 very tight turnaround (' + Math.round(turnaroundBuffer) + 'min buffer)'); }
+          else if (turnaroundBuffer < 30)  { score += 12; factors.push('Inbound aircraft \u2014 tight turnaround (' + Math.round(turnaroundBuffer) + 'min buffer)'); }
+          else if (turnaroundBuffer < 60)  { score += 5; factors.push('Inbound aircraft en route'); }
+        } else if (schedDep) {
+          // Fallback: simple time-to-departure check (no position data)
           const timeToOurDep = (new Date(schedDep) - Date.now()) / 60000;
           if (timeToOurDep < 45)       { score += 25; factors.push('Inbound aircraft still airborne \u2014 very tight turnaround'); }
           else if (timeToOurDep < 75)  { score += 15; factors.push('Inbound aircraft still en route'); }
           else if (timeToOurDep < 120) { score += 8; factors.push('Inbound aircraft in flight'); }
+        }
+        // 7b: Inbound origin weather risk (propagation)
+        var inbOrigWx = weatherOpsByHub[inbound.origin];
+        if (inbOrigWx && (inbOrigWx.level === 'severe' || inbOrigWx.level === 'warning')) {
+          score += 5; factors.push('Inbound from ' + inbound.origin + ' (' + inbOrigWx.level + ' weather)');
+        }
+        // 7c: Inbound origin FAA programs (propagation)
+        var inbFaa = faaDelayIndex[inbound.origin];
+        if (inbFaa && (inbFaa.groundStop || inbFaa.groundDelay)) {
+          score += 5; factors.push('Inbound from ' + inbound.origin + ' (' + (inbFaa.groundStop ? 'ground stop' : 'GDP') + ')');
+        }
+        // 7d: Still at cruise altitude with <90min to departure
+        if (inbound.alt > 8000 && inbound.vr >= -0.5 && schedDep) {
+          var timeToOurDep2 = (new Date(schedDep) - Date.now()) / 60000;
+          if (timeToOurDep2 < 90) {
+            score += 5; factors.push('Inbound still at cruise altitude');
+          }
         }
       }
     }
@@ -5502,6 +5608,15 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
   if (hubProfile && hubProfile.base > 0) {
     score += hubProfile.base;
     if (hubProfile.base >= 5) factors.push(hubProfile.name);
+  }
+
+  // ── Signal 9: IRROPS NETWORK STRESS (0-15) ──
+  var irrops = irropsHubData[origHub];
+  if (irrops) {
+    if (irrops.cancellationRate >= 15)     { score += 15; factors.push(origHub + ' ' + irrops.cancellationRate + '% cancellation rate'); }
+    else if (irrops.cancellationRate >= 8) { score += 10; factors.push(origHub + ' elevated cancellations (' + irrops.cancellationRate + '%)'); }
+    else if (irrops.cancellationRate >= 3) { score += 4; factors.push(origHub + ' some cancellations'); }
+    if (irrops.delayed60Rate >= 20)        { score += 5; factors.push(origHub + ' high 60min+ delay rate'); }
   }
 
   // ── Final Score & Label ──
@@ -5540,29 +5655,38 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
     else if (delayMin >= 15) { score += 15; factors.push(delayMin + 'min delay'); }
   }
 
-  // ── Signal 2: FAA PROGRAMS AT ORIGIN (0-30) ──
+  // ── Signal 2: FAA PROGRAMS AT ORIGIN (0-35) ──
   const faaOrig = faaDelayIndex[depHub];
   if (faaOrig) {
-    if (faaOrig.groundStop)          { score += 30; factors.push('Ground stop at ' + depHub); }
-    else if (faaOrig.groundDelay)    { score += 20; factors.push('GDP at ' + depHub); }
-    else if (faaOrig.departureDelay) { score += 12; factors.push('Dep delays at ' + depHub); }
-    else if (faaOrig.arrivalDelay)   { score += 8; factors.push('Arr delays at ' + depHub); }
+    if (faaOrig.closure)              { score += 35; factors.push('Airport closed at ' + depHub); }
+    else if (faaOrig.groundStop)      { score += 30; factors.push('Ground stop at ' + depHub); }
+    else if (faaOrig.groundDelay)     { score += 20; factors.push('GDP at ' + depHub + (faaOrig.avgDelay ? ' (avg ' + faaOrig.avgDelay + ')' : '')); }
+    else if (faaOrig.departureDelay)  { score += 12; factors.push('Dep delays at ' + depHub); }
+    else if (faaOrig.arrivalDelay)    { score += 8; factors.push('Arr delays at ' + depHub); }
   }
 
-  // ── Signal 3: FAA PROGRAMS AT DESTINATION (0-20) ──
+  // ── Signal 3: FAA PROGRAMS AT DESTINATION (0-25) ──
   const faaDest = faaDelayIndex[arrHub];
   if (faaDest) {
-    if (faaDest.groundStop)          { score += 20; factors.push('Ground stop at ' + arrHub); }
-    else if (faaDest.groundDelay)    { score += 15; factors.push('GDP at ' + arrHub); }
-    else if (faaDest.arrivalDelay)   { score += 8; factors.push('Arr delays at ' + arrHub); }
+    if (faaDest.closure)              { score += 25; factors.push('Airport closed at ' + arrHub); }
+    else if (faaDest.groundStop)      { score += 20; factors.push('Ground stop at ' + arrHub); }
+    else if (faaDest.groundDelay)     { score += 15; factors.push('GDP at ' + arrHub); }
+    else if (faaDest.arrivalDelay)    { score += 8; factors.push('Arr delays at ' + arrHub); }
   }
 
-  // ── Signal 4: WEATHER (0-25) ──
+  // ── Signal 4: WEATHER (0-30) ──
   const wxOrig = weatherOpsByHub[depHub];
   if (wxOrig) {
-    if (wxOrig.level === 'severe')       { score += 20; factors.push(depHub + ' severe weather'); }
-    else if (wxOrig.level === 'warning') { score += 14; factors.push(depHub + ' weather: ' + wxOrig.reasons.join(', ')); }
-    else if (wxOrig.level === 'caution') { score += 6; factors.push(depHub + ' weather: ' + wxOrig.reasons.join(', ')); }
+    if (wxOrig.level === 'severe')       { score += 15; }
+    else if (wxOrig.level === 'warning') { score += 10; }
+    else if (wxOrig.level === 'caution') { score += 4; }
+    if (wxOrig.hasThunderstorms)  { score += 8; factors.push(depHub + ' thunderstorms'); }
+    if (wxOrig.hasFreezingPrecip) { score += 6; factors.push(depHub + ' freezing precipitation'); }
+    if (wxOrig.hasSnow)           { score += 4; factors.push(depHub + ' snow'); }
+    if (wxOrig.gustKt >= 35)      { score += 5; factors.push(depHub + ' gusts ' + wxOrig.gustKt + 'kt'); }
+    if (!wxOrig.hasThunderstorms && !wxOrig.hasFreezingPrecip && !wxOrig.hasSnow && wxOrig.level !== 'normal') {
+      factors.push(depHub + ' weather: ' + wxOrig.reasons.join(', '));
+    }
     if (wxOrig.fltCat === 'LIFR')        { score += 10; factors.push(depHub + ' LIFR'); }
     else if (wxOrig.fltCat === 'IFR')    { score += 5; factors.push(depHub + ' IFR'); }
   }
@@ -5570,6 +5694,7 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
   if (wxDest) {
     if (wxDest.level === 'severe')       { score += 10; factors.push(arrHub + ' severe weather'); }
     else if (wxDest.level === 'warning') { score += 5; factors.push(arrHub + ' weather advisory'); }
+    if (wxDest.hasThunderstorms)         { score += 5; factors.push(arrHub + ' thunderstorms (arrival)'); }
     if (wxDest.fltCat === 'LIFR')        { score += 5; factors.push(arrHub + ' LIFR (arrival)'); }
   }
 
@@ -5599,6 +5724,15 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
   if (hubProfile && hubProfile.base > 0) {
     score += hubProfile.base;
     if (hubProfile.base >= 5) factors.push(hubProfile.name);
+  }
+
+  // ── Signal 8: IRROPS NETWORK STRESS (0-15) ──
+  var schedIrrops = irropsHubData[depHub];
+  if (schedIrrops) {
+    if (schedIrrops.cancellationRate >= 15)     { score += 15; factors.push(depHub + ' ' + schedIrrops.cancellationRate + '% cancellation rate'); }
+    else if (schedIrrops.cancellationRate >= 8) { score += 10; factors.push(depHub + ' elevated cancellations (' + schedIrrops.cancellationRate + '%)'); }
+    else if (schedIrrops.cancellationRate >= 3) { score += 4; factors.push(depHub + ' some cancellations'); }
+    if (schedIrrops.delayed60Rate >= 20)        { score += 5; factors.push(depHub + ' high 60min+ delay rate'); }
   }
 
   if (score === 0) return null;

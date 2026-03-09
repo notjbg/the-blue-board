@@ -49,36 +49,67 @@ export default async function handler(req, res) {
 
     const delays = [];
 
-    // Extract delay entries — structure varies, normalize to array
-    const delayEntries = toArray(
+    // Ground Delays — preserve type so client can set groundDelay boolean
+    const groundDelays = toArray(
       parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Ground_Delay?.Delay ||
       parsed?.Delay_type?.Ground_Delay?.Delay
-    ).concat(toArray(
-      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Ground_Stop?.Delay ||
-      parsed?.Delay_type?.Ground_Stop?.Delay
-    )).concat(toArray(
-      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Arrival_Departure_Delay?.Delay ||
-      parsed?.Delay_type?.Arrival_Departure_Delay?.Delay
-    ));
-
-    for (const entry of delayEntries) {
+    );
+    for (const entry of groundDelays) {
       const arpt = String(entry?.ARPT || '').trim();
       const reason = String(entry?.Reason || '').trim();
       if (!arpt) continue;
       delays.push({
         airportCode: arpt,
-        type: 'delay',
+        type: 'ground_delay',
         reason,
-        delays: [{ reason }],
+        avgDelay: String(entry?.Avg || '').trim() || null,
+        delays: [{ reason, type: 'ground_delay' }],
       });
     }
 
-    // Extract closure entries
+    // Ground Stops — preserve type so client can set groundStop boolean
+    const groundStops = toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Ground_Stop?.Delay ||
+      parsed?.Delay_type?.Ground_Stop?.Delay
+    );
+    for (const entry of groundStops) {
+      const arpt = String(entry?.ARPT || '').trim();
+      const reason = String(entry?.Reason || '').trim();
+      if (!arpt) continue;
+      delays.push({
+        airportCode: arpt,
+        type: 'ground_stop',
+        reason,
+        endTime: String(entry?.End_Time || entry?.EndTime || '').trim() || null,
+        delays: [{ reason, type: 'ground_stop' }],
+      });
+    }
+
+    // Arrival/Departure Delays — distinguish by reason text
+    const arrDepDelays = toArray(
+      parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Arrival_Departure_Delay?.Delay ||
+      parsed?.Delay_type?.Arrival_Departure_Delay?.Delay
+    );
+    for (const entry of arrDepDelays) {
+      const arpt = String(entry?.ARPT || '').trim();
+      const reason = String(entry?.Reason || '').trim();
+      if (!arpt) continue;
+      const isDep = reason.toLowerCase().includes('depart');
+      delays.push({
+        airportCode: arpt,
+        type: isDep ? 'departure_delay' : 'arrival_delay',
+        reason,
+        minDelay: String(entry?.Min || '').trim() || null,
+        maxDelay: String(entry?.Max || '').trim() || null,
+        delays: [{ reason, type: isDep ? 'departure_delay' : 'arrival_delay' }],
+      });
+    }
+
+    // Airport Closures
     const closureEntries = toArray(
       parsed?.AIRPORT_STATUS_INFORMATION?.Delay_type?.Airport_Closure?.Airport ||
       parsed?.Delay_type?.Airport_Closure?.Airport
     );
-
     for (const entry of closureEntries) {
       const arpt = String(entry?.ARPT || '').trim();
       const reason = String(entry?.Reason || '').trim();
@@ -87,7 +118,7 @@ export default async function handler(req, res) {
         airportCode: arpt,
         type: 'closure',
         reason,
-        delays: [{ reason: 'CLOSED: ' + reason.split(' ').slice(0, 8).join(' ') }],
+        delays: [{ reason: 'CLOSED: ' + reason.split(' ').slice(0, 8).join(' '), type: 'closure' }],
       });
     }
 
