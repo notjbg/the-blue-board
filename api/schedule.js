@@ -7,6 +7,28 @@ const cache = new Map();
 const MAX_CACHE_SIZE = 200;
 const BATCH_DELAY = 500; // 500ms pause between parallel batches (polite to FR24)
 
+// Global concurrency limiter for FR24 outbound requests
+// Prevents bursting FR24 when multiple hubs aggregate simultaneously
+const MAX_CONCURRENT_FR24 = 4;
+let activeFR24 = 0;
+const fr24Queue = [];
+
+function acquireFR24Slot() {
+  if (activeFR24 < MAX_CONCURRENT_FR24) {
+    activeFR24++;
+    return Promise.resolve();
+  }
+  return new Promise(resolve => fr24Queue.push(resolve));
+}
+
+function releaseFR24Slot() {
+  activeFR24--;
+  if (fr24Queue.length > 0) {
+    activeFR24++;
+    fr24Queue.shift()();
+  }
+}
+
 function cacheGet(key) {
   const entry = cache.get(key);
   if (!entry) return null;
@@ -50,12 +72,38 @@ async function fetchWithTimeout(url, deadlineMs) {
 
 async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${encodeURIComponent(dir)}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
-  const resp = await fetchWithTimeout(url, deadlineMs);
-  if (!resp.ok) throw new Error(`FR24 returned ${resp.status}`);
-  const data = await resp.json();
-  const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
-  if (!sched) throw new Error('No schedule data in response');
-  return sched;
+  const MAX_RETRIES = 2;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (deadlineMs && Date.now() > deadlineMs - 500) throw new Error('Deadline exceeded');
+    await acquireFR24Slot();
+    let shouldRetry = false;
+    try {
+      const resp = await fetchWithTimeout(url, deadlineMs);
+      if (resp.ok) {
+        const data = await resp.json();
+        const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
+        if (!sched) throw new Error('No schedule data in response');
+        return sched;
+      }
+      // Retry on transient FR24 errors
+      if ([429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
+        shouldRetry = true;
+      } else {
+        throw new Error(`FR24 returned ${resp.status}`);
+      }
+    } catch (e) {
+      if (attempt < MAX_RETRIES && e.name !== 'AbortError' && !e.message.includes('Deadline')) {
+        shouldRetry = true;
+      } else {
+        throw e;
+      }
+    } finally {
+      releaseFR24Slot();
+    }
+    if (shouldRetry) {
+      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+    }
+  }
 }
 
 const pendingAggs = new Map();
