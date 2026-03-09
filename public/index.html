@@ -2206,15 +2206,15 @@ function isLonghaulFlight(f) {
   return num > 0 && num < 100;
 }
 
-// Icon cache: key = "hdg_rounded|isLonghaul|phase" → L.divIcon
+// Icon cache: key = "hdg_rounded|isLonghaul|phase|isWatched" → L.divIcon
 const _iconCache = {};
-function createPlaneIcon(hdg, isLonghaul, phase) {
-  // Round heading to nearest 5° to maximize cache hits (72 possible angles × 3 color combos = ~216 cached icons)
+function createPlaneIcon(hdg, isLonghaul, phase, isWatched) {
+  // Round heading to nearest 5° to maximize cache hits
   const hdgRounded = Math.round((hdg || 0) / 5) * 5;
-  const cacheKey = `${hdgRounded}|${isLonghaul?1:0}|${phase}`;
+  const cacheKey = `${hdgRounded}|${isLonghaul?1:0}|${phase}|${isWatched?1:0}`;
   if (_iconCache[cacheKey]) return _iconCache[cacheKey];
-  const color = isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa');
-  const size = isLonghaul ? 14 : 10;
+  const color = isWatched ? '#22c55e' : (isLonghaul ? '#fbbf24' : (phase === 'Ground' ? '#6b7280' : '#60a5fa'));
+  const size = isWatched ? 16 : (isLonghaul ? 14 : 10);
   // SVG plane pointing north (0°) — classic top-down aircraft silhouette, cross-platform consistent
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 256 256" fill="${color}" style="filter:drop-shadow(0 0 2px ${color})"><path d="M128 16c-4 0-8 3-9 7l-15 72-88 34c-3 1-4 4-4 7s2 5 5 6l87 20 4 52-28 18c-2 1-3 3-3 5v8c0 2 1 4 3 4l20-6h28l20 6c2 0 3-2 3-4v-8c0-2-1-4-3-5l-28-18 4-52 87-20c3-1 5-3 5-6s-1-6-4-7l-88-34-15-72c-1-4-5-7-9-7z"/></svg>`;
   const icon = L.divIcon({
@@ -2257,6 +2257,7 @@ function updateMarkers() {
   const filtered = getFilteredFlights();
   const filteredIcaos = new Set(filtered.map(f => f.icao24));
   const allIcaos = new Set(allFlights.map(f => f.icao24));
+  const watchedSet = new Set(getWatchedFlights().map(w => w.flight));
 
   // Remove markers for flights no longer in feed
   Object.keys(flightMarkers).forEach(id => {
@@ -2271,7 +2272,9 @@ function updateMarkers() {
   filtered.forEach(f => {
     const isLonghaul = showLonghaul && isLonghaulFlight(f);
     const phaseInfo = getPhase(f.alt, f.vr, f.spd);
-    const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase);
+    const flightId = f.flightIATA || '';
+    const isWatched = flightId && watchedSet.has(flightId);
+    const icon = createPlaneIcon(f.hdg, isLonghaul, phaseInfo.phase, isWatched);
 
     // Normalize longitude to nearest world copy relative to map center
     // so IDL-crossing flights (e.g. SFO→BNE) are always visible
@@ -2282,8 +2285,9 @@ function updateMarkers() {
 
     if (flightMarkers[f.icao24]) {
       flightMarkers[f.icao24].setLatLng([f.lat, lon]).setIcon(icon);
+      flightMarkers[f.icao24].setZIndexOffset(isWatched ? 1000 : 0);
     } else {
-      const marker = L.marker([f.lat, lon], { icon }).addTo(map);
+      const marker = L.marker([f.lat, lon], { icon, zIndexOffset: isWatched ? 1000 : 0 }).addTo(map);
       marker._icao24 = f.icao24;
       marker.on('click', () => {
         const currentFlight = allFlights.find(fl => fl.icao24 === marker._icao24);
@@ -4936,6 +4940,7 @@ function toggleWatchFlight(flightNum, route, currentStatus) {
   saveWatchedFlights(watched);
   renderScheduleTable();
   renderWatchPanel();
+  updateMarkers();
   // Re-render MY FLIGHTS if that tab is active
   if (document.getElementById('tab-myflight')?.classList.contains('active')) renderMyFlights();
 }
@@ -5021,6 +5026,24 @@ async function renderMyFlights() {
   myFlightsCountdownInterval = setInterval(updateMyFlightsCountdowns, 1000);
 }
 
+function resolveFlightStatus(td, liveFlight) {
+  if (!td || td.success === false) return '';
+  if (td.cancelled) return 'cancelled';
+  if (td.diverted) return 'diverted';
+  const st = (td.status || '').toLowerCase();
+  if (st.includes('land') || st.includes('arrived')) return 'landed';
+  if (st.includes('en-route') || st.includes('en route') || st.includes('airborne') ||
+      st.includes('in air') || st.includes('active') || st.includes('in flight')) return 'en-route';
+  if (st.includes('depart') || st.includes('taxiing')) return 'departed';
+  // Cross-reference with live FR24 feed data
+  if (liveFlight && !liveFlight.onGround) return 'en-route';
+  if (liveFlight && liveFlight.onGround) {
+    const hasActualDep = td.departure?.takeoff?.actual || td.departure?.gate?.actual;
+    if (hasActualDep) return 'landed';
+  }
+  return 'scheduled';
+}
+
 function buildMyFlightCard(watched, td) {
   const flightNum = escapeHtml(watched.flight);
   const routeParts = (watched.route || '').split(/[→\-]/);
@@ -5029,54 +5052,62 @@ function buildMyFlightCard(watched, td) {
   const origCity = IATA_CITIES[origCode] || origCode;
   const destCity = IATA_CITIES[destCode] || destCode;
 
+  // Resolve live flight early — needed for status detection and equipment
+  const liveFlight = allFlights.find(f => f.flightIATA === watched.flight || f.callsign === 'UAL' + watched.flight.replace(/\D/g,''));
+
   // Status + countdown
   let statusHtml = '', countdownHtml = '', countdownClass = '';
+  const resolvedStatus = td ? resolveFlightStatus(td, liveFlight) : '';
   if (td && td.success !== false) {
     const depTime = td.departure?.gate?.estimated || td.departure?.gate?.scheduled;
-    const arrTime = td.arrival?.gate?.estimated || td.arrival?.gate?.scheduled;
-    const st = (td.status || '').toLowerCase();
-    const isCancelled = td.cancelled;
-    const isDiverted = td.diverted;
+    const arrTime = td.arrival?.gate?.estimated || td.arrival?.gate?.scheduled
+      || td.arrival?.landing?.estimated || td.arrival?.landing?.scheduled;
 
-    if (isCancelled) {
-      statusHtml = '<span class="mf-status" style="background:rgba(239,68,68,.2);color:#ef4444">CANCELLED</span>';
-      countdownClass = 'landed';
-    } else if (isDiverted) {
-      statusHtml = '<span class="mf-status" style="background:rgba(249,115,22,.2);color:#f97316">DIVERTED</span>';
-      countdownClass = 'landed';
-    } else if (st.includes('land')) {
-      statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">LANDED</span>';
-      countdownHtml = 'Landed';
-      countdownClass = 'landed';
-    } else if (st.includes('en-route') || st.includes('en route') || st.includes('airborne')) {
-      statusHtml = '<span class="mf-status" style="background:rgba(59,130,246,.2);color:#3b82f6">EN ROUTE</span>';
-      if (arrTime) {
-        const eta = new Date(arrTime);
-        const diff = eta - Date.now();
-        countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
-      }
-      countdownClass = 'departed';
-    } else if (st.includes('depart')) {
-      statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">DEPARTED</span>';
-      countdownClass = 'departed';
-      if (arrTime) {
-        const eta = new Date(arrTime);
-        const diff = eta - Date.now();
-        countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
-      }
-    } else {
-      // Scheduled
-      statusHtml = '<span class="mf-status" style="background:rgba(138,180,248,.15);color:var(--ua-accent)">SCHEDULED</span>';
-      if (depTime) {
-        const dep = new Date(depTime);
-        const diff = dep - Date.now();
-        if (diff > 0) {
-          const boardDiff = diff - 30 * 60000; // boarding ~30 min before
-          countdownHtml = boardDiff > 0 ? formatCountdown(boardDiff) + ' to boarding' : formatCountdown(diff) + ' to departure';
-        } else {
-          countdownHtml = 'Expected to depart';
+    switch (resolvedStatus) {
+      case 'cancelled':
+        statusHtml = '<span class="mf-status" style="background:rgba(239,68,68,.2);color:#ef4444">CANCELLED</span>';
+        countdownClass = 'landed';
+        break;
+      case 'diverted':
+        statusHtml = '<span class="mf-status" style="background:rgba(249,115,22,.2);color:#f97316">DIVERTED</span>';
+        countdownClass = 'landed';
+        break;
+      case 'landed':
+        statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">LANDED</span>';
+        countdownHtml = 'Landed';
+        countdownClass = 'landed';
+        break;
+      case 'en-route':
+        statusHtml = '<span class="mf-status" style="background:rgba(59,130,246,.2);color:#3b82f6">EN ROUTE</span>';
+        if (arrTime) {
+          const eta = new Date(arrTime);
+          const diff = eta - Date.now();
+          countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
         }
-      }
+        countdownClass = 'departed';
+        break;
+      case 'departed':
+        statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">DEPARTED</span>';
+        countdownClass = 'departed';
+        if (arrTime) {
+          const eta = new Date(arrTime);
+          const diff = eta - Date.now();
+          countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
+        }
+        break;
+      default:
+        statusHtml = '<span class="mf-status" style="background:rgba(138,180,248,.15);color:var(--ua-accent)">SCHEDULED</span>';
+        if (depTime) {
+          const dep = new Date(depTime);
+          const diff = dep - Date.now();
+          if (diff > 0) {
+            const boardDiff = diff - 30 * 60000;
+            countdownHtml = boardDiff > 0 ? formatCountdown(boardDiff) + ' to boarding' : formatCountdown(diff) + ' to departure';
+          } else {
+            countdownHtml = 'Expected to depart';
+          }
+        }
+        break;
     }
   } else {
     statusHtml = '<span class="mf-status" style="background:rgba(100,116,139,.2);color:var(--ua-muted)">LOADING...</span>';
@@ -5095,7 +5126,6 @@ function buildMyFlightCard(watched, td) {
 
   // Equipment
   let equipHtml = '';
-  const liveFlight = allFlights.find(f => f.flightIATA === watched.flight || f.callsign === 'UAL' + watched.flight.replace(/\D/g,''));
   const reg = liveFlight ? liveFlight.reg?.replace('-','') : null;
   if (reg && FLEET_BY_REG[reg]) {
     const ac = FLEET_BY_REG[reg];
@@ -5134,8 +5164,9 @@ function buildMyFlightCard(watched, td) {
 
   // Departure/arrival time data attributes for countdown timer
   const depISO = td?.departure?.gate?.estimated || td?.departure?.gate?.scheduled || '';
-  const arrISO = td?.arrival?.gate?.estimated || td?.arrival?.gate?.scheduled || '';
-  const statusKey = td ? (td.cancelled ? 'cancelled' : td.diverted ? 'diverted' : td.status || '') : '';
+  const arrISO = td?.arrival?.gate?.estimated || td?.arrival?.gate?.scheduled
+    || td?.arrival?.landing?.estimated || td?.arrival?.landing?.scheduled || '';
+  const statusKey = resolvedStatus || '';
 
   return `<div class="mf-card" data-mf-dep="${escapeHtml(depISO)}" data-mf-arr="${escapeHtml(arrISO)}" data-mf-status="${escapeHtml(statusKey)}">
     <div class="mf-card-header">
@@ -5174,9 +5205,9 @@ function updateMyFlightsCountdowns() {
     if (!el) return;
     const st = card.dataset.mfStatus || '';
     if (st === 'cancelled' || st === 'diverted') return;
-    const isLanded = st.includes('land');
-    const isEnRoute = st.includes('en-route') || st.includes('en route') || st.includes('airborne');
-    const isDeparted = st.includes('depart');
+    const isLanded = st === 'landed';
+    const isEnRoute = st === 'en-route';
+    const isDeparted = st === 'departed';
 
     if (isLanded) { el.textContent = 'Landed'; return; }
 
