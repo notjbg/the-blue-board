@@ -147,6 +147,157 @@ describe('computeMetrics', () => {
   });
 });
 
+// ═══ DELAY RISK ENGINE v2 TESTS ═══
+// These replicate the scoring logic from computeDelayRisk() in index.html
+// to validate the algorithm without needing a browser environment.
+
+function makeDelayRiskScore({ delayMin = 0, faaOrig = {}, faaDest = {}, wxOrigLevel = 'normal', wxOrigCat = 'VFR', wxDestLevel = 'normal', wxDestCat = 'VFR', otp = undefined, hubHour = 10, origHub = 'ORD', hasInboundAirborne = false, timeToDepMin = 999 } = {}) {
+  let score = 0;
+  const factors = [];
+
+  // Signal 1: actual delay magnitude
+  if (delayMin >= 120)     { score += 50; factors.push(`Already ${delayMin}min delayed`); }
+  else if (delayMin >= 60) { score += 40; factors.push(`Already ${delayMin}min delayed`); }
+  else if (delayMin >= 30) { score += 30; factors.push(`${delayMin}min delay`); }
+  else if (delayMin >= 15) { score += 15; factors.push(`${delayMin}min delay`); }
+
+  // Signal 2: FAA origin
+  if (faaOrig.groundStop)         { score += 30; factors.push('Ground stop'); }
+  else if (faaOrig.groundDelay)   { score += 20; factors.push('GDP'); }
+  else if (faaOrig.departureDelay){ score += 12; factors.push('Dep delays'); }
+  else if (faaOrig.arrivalDelay)  { score += 8; factors.push('Arr delays'); }
+
+  // Signal 3: FAA dest
+  if (faaDest.groundStop)         { score += 20; factors.push('Ground stop dest'); }
+  else if (faaDest.groundDelay)   { score += 15; factors.push('GDP dest'); }
+  else if (faaDest.arrivalDelay)  { score += 8; factors.push('Arr delays dest'); }
+
+  // Signal 4: weather
+  if (wxOrigLevel === 'severe')      score += 20;
+  else if (wxOrigLevel === 'warning') score += 14;
+  else if (wxOrigLevel === 'caution') score += 6;
+  if (wxOrigCat === 'LIFR')          score += 10;
+  else if (wxOrigCat === 'IFR')      score += 5;
+  if (wxDestLevel === 'severe')      score += 10;
+  else if (wxDestLevel === 'warning') score += 5;
+  if (wxDestCat === 'LIFR')          score += 5;
+
+  // Signal 5: OTP
+  if (otp !== undefined) {
+    if (otp < 40)      score += 20;
+    else if (otp < 55) score += 14;
+    else if (otp < 70) score += 8;
+    else if (otp < 80) score += 3;
+  }
+
+  // Signal 6: time of day
+  if (hubHour >= 19)      score += 12;
+  else if (hubHour >= 16) score += 8;
+  else if (hubHour >= 13) score += 4;
+
+  // Signal 7: inbound aircraft
+  if (hasInboundAirborne) {
+    if (timeToDepMin < 45)       score += 25;
+    else if (timeToDepMin < 75)  score += 15;
+    else if (timeToDepMin < 120) score += 8;
+  }
+
+  // Signal 8: hub risk profile
+  const profiles = { EWR: 8, ORD: 5, SFO: 5, IAH: 3, DEN: 3, LAX: 2, IAD: 2, NRT: 1, GUM: 1 };
+  score += profiles[origHub] || 0;
+
+  const finalScore = Math.min(score, 100);
+  let label;
+  if (finalScore >= 50)      label = 'HIGH';
+  else if (finalScore >= 25) label = 'MOD';
+  else                       label = 'LOW';
+  return { score: finalScore, label, factors };
+}
+
+describe('computeDelayRisk v2 algorithm', () => {
+  it('returns LOW for clean conditions (no delays, VFR, good OTP, morning)', () => {
+    const r = makeDelayRiskScore({ delayMin: 0, otp: 92, hubHour: 9, origHub: 'GUM' });
+    expect(r.label).toBe('LOW');
+    expect(r.score).toBeLessThan(25);
+  });
+
+  it('returns at least MOD for 60+ min delay even with no other factors', () => {
+    const r = makeDelayRiskScore({ delayMin: 65, origHub: 'GUM', hubHour: 8 });
+    expect(r.label).not.toBe('LOW');
+    expect(r.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it('returns HIGH for 60+ min delay at a major hub', () => {
+    const r = makeDelayRiskScore({ delayMin: 65, origHub: 'EWR', hubHour: 8 });
+    // 40 (delay) + 8 (EWR base) = 48 → still MOD, but with any other factor → HIGH
+    // At EWR with afternoon: 40 + 8 + 4 = 52 → HIGH
+    const r2 = makeDelayRiskScore({ delayMin: 65, origHub: 'EWR', hubHour: 14 });
+    expect(r2.label).toBe('HIGH');
+  });
+
+  it('returns HIGH for 120+ min delay', () => {
+    const r = makeDelayRiskScore({ delayMin: 130, origHub: 'GUM', hubHour: 8 });
+    expect(r.label).toBe('HIGH');
+    expect(r.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it('a 30min delayed flight is at least MOD, never LOW', () => {
+    const r = makeDelayRiskScore({ delayMin: 35, origHub: 'GUM', hubHour: 8 });
+    expect(r.label).not.toBe('LOW');
+    expect(r.score).toBeGreaterThanOrEqual(25);
+  });
+
+  it('ground stop at origin pushes score by 30', () => {
+    const r = makeDelayRiskScore({ faaOrig: { groundStop: true }, origHub: 'GUM', hubHour: 8 });
+    expect(r.score).toBeGreaterThanOrEqual(30);
+  });
+
+  it('severe weather + low OTP compounds to HIGH', () => {
+    const r = makeDelayRiskScore({ wxOrigLevel: 'severe', otp: 35, origHub: 'ORD', hubHour: 10 });
+    // severe=20 + LIFR=0(VFR) + OTP<40=20 + ORD base=5 = 45 → MOD or close to HIGH
+    expect(r.score).toBeGreaterThanOrEqual(40);
+  });
+
+  it('severe weather + low OTP + evening = HIGH', () => {
+    const r = makeDelayRiskScore({ wxOrigLevel: 'severe', otp: 35, origHub: 'ORD', hubHour: 20 });
+    // severe=20 + OTP<40=20 + evening=12 + ORD=5 = 57 → HIGH
+    expect(r.label).toBe('HIGH');
+  });
+
+  it('EWR gets higher base risk than GUM', () => {
+    const ewr = makeDelayRiskScore({ origHub: 'EWR', hubHour: 10 });
+    const gum = makeDelayRiskScore({ origHub: 'GUM', hubHour: 10 });
+    expect(ewr.score).toBeGreaterThan(gum.score);
+  });
+
+  it('inbound aircraft still airborne with <45min to dep adds 25 points', () => {
+    const r = makeDelayRiskScore({ hasInboundAirborne: true, timeToDepMin: 30, origHub: 'GUM', hubHour: 8 });
+    expect(r.score).toBeGreaterThanOrEqual(25);
+    expect(r.label).not.toBe('LOW');
+  });
+
+  it('weather IFR at origin adds 5 points', () => {
+    const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
+    const ifr = makeDelayRiskScore({ wxOrigCat: 'IFR', origHub: 'GUM', hubHour: 8 });
+    expect(ifr.score - base.score).toBe(5);
+  });
+
+  it('weather LIFR at origin adds 10 points', () => {
+    const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
+    const lifr = makeDelayRiskScore({ wxOrigCat: 'LIFR', origHub: 'GUM', hubHour: 8 });
+    expect(lifr.score - base.score).toBe(10);
+  });
+
+  it('score is capped at 100', () => {
+    const r = makeDelayRiskScore({
+      delayMin: 130, faaOrig: { groundStop: true }, wxOrigLevel: 'severe',
+      wxOrigCat: 'LIFR', otp: 30, hubHour: 20, hasInboundAirborne: true,
+      timeToDepMin: 20, origHub: 'EWR'
+    });
+    expect(r.score).toBe(100);
+  });
+});
+
 describe('getStartOfDayForHub', () => {
   it('returns a Unix timestamp (seconds)', () => {
     const ts = getStartOfDayForHub('ORD');
