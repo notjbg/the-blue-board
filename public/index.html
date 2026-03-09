@@ -4143,7 +4143,21 @@ function updateSchedTzFooter() {
   const abbr = getHubTzAbbrev(hub);
   const hubLabel = hub || 'selected hub';
   const footer = document.getElementById('sched-tz-footer');
-  if (footer) footer.innerHTML = `Schedule data via <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-green)">Flightradar24</a> · United flights only · All times ${hubLabel} local (<b>${abbr}</b>)`;
+  if (!footer) return;
+  footer.textContent = '';
+  footer.appendChild(document.createTextNode('Schedule data via '));
+  const fr24Link = document.createElement('a');
+  fr24Link.href = 'https://www.flightradar24.com';
+  fr24Link.target = '_blank';
+  fr24Link.rel = 'noopener noreferrer';
+  fr24Link.style.color = 'var(--ua-green)';
+  fr24Link.textContent = 'Flightradar24';
+  footer.appendChild(fr24Link);
+  footer.appendChild(document.createTextNode(' · United flights only · All times ' + hubLabel + ' local ('));
+  const bold = document.createElement('b');
+  bold.textContent = abbr;
+  footer.appendChild(bold);
+  footer.appendChild(document.createTextNode(')'));
 }
 
 function renderScheduleTable() {
