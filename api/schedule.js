@@ -10,7 +10,7 @@ const MAX_CACHE_SIZE = 200;
 const lastCompleteCache = new Map();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
-const BATCH_DELAY = 300; // 300ms pause between parallel batches
+const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
@@ -123,6 +123,9 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
       // Retry on transient FR24 errors (including 403 — FR24 uses it for rate limiting)
       if ([403, 429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
         // fall through to retry
+      } else if ([403, 429].includes(resp.status)) {
+        console.error(`FR24 rate limited ${resp.status} for ${hub} page ${page}`);
+        return { _rateLimited: true };
       } else {
         console.error(`FR24 returned ${resp.status} for ${hub} page ${page}`);
         return null;
@@ -135,7 +138,9 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
     } finally {
       releaseFR24Slot();
     }
-    await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+    const baseDelay = 750 * (attempt + 1);
+    const jitter = Math.floor(Math.random() * 300);
+    await new Promise(r => setTimeout(r, baseDelay + jitter));
   }
   return null;
 }
@@ -166,7 +171,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs) {
   let partial = false;
   let pagesScanned = 0;
   const failedPages = [];
-  const BATCH_SIZE = 6;
+  const BATCH_SIZE = 4;
   const MAX_PAGES = 50;
 
   function processPage(sched) {
@@ -188,7 +193,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs) {
   // Fetch page 1 to discover totalPages
   const startTime = Date.now();
   const firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
-  if (!firstPage) {
+  if (!firstPage || firstPage._rateLimited) {
     return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir,
       meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime }
     };
@@ -200,6 +205,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs) {
   if (!pastDay && totalPages > 1) {
     const pagesToFetch = Math.min(totalPages, MAX_PAGES);
     let pageNum = 2;
+    let currentBatchDelay = BATCH_DELAY;
 
     while (pageNum <= pagesToFetch) {
       if (Date.now() > deadline - 2000) { partial = true; break; }
@@ -217,8 +223,13 @@ async function fetchAllPages(hub, dir, ts, timeoutMs) {
         const result = batchResults[i];
         pagesScanned++;
         if (result.status === 'rejected' || !result.value) {
-          // Page failed — track it for retry instead of stopping
           failedPages.push(batchPages[i]);
+          continue;
+        }
+        // Detect rate-limit sentinel and adapt delay
+        if (result.value._rateLimited) {
+          failedPages.push(batchPages[i]);
+          currentBatchDelay = Math.min(currentBatchDelay * 2, 2000);
           continue;
         }
         const sched = result.value;
@@ -230,25 +241,48 @@ async function fetchAllPages(hub, dir, ts, timeoutMs) {
       pageNum = batchEnd + 1;
 
       if (pageNum <= pagesToFetch && Date.now() < deadline - 2000) {
-        await new Promise(r => setTimeout(r, BATCH_DELAY));
+        await new Promise(r => setTimeout(r, currentBatchDelay));
       }
     }
   }
 
-  // Retry failed pages if time permits
+  // Cooldown before retrying failed pages — let FR24 rate limits reset
+  if (failedPages.length > 0 && Date.now() < deadline - 5000) {
+    const cooldown = Math.min(1500, failedPages.length * 150);
+    await new Promise(r => setTimeout(r, cooldown));
+  }
+
+  // Retry failed pages in mini-batches of 2 with gaps (avoid simultaneous blast)
   if (failedPages.length > 0 && Date.now() < deadline - 3000) {
-    const retryResults = await Promise.allSettled(
-      failedPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
-    );
+    const RETRY_BATCH = 2;
+    const RETRY_DELAY = 800;
     const stillFailed = [];
-    for (let i = 0; i < retryResults.length; i++) {
-      const result = retryResults[i];
-      if (result.status === 'fulfilled' && result.value) {
-        processPage(result.value);
-      } else {
-        stillFailed.push(failedPages[i]);
+
+    for (let i = 0; i < failedPages.length; i += RETRY_BATCH) {
+      if (Date.now() > deadline - 2000) {
+        stillFailed.push(...failedPages.slice(i));
+        break;
+      }
+
+      const retryBatch = failedPages.slice(i, i + RETRY_BATCH);
+      const retryResults = await Promise.allSettled(
+        retryBatch.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+      );
+
+      for (let j = 0; j < retryResults.length; j++) {
+        const result = retryResults[j];
+        if (result.status === 'fulfilled' && result.value && !result.value._rateLimited) {
+          processPage(result.value);
+        } else {
+          stillFailed.push(retryBatch[j]);
+        }
+      }
+
+      if (i + RETRY_BATCH < failedPages.length && Date.now() < deadline - 2000) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY));
       }
     }
+
     failedPages.length = 0;
     failedPages.push(...stillFailed);
     if (stillFailed.length > 0) partial = true;
