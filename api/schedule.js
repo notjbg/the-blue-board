@@ -5,8 +5,16 @@ const isRateLimited = createRateLimiter('schedule', 30);
 // In-memory LRU cache for FR24 schedule data
 const cache = new Map();
 const MAX_CACHE_SIZE = 200;
+
+// Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
+const lastCompleteCache = new Map();
+const MAX_COMPLETE_CACHE_SIZE = 50;
+const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
 const BATCH_DELAY = 300; // 300ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
+
+// Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
+const HUB_TIMEOUT_MS = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000 };
 
 // Global concurrency limiter for FR24 outbound requests
 const MAX_CONCURRENT_FR24 = 6;
@@ -41,6 +49,24 @@ function cacheGetStale(key) {
   if (!entry) return null;
   if (Date.now() > entry.expires + STALE_GRACE) {
     cache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function saveComplete(key, data) {
+  if (data.partial) return;
+  if (lastCompleteCache.size >= MAX_COMPLETE_CACHE_SIZE) {
+    lastCompleteCache.delete(lastCompleteCache.keys().next().value);
+  }
+  lastCompleteCache.set(key, { data, time: Date.now() });
+}
+
+function getLastComplete(key) {
+  const entry = lastCompleteCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
+    lastCompleteCache.delete(key);
     return null;
   }
   return entry;
@@ -120,6 +146,7 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   if (pendingAggs.has(aggKey)) return;
   const promise = fetchAllPages(hub, dir, ts).then(result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
+    saveComplete(aggKey, result);
     return result;
   }).catch(e => {
     console.error(`Background refresh failed for ${hub}:`, e.message);
@@ -129,7 +156,8 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   pendingAggs.set(aggKey, promise);
 }
 
-async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
+async function fetchAllPages(hub, dir, ts, timeoutMs) {
+  timeoutMs = timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000;
   const deadline = Date.now() + timeoutMs;
   const dayEnd = ts + 86400;
   const allUAFlights = [];
@@ -137,6 +165,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
   let totalFetched = 0;
   let partial = false;
   let pagesScanned = 0;
+  const failedPages = [];
   const BATCH_SIZE = 6;
   const MAX_PAGES = 50;
 
@@ -157,9 +186,12 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
   }
 
   // Fetch page 1 to discover totalPages
+  const startTime = Date.now();
   const firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
   if (!firstPage) {
-    return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
+    return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir,
+      meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime }
+    };
   }
   totalPages = firstPage.page?.total || 1;
   pagesScanned = 1;
@@ -181,11 +213,13 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
       );
 
       let batchDone = false;
-      for (const result of batchResults) {
+      for (let i = 0; i < batchResults.length; i++) {
+        const result = batchResults[i];
         pagesScanned++;
         if (result.status === 'rejected' || !result.value) {
-          // Page failed — mark partial and stop (we have what we have)
-          partial = true; batchDone = true; break;
+          // Page failed — track it for retry instead of stopping
+          failedPages.push(batchPages[i]);
+          continue;
         }
         const sched = result.value;
         if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
@@ -201,6 +235,36 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
     }
   }
 
+  // Retry failed pages if time permits
+  if (failedPages.length > 0 && Date.now() < deadline - 3000) {
+    const retryResults = await Promise.allSettled(
+      failedPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+    );
+    const stillFailed = [];
+    for (let i = 0; i < retryResults.length; i++) {
+      const result = retryResults[i];
+      if (result.status === 'fulfilled' && result.value) {
+        processPage(result.value);
+      } else {
+        stillFailed.push(failedPages[i]);
+      }
+    }
+    failedPages.length = 0;
+    failedPages.push(...stillFailed);
+    if (stillFailed.length > 0) partial = true;
+  } else if (failedPages.length > 0) {
+    partial = true;
+  }
+
+  const elapsedMs = Date.now() - startTime;
+  const pagesRequested = Math.min(totalPages, MAX_PAGES);
+  let partialReason = null;
+  if (partial) {
+    if (Date.now() > deadline - 2000) partialReason = 'deadline_exceeded';
+    else if (failedPages.length > 0) partialReason = 'page_fetch_failed';
+    else partialReason = 'unknown';
+  }
+
   return {
     flights: allUAFlights,
     total: allUAFlights.length,
@@ -210,7 +274,16 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
     cached: false,
     partial,
     hub,
-    dir
+    dir,
+    meta: {
+      partialReason,
+      pagesRequested,
+      pagesSucceeded: pagesScanned - failedPages.length,
+      pagesFailed: failedPages.length,
+      missingPages: failedPages,
+      completeness: pagesRequested > 0 ? Math.round(((pagesScanned - failedPages.length) / pagesRequested) * 100) / 100 : 1,
+      elapsedMs
+    }
   };
 }
 
@@ -289,6 +362,17 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
     }
 
+    // Fallback: serve last-known-complete data if stale cache is partial or missing
+    const lastComplete = getLastComplete(aggKey);
+    if (lastComplete) {
+      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
+      const dataAge = Math.round((Date.now() - lastComplete.time) / 1000);
+      res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+      return res.status(200).json({ ...lastComplete.data, cached: true, stale: true, degraded: true,
+        meta: { ...lastComplete.data.meta, dataAge }
+      });
+    }
+
     // Dedup concurrent aggregation requests
     if (pendingAggs.has(aggKey)) {
       const result = await pendingAggs.get(aggKey);
@@ -301,12 +385,24 @@ export default async function handler(req, res) {
     // fetchAllPages NEVER throws — always returns a result (possibly partial/empty)
     const aggPromise = fetchAllPages(hub, dir, ts).then(result => {
       cacheSet(aggKey, result, result.partial ? 60000 : ttl);
+      saveComplete(aggKey, result);
       return result;
     });
 
     pendingAggs.set(aggKey, aggPromise);
     try {
       const result = await aggPromise;
+      // If fresh result is partial, prefer last-known-complete data if available
+      if (result.partial) {
+        const lc = getLastComplete(aggKey);
+        if (lc) {
+          const dataAge = Math.round((Date.now() - lc.time) / 1000);
+          res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+          return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
+            meta: { ...lc.data.meta, dataAge }
+          });
+        }
+      }
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json(result);
     } finally {
