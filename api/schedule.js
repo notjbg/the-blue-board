@@ -5,11 +5,12 @@ const isRateLimited = createRateLimiter('schedule', 30);
 // In-memory LRU cache for FR24 schedule data
 const cache = new Map();
 const MAX_CACHE_SIZE = 200;
-const BATCH_DELAY = 500; // 500ms pause between parallel batches (polite to FR24)
+const BATCH_DELAY = 300; // 300ms pause between parallel batches
+const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Global concurrency limiter for FR24 outbound requests
 // Prevents bursting FR24 when multiple hubs aggregate simultaneously
-const MAX_CONCURRENT_FR24 = 4;
+const MAX_CONCURRENT_FR24 = 6;
 let activeFR24 = 0;
 const fr24Queue = [];
 
@@ -33,6 +34,17 @@ function cacheGet(key) {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expires) {
+    // Return null for normal lookup — stale check is separate
+    return null;
+  }
+  return entry;
+}
+
+function cacheGetStale(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  // Allow serving stale data up to STALE_GRACE past expiry
+  if (Date.now() > entry.expires + STALE_GRACE) {
     cache.delete(key);
     return null;
   }
@@ -101,12 +113,114 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
       releaseFR24Slot();
     }
     if (shouldRetry) {
-      await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
     }
   }
 }
 
 const pendingAggs = new Map();
+
+// Fire-and-forget background refresh for stale cache entries
+function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
+  if (pendingAggs.has(aggKey)) return; // already refreshing
+  const promise = fetchAllPages(hub, dir, ts).then(result => {
+    cacheSet(aggKey, result, result.partial ? 60000 : ttl);
+    return result;
+  }).catch(e => {
+    console.error(`Background refresh failed for ${hub}:`, e.message);
+  }).finally(() => {
+    pendingAggs.delete(aggKey);
+  });
+  pendingAggs.set(aggKey, promise);
+}
+
+// Core aggregation logic — extracted so it can be used by both handler and background refresh
+async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
+  const deadline = Date.now() + timeoutMs;
+  const dayEnd = ts + 86400;
+  const allUAFlights = [];
+  let totalPages = 1;
+  let totalFetched = 0;
+  let partial = false;
+  let pagesScanned = 0;
+  const BATCH_SIZE = 6;
+  const MAX_PAGES = 50;
+
+  function processPage(sched) {
+    if (!sched.data || sched.data.length === 0) return false;
+    totalFetched += sched.data.length;
+    for (const entry of sched.data) {
+      const fl = entry.flight;
+      if (!fl) continue;
+      if (fl.airline?.code?.iata !== 'UA') continue;
+      const schedDep = fl.time?.scheduled?.departure;
+      const schedArr = fl.time?.scheduled?.arrival;
+      const flightTime = dir === 'departures' ? schedDep : schedArr;
+      if (flightTime && flightTime >= dayEnd) return true;
+      allUAFlights.push(fl);
+    }
+    return false;
+  }
+
+  // Fetch page 1 to discover totalPages
+  try {
+    var firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
+  } catch (e) {
+    if (e.name === 'AbortError') return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
+    throw e;
+  }
+  totalPages = firstPage.page?.total || 1;
+  pagesScanned = 1;
+  const pastDay = processPage(firstPage);
+
+  if (!pastDay && totalPages > 1) {
+    const pagesToFetch = Math.min(totalPages, MAX_PAGES);
+    let pageNum = 2;
+
+    while (pageNum <= pagesToFetch) {
+      if (Date.now() > deadline - 2000) { partial = true; break; }
+
+      const batchEnd = Math.min(pageNum + BATCH_SIZE - 1, pagesToFetch);
+      const batchPages = [];
+      for (let p = pageNum; p <= batchEnd; p++) batchPages.push(p);
+
+      const batchResults = await Promise.allSettled(
+        batchPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+      );
+
+      let batchDone = false;
+      for (const result of batchResults) {
+        pagesScanned++;
+        if (result.status === 'rejected') {
+          if (allUAFlights.length > 0) { partial = true; batchDone = true; break; }
+          throw result.reason;
+        }
+        const sched = result.value;
+        if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
+        if (processPage(sched)) { batchDone = true; break; }
+      }
+      if (batchDone) break;
+
+      pageNum = batchEnd + 1;
+
+      if (pageNum <= pagesToFetch && Date.now() < deadline - 2000) {
+        await new Promise(r => setTimeout(r, BATCH_DELAY));
+      }
+    }
+  }
+
+  return {
+    flights: allUAFlights,
+    total: allUAFlights.length,
+    totalFetched,
+    pagesScanned,
+    totalPages,
+    cached: false,
+    partial,
+    hub,
+    dir
+  };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -130,24 +244,21 @@ export default async function handler(req, res) {
     if (!['departures', 'arrivals'].includes(dir)) {
       return res.status(400).json({ error: 'dir must be departures or arrivals' });
     }
-    // Validate hub: 3-4 letter IATA/ICAO code
     if (!/^[A-Z]{3,4}$/i.test(hub)) {
       return res.status(400).json({ error: 'Invalid hub code' });
     }
 
     const ts = parseInt(timestamp, 10);
     const now = Math.floor(Date.now() / 1000);
-    // Validate timestamp: must be a number, within reasonable range
     if (isNaN(ts) || ts < now - 86400 * 7 || ts > now + 86400 * 7) {
       return res.status(400).json({ error: 'Invalid timestamp' });
     }
-    // If timestamp is >24h old, use longer cache
     const isOld = (now - ts) > 86400;
-    const ttl = isOld ? 600000 : 300000; // 10 min (old) or 5 min (live) in-memory
-    const cdnMaxAge = isOld ? 3600 : 900; // 1hr (old) or 15min (live) at CDN edge
-    const swr = 300; // stale-while-revalidate: serve stale for 5min while refreshing
+    const ttl = isOld ? 600000 : 300000;
+    const cdnMaxAge = isOld ? 3600 : 900;
+    const swr = 300;
 
-    // If single page requested, serve just that page (backward compat)
+    // Single page mode (backward compat)
     if (page !== undefined) {
       const pageNum = parseInt(page, 10) || 1;
       if (pageNum < 1 || pageNum > 100) {
@@ -167,115 +278,36 @@ export default async function handler(req, res) {
 
     // Aggregation mode: fetch all pages, filter UA, return combined
     const aggKey = `agg:${hub}:${dir}:${ts}`;
+
+    // Fresh cache hit
     const cached = cacheGet(aggKey);
     if (cached) {
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...cached.data, cached: true });
     }
 
-    // Dedup concurrent aggregation requests for same key
+    // Stale-while-revalidate: serve stale data immediately, refresh in background
+    const stale = cacheGetStale(aggKey);
+    if (stale && !stale.data.partial) {
+      // Serve stale non-partial data immediately; refresh in background
+      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
+      res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+      return res.status(200).json({ ...stale.data, cached: true, stale: true });
+    }
+
+    // Dedup concurrent aggregation requests
     if (pendingAggs.has(aggKey)) {
       const result = await pendingAggs.get(aggKey);
-      res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
-      return res.status(200).json({ ...result, cached: true });
-    }
-
-    const HANDLER_TIMEOUT = 45000; // 45s — leaves 15s buffer within maxDuration: 60
-    const BATCH_SIZE = 4; // Fetch 4 pages in parallel per batch
-    const MAX_PAGES = 50; // ORD can have 30+ pages; 50 is safe with timeout as real limit
-    const aggPromise = (async () => {
-    const deadline = Date.now() + HANDLER_TIMEOUT;
-    const dayEnd = ts + 86400;
-    const allUAFlights = [];
-    let totalPages = 1;
-    let totalFetched = 0;
-    let partial = false;
-    let pagesScanned = 0;
-
-    // Helper: extract UA flights from a page, returns true if past day boundary
-    function processPage(sched) {
-      if (!sched.data || sched.data.length === 0) return false;
-      totalFetched += sched.data.length;
-      for (const entry of sched.data) {
-        const fl = entry.flight;
-        if (!fl) continue;
-        if (fl.airline?.code?.iata !== 'UA') continue;
-        const schedDep = fl.time?.scheduled?.departure;
-        const schedArr = fl.time?.scheduled?.arrival;
-        const flightTime = dir === 'departures' ? schedDep : schedArr;
-        if (flightTime && flightTime >= dayEnd) return true;
-        allUAFlights.push(fl);
-      }
-      return false;
-    }
-
-    // Fetch page 1 to discover totalPages
-    try {
-      var firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
-    } catch (e) {
-      if (e.name === 'AbortError') return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
-      throw e;
-    }
-    totalPages = firstPage.page?.total || 1;
-    pagesScanned = 1;
-    const pastDay = processPage(firstPage);
-
-    if (!pastDay && totalPages > 1) {
-      const pagesToFetch = Math.min(totalPages, MAX_PAGES);
-      let pageNum = 2;
-
-      while (pageNum <= pagesToFetch) {
-        if (Date.now() > deadline - 2000) { partial = true; break; }
-
-        // Build a batch of page numbers
-        const batchEnd = Math.min(pageNum + BATCH_SIZE - 1, pagesToFetch);
-        const batchPages = [];
-        for (let p = pageNum; p <= batchEnd; p++) batchPages.push(p);
-
-        // Fetch batch in parallel
-        const batchResults = await Promise.allSettled(
-          batchPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
-        );
-
-        // Process results in order
-        let batchDone = false;
-        for (const result of batchResults) {
-          pagesScanned++;
-          if (result.status === 'rejected') {
-            if (allUAFlights.length > 0) { partial = true; batchDone = true; break; }
-            throw result.reason;
-          }
-          const sched = result.value;
-          if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
-          if (processPage(sched)) { batchDone = true; break; }
-        }
-        if (batchDone) break;
-
-        pageNum = batchEnd + 1;
-
-        // Brief pause between batches to be polite to FR24
-        if (pageNum <= pagesToFetch && Date.now() < deadline - 2000) {
-          await new Promise(r => setTimeout(r, BATCH_DELAY));
-        }
+      if (result) {
+        res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
+        return res.status(200).json({ ...result, cached: true });
       }
     }
 
-    const result = {
-      flights: allUAFlights,
-      total: allUAFlights.length,
-      totalFetched,
-      pagesScanned,
-      totalPages,
-      cached: false,
-      partial,
-      hub,
-      dir
-    };
-
-    // Only cache complete results for full TTL; partial gets short TTL
-    cacheSet(aggKey, result, partial ? 60000 : ttl);
-    return result;
-    })();
+    const aggPromise = fetchAllPages(hub, dir, ts).then(result => {
+      cacheSet(aggKey, result, result.partial ? 60000 : ttl);
+      return result;
+    });
 
     pendingAggs.set(aggKey, aggPromise);
     try {
