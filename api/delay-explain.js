@@ -52,8 +52,6 @@ export default async function handler(req, res) {
 
     // Build token-efficient prompt (~200-300 input tokens)
     const lines = [
-      `You are a United Airlines operations analyst briefing a passenger. Give a concise explanation (3-5 sentences) of the delay risk for their flight. Be specific about causes and what to expect. Use a helpful, calm tone.`,
-      ``,
       `Flight: ${ctx.flight} (${ctx.route || 'unknown route'})`,
       `Status: ${ctx.status || 'scheduled'}`,
       `Risk Level: ${ctx.riskLabel || 'LOW'} (score ${ctx.riskScore || 0}/100)`,
@@ -68,6 +66,7 @@ export default async function handler(req, res) {
     const message = await getClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 200,
+      system: `You are an independent flight delay analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Refer to United Airlines in the third person. Give a concise, helpful explanation (3-4 sentences) of the delay situation. Be specific about causes and what the passenger should realistically expect. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
       messages: [{ role: 'user', content: lines.join('\n') }],
     });
 

@@ -320,10 +320,11 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .ac-modal-footer{padding:10px 20px;border-top:1px solid var(--ua-border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex-shrink:0}
 .ac-action-btn{background:rgba(0,93,170,.15);border:1px solid rgba(0,93,170,.3);color:var(--ua-accent);padding:4px 10px;border-radius:4px;font-size:10px;font-family:var(--font-mono);cursor:pointer;text-decoration:none;transition:background .2s}
 .ac-action-btn:hover{background:rgba(0,93,170,.25)}
-.delay-explain-text{font-size:12px;line-height:1.7;color:var(--ua-text);margin-bottom:12px}
-.delay-explain-factors{border-top:1px solid var(--ua-border);padding-top:10px;margin-top:10px}
-.delay-explain-factor{font-size:10px;color:var(--ua-muted);padding:2px 0}
-.delay-explain-footer{font-size:9px;color:var(--ua-muted);text-align:center;padding-top:8px;border-top:1px solid var(--ua-border);margin-top:12px}
+.delay-explain-text{font-size:12px;line-height:1.8;color:var(--ua-text);padding:12px 14px;background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.12);border-radius:6px;margin-bottom:12px}
+.delay-explain-factors{padding-top:10px;margin-top:10px}
+.delay-explain-factors-title{font-size:9px;text-transform:uppercase;color:var(--ua-muted);letter-spacing:.8px;margin-bottom:8px;font-weight:700}
+.delay-explain-factor{font-size:10px;color:var(--ua-text);padding:4px 8px;margin:3px 0;background:rgba(0,93,170,.04);border-left:2px solid var(--ua-accent);border-radius:0 3px 3px 0}
+.delay-explain-footer{font-size:9px;color:var(--ua-muted);text-align:center;padding:10px 20px;border-top:1px solid var(--ua-border)}
 .delay-explain-loading{text-align:center;padding:24px;color:var(--ua-muted);font-size:11px}
 .delay-explain-loading .shimmer{display:inline-block;width:60%;height:10px;background:linear-gradient(90deg,transparent,rgba(138,180,248,.15),transparent);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;margin:6px 0}
 .delay-explain-error{text-align:center;padding:16px;color:#f59e0b;font-size:11px}
@@ -6373,19 +6374,21 @@ function showDelayExplanation(ctx) {
   }).join('');
 
   modal.style.display = 'flex';
-  modal.innerHTML = '<div class="ac-modal-card" style="max-width:400px">' +
+  modal.innerHTML = '<div class="ac-modal-card" style="max-width:420px">' +
     '<div class="ac-modal-header">' +
     '<button class="ac-modal-close" data-action="close-delay-explain" aria-label="Close">\u2715</button>' +
-    '<div style="font-size:16px;font-weight:700;color:var(--ua-accent)">\u2708\uFE0F ' + escapeHtml(ctx.flight) + '</div>' +
-    '<div style="font-size:11px;color:var(--ua-muted);margin-top:2px">' + escapeHtml(ctx.route || '') + '</div>' +
-    '<div style="margin-top:6px"><span class="delay-risk-badge" style="background:' + riskColor + '20;color:' + riskColor + ';font-size:11px;padding:2px 8px">' + escapeHtml(ctx.riskLabel || 'LOW') + ' RISK</span> <span style="font-size:10px;color:var(--ua-muted)">score ' + (ctx.riskScore || 0) + '/100</span></div>' +
+    '<div style="display:flex;align-items:center;gap:8px">' +
+    '<div style="font-size:18px;font-weight:700;color:var(--ua-accent)">' + escapeHtml(ctx.flight) + '</div>' +
+    '<span class="delay-risk-badge" style="background:' + riskColor + '20;color:' + riskColor + ';font-size:10px;padding:2px 8px;font-weight:700">' + escapeHtml(ctx.riskLabel || 'LOW') + ' RISK</span>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--ua-muted);margin-top:4px">' + escapeHtml(ctx.route || '') + ' &middot; Score ' + (ctx.riskScore || 0) + '/100</div>' +
     '</div>' +
     '<div class="ac-modal-body">' +
     '<div id="delay-explain-content" class="delay-explain-loading">' +
-    '<div style="font-size:13px;margin-bottom:8px">\u2728 Analyzing delay risk...</div>' +
+    '<div style="font-size:12px;margin-bottom:10px">Analyzing delay risk\u2026</div>' +
     '<div class="shimmer"></div><div class="shimmer" style="width:80%"></div><div class="shimmer" style="width:90%"></div>' +
     '</div>' +
-    (factorsHtml ? '<div class="delay-explain-factors"><div style="font-size:9px;text-transform:uppercase;color:var(--ua-muted);letter-spacing:.5px;margin-bottom:6px;font-weight:700">Contributing Factors</div>' + factorsHtml + '</div>' : '') +
+    (factorsHtml ? '<div class="delay-explain-factors"><div class="delay-explain-factors-title">Contributing Factors</div>' + factorsHtml + '</div>' : '') +
     '</div>' +
     '<div class="delay-explain-footer">Powered by Claude AI</div>' +
     '</div>';
