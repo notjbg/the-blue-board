@@ -380,6 +380,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 @media(max-width:900px){.two-col{grid-template-columns:1fr}}
 .fleet-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .fleet-controls select,.fleet-controls input{background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 10px;border-radius:4px;font-family:var(--mono);font-size:11px}
+#global-search-input::placeholder,#myflight-search::placeholder{transition:opacity .3s ease}
+#global-search-input.ph-fade::placeholder,#myflight-search.ph-fade::placeholder{opacity:0}
 .fleet-controls select:focus,.fleet-controls input:focus{outline:none;border-color:var(--ua-blue)}
 .fleet-table-wrap{max-height:500px;overflow-y:auto;border:1px solid var(--ua-border);border-radius:4px}
 table{width:100%;border-collapse:collapse;font-size:11px}
@@ -605,6 +607,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-more-menu button .bnav-icon{font-size:18px}
   /* ── Hub health bar: hidden on mobile (Change 5) ── */
   #hub-health-bar{display:none!important}
+  #tip-strip{display:none!important}
   /* ── Footer: condensed single line (Change 6) ── */
   .footer-hub-links,.footer-data-sources{display:none!important}
   /* ── Header live count emphasis (Change 7) ── */
@@ -675,9 +678,19 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .hh-hub .hh-pct{font-weight:600}
 .hh-sep{color:var(--ua-border);margin:0 2px}
 
+/* Tip Strip */
+#tip-strip{background:var(--ua-panel);border-bottom:1px solid var(--ua-border);padding:4px 16px;font-size:10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#tip-strip .tip-badge{background:var(--ua-blue);color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:2px;letter-spacing:.5px;text-transform:uppercase;flex-shrink:0}
+#tip-strip .tip-text{color:var(--ua-muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .3s ease}
+#tip-strip .tip-text.tip-fade{opacity:0}
+#tip-strip .tip-dismiss{background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:12px;padding:0 2px;opacity:.5;flex-shrink:0}
+#tip-strip .tip-dismiss:hover{opacity:1;color:var(--ua-text)}
+
 /* Equipment Change Badge */
 .equip-change-badge{display:inline-block;background:rgba(245,158,11,.15);color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:600;margin-top:2px}
-#equip-change-summary{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:6px 12px;margin:4px 16px;font-size:10px;color:#f59e0b;display:none}
+#equip-change-summary{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:6px 12px;margin:4px 16px;font-size:10px;color:#f59e0b;display:none;cursor:pointer;transition:border-color .2s}
+#equip-change-summary:hover{border-color:rgba(245,158,11,.5)}
+@keyframes equipFlash{0%{border-color:rgba(245,158,11,.2)}50%{border-color:rgba(245,158,11,.6)}100%{border-color:rgba(245,158,11,.2)}}
 .equip-swap-detail{margin-top:3px;font-size:9px;line-height:1.5}
 .equip-swap-item{display:inline-block;padding:0 4px;border-radius:2px;margin-right:2px;font-weight:600;white-space:nowrap}
 .equip-swap-upgrade{background:rgba(34,197,94,.15);color:#22c55e}
@@ -828,6 +841,9 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
 <!-- HUB HEALTH BAR -->
 <div id="hub-health-bar" aria-live="polite" title="On-Time Performance: % of operated flights departing within 30 min of schedule. 🟢 >70% · 🟡 50-70% · 🔴 <50%"><span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Loading…</span></div>
 
+<!-- TIP STRIP -->
+<div id="tip-strip" style="display:none"><span class="tip-badge">Tip</span><span class="tip-text" id="tip-text"></span><button class="tip-dismiss" data-action="dismiss-tips" aria-label="Dismiss tips">&times;</button></div>
+
 <!-- WATCH NOTIFICATION BANNER -->
 <div id="watch-notification" aria-live="polite" role="status"><span id="wn-text"></span><button class="wn-dismiss" data-action="dismiss-watch-notification">Dismiss</button></div>
 <div id="push-prompt">🔔 Get push alerts for watched flights?<div style="display:flex;gap:6px"><button class="pp-enable" data-action="enable-push">Enable</button><button class="pp-dismiss" data-action="dismiss-push">No thanks</button></div></div>
@@ -887,6 +903,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     <div style="max-width:300px;margin:0 auto">
       <input type="text" id="myflight-search" placeholder="Add a flight (e.g. UA 1234)" style="width:100%;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:8px 12px;border-radius:4px;font-family:var(--mono);font-size:12px;text-align:center">
     </div>
+    <div style="margin:20px auto 0;max-width:360px;display:flex;align-items:center;gap:12px;color:var(--ua-border)"><div style="flex:1;height:1px;background:var(--ua-border)"></div><span style="font-size:9px;letter-spacing:1px;color:var(--ua-muted)">OR</span><div style="flex:1;height:1px;background:var(--ua-border)"></div></div>
   </div>
   <div id="myflight-cards"></div>
   <div id="myflight-connection-risk"></div>
@@ -982,7 +999,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
           <option value="arrivals">Arrivals</option>
         </select>
         <button id="sched-refresh-btn" data-action="schedule-refresh" style="background:var(--ua-blue);color:white;border:none;padding:4px 10px;font-family:var(--font-ui);font-size:10px;border-radius:3px;cursor:pointer">↻ Refresh</button>
-        <button id="sched-more-filters-btn" data-action="schedule-more-filters" style="background:none;border:1px solid var(--ua-border);color:var(--ua-muted);padding:4px 10px;font-family:var(--font-ui);font-size:10px;border-radius:3px;cursor:pointer">More Filters ▾</button>
+        <button id="sched-more-filters-btn" data-action="schedule-more-filters" style="background:none;border:1px solid var(--ua-border);color:var(--ua-muted);padding:4px 10px;font-family:var(--font-ui);font-size:10px;border-radius:3px;cursor:pointer">Filter: Aircraft, Starlink, Delay… ▾</button>
         <div id="sched-adv-filters" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
         <select id="sched-status" aria-label="Schedule status filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
           <option value="">All Status</option>
@@ -1016,8 +1033,8 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
           <option value="redeye">Red-eye (10p–5a)</option>
         </select>
         <select id="sched-risk" aria-label="Schedule delay risk filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
-          <option value="">All Risk</option>
-          <option value="high">High Risk</option>
+          <option value="">All Delay</option>
+          <option value="high">High Delay</option>
           <option value="moderate">Moderate+</option>
           <option value="low">Low Only</option>
         </select>
@@ -1044,7 +1061,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
             <th data-sort="reg" style="cursor:pointer">Reg</th>
             <th>Gate</th>
             <th data-sort="status" style="cursor:pointer;min-width:130px">Status ↕</th>
-            <th style="width:45px">Risk</th>
+            <th style="width:45px">Delay</th>
             <th>Fleet</th>
             <th>👁️</th>
           </tr>
@@ -3879,13 +3896,14 @@ function initScheduleTab() {
     document.getElementById('sched-hub').addEventListener('change', () => { schedCurrentHub = document.getElementById('sched-hub').value; updateSchedDayLabels(); loadScheduleData(); });
     document.getElementById('sched-dir').addEventListener('change', () => { schedCurrentDir = document.getElementById('sched-dir').value; loadScheduleData(); });
     const debouncedSchedRender = debounce(renderScheduleTable, 120);
-    document.getElementById('sched-status').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-aircraft').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-route-type').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-starlink').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-timerange').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-risk').addEventListener('change', debouncedSchedRender);
-    document.getElementById('sched-search').addEventListener('input', debouncedSchedRender);
+    const schedFilterChanged = () => { debouncedSchedRender(); updateAdvFilterBtnText(); };
+    document.getElementById('sched-status').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-aircraft').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-route-type').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-starlink').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-timerange').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-risk').addEventListener('change', schedFilterChanged);
+    document.getElementById('sched-search').addEventListener('input', schedFilterChanged);
     // Sort headers
     document.querySelectorAll('#sched-table th[data-sort]').forEach(th => {
       th.addEventListener('click', () => {
@@ -4676,6 +4694,8 @@ function updateEquipChangeSummary() {
   const el = document.getElementById('equip-change-summary');
   if (equipmentChanges.length > 0) {
     el.style.display = 'block';
+    el.style.animation = 'equipFlash 1.5s ease';
+    el.onclick = () => { const p = document.getElementById('sched-adv-filters'); if (p && (p.style.display === 'none' || !p.style.display)) toggleScheduleMoreFilters(); };
     // Count upgrades/downgrades/lateral
     let ups = 0, downs = 0;
     equipmentChanges.forEach(c => {
@@ -5067,15 +5087,14 @@ async function renderMyFlights() {
   const connCheck = document.getElementById('myflight-check');
   if (!container) return;
 
+  if (connCheck) connCheck.style.display = '';
   if (!flights.length) {
     empty.style.display = '';
     container.innerHTML = '';
     document.getElementById('myflight-connection-risk').innerHTML = '';
-    if (connCheck) connCheck.style.display = 'none';
     return;
   }
   empty.style.display = 'none';
-  if (connCheck) connCheck.style.display = '';
 
   // Fetch flight-times for each watched flight (parallel, with cache)
   const timeResults = await Promise.allSettled(
@@ -5613,13 +5632,38 @@ function toggleSidebarFilters() {
   btn.textContent = panel.classList.contains('show') ? 'Filters ▴' : 'Filters ▾';
 }
 
+function getActiveAdvFilterCount() {
+  let count = 0;
+  if (document.getElementById('sched-status')?.value) count++;
+  if (document.getElementById('sched-aircraft')?.value) count++;
+  if (document.getElementById('sched-route-type')?.value) count++;
+  if (document.getElementById('sched-starlink')?.value) count++;
+  if (document.getElementById('sched-timerange')?.value) count++;
+  if (document.getElementById('sched-risk')?.value) count++;
+  if (document.getElementById('sched-search')?.value?.trim()) count++;
+  return count;
+}
+function updateAdvFilterBtnText() {
+  const btn = document.getElementById('sched-more-filters-btn');
+  if (!btn) return;
+  const panel = document.getElementById('sched-adv-filters');
+  const isOpen = panel && panel.style.display === 'flex';
+  const count = getActiveAdvFilterCount();
+  if (count > 0) {
+    btn.textContent = `Filters (${count} active) ${isOpen ? '▴' : '▾'}`;
+    btn.style.color = 'var(--ua-accent)';
+  } else {
+    btn.textContent = isOpen ? 'Less Filters ▴' : 'Filter: Aircraft, Starlink, Delay… ▾';
+    btn.style.color = 'var(--ua-muted)';
+  }
+}
 function toggleScheduleMoreFilters() {
   const panel = document.getElementById('sched-adv-filters');
   const btn = document.getElementById('sched-more-filters-btn');
   if (!panel || !btn) return;
   const isHidden = panel.style.display === 'none' || panel.style.display === '';
   panel.style.display = isHidden ? 'flex' : 'none';
-  btn.textContent = isHidden ? 'Less Filters ▴' : 'More Filters ▾';
+  updateAdvFilterBtnText();
 }
 
 // Keyboard support: Enter/Space triggers click on [data-action][role="button"] elements
@@ -5835,6 +5879,71 @@ document.addEventListener('click', function(e) {
 });
 
 // ═══ INIT ═══
+// ═══ TIP STRIP ═══
+(function() {
+  const TIPS = {
+    'tab-live': [
+      'Click any aircraft registration (N-number) in a popup to see full details, seat config & Starlink status',
+      'Click a hub name in the sidebar to filter the map to just that hub\'s flights',
+      'Toggle the weather radar overlay with the rain cloud button on the map'
+    ],
+    'tab-schedule': [
+      'Use "Filter: Aircraft, Starlink, Delay…" to find Starlink-equipped flights on your route',
+      'Click any registration in the schedule table to see full aircraft details'
+    ],
+    'tab-myflight': [
+      'Watch 2+ connecting flights and we\'ll automatically check your connection risk',
+      'The "Where\'s My Plane?" section shows the inbound aircraft for your watched flight'
+    ],
+    'tab-weather': [
+      'Load schedule data in the Schedule tab to unlock the IRROPS disruption monitor'
+    ],
+    'tab-fleet': [
+      'Click any fleet type chip to filter the aircraft database instantly'
+    ]
+  };
+  const strip = document.getElementById('tip-strip');
+  const textEl = document.getElementById('tip-text');
+  if (!strip || !textEl) return;
+  const DISMISS_KEY = 'bb_tips_dismissed';
+  const DISMISS_DAYS = 7;
+  function isDismissed() {
+    const ts = localStorage.getItem(DISMISS_KEY);
+    return ts && (Date.now() - parseInt(ts)) < DISMISS_DAYS * 86400000;
+  }
+  function getActiveTab() {
+    const btn = document.querySelector('.tab-btn.active');
+    return btn ? btn.dataset.tab : 'tab-live';
+  }
+  let tipTimer = null;
+  function showTip() {
+    if (isDismissed()) { strip.style.display = 'none'; return; }
+    const tab = getActiveTab();
+    const pool = TIPS[tab] || TIPS['tab-live'];
+    const tip = pool[Math.floor(Math.random() * pool.length)];
+    textEl.classList.add('tip-fade');
+    setTimeout(() => { textEl.textContent = tip; textEl.classList.remove('tip-fade'); }, 300);
+    strip.style.display = '';
+  }
+  function startRotation() {
+    showTip();
+    if (tipTimer) clearInterval(tipTimer);
+    tipTimer = setInterval(showTip, 45000);
+  }
+  // Listen for tab switches
+  document.getElementById('tab-bar')?.addEventListener('click', (e) => {
+    if (e.target.closest('.tab-btn')) setTimeout(showTip, 100);
+  });
+  // Dismiss handler
+  strip.querySelector('[data-action="dismiss-tips"]')?.addEventListener('click', () => {
+    localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    strip.style.display = 'none';
+    if (tipTimer) clearInterval(tipTimer);
+  });
+  // Start after short delay
+  setTimeout(startRotation, 2000);
+})();
+
 async function initApp() {
   updateWatchBadge();
   updateHomeHubDisplay();
@@ -5849,6 +5958,31 @@ async function initApp() {
       mfSearch.value = '';
     }
   });
+  // Rotating search placeholders
+  (function() {
+    const hints = [
+      'Track a flight — try "UA 1234"',
+      'Look up an aircraft — try "N37502"',
+      'Search by airport — try "ORD"'
+    ];
+    const mfHints = [
+      'Add a flight (e.g. UA 1234)',
+      'Try a tail number (N37502)'
+    ];
+    function rotator(el, list) {
+      if (!el) return;
+      let idx = 0, timer = null;
+      function cycle() {
+        el.classList.add('ph-fade');
+        setTimeout(() => { idx = (idx + 1) % list.length; el.placeholder = list[idx]; el.classList.remove('ph-fade'); }, 300);
+      }
+      timer = setInterval(cycle, 4000);
+      el.addEventListener('focus', () => { clearInterval(timer); timer = null; });
+      el.addEventListener('blur', () => { if (!el.value && !timer) timer = setInterval(cycle, 4000); });
+    }
+    rotator(document.getElementById('global-search-input'), hints);
+    rotator(document.getElementById('myflight-search'), mfHints);
+  })();
   // Start fleet data load in parallel — don't block map init
   const fleetReady = loadFleetData();
   initMap();
