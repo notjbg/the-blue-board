@@ -15,6 +15,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "astro": "^5.0.0",
     "fast-xml-parser": "^5.3.7"
   },
