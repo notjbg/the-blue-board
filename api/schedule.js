@@ -9,7 +9,6 @@ const BATCH_DELAY = 300; // 300ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Global concurrency limiter for FR24 outbound requests
-// Prevents bursting FR24 when multiple hubs aggregate simultaneously
 const MAX_CONCURRENT_FR24 = 6;
 let activeFR24 = 0;
 const fr24Queue = [];
@@ -33,17 +32,13 @@ function releaseFR24Slot() {
 function cacheGet(key) {
   const entry = cache.get(key);
   if (!entry) return null;
-  if (Date.now() > entry.expires) {
-    // Return null for normal lookup — stale check is separate
-    return null;
-  }
+  if (Date.now() > entry.expires) return null;
   return entry;
 }
 
 function cacheGetStale(key) {
   const entry = cache.get(key);
   if (!entry) return null;
-  // Allow serving stale data up to STALE_GRACE past expiry
   if (Date.now() > entry.expires + STALE_GRACE) {
     cache.delete(key);
     return null;
@@ -53,7 +48,6 @@ function cacheGetStale(key) {
 
 function cacheSet(key, data, ttlMs) {
   if (cache.size >= MAX_CACHE_SIZE) {
-    // Evict oldest
     const firstKey = cache.keys().next().value;
     cache.delete(firstKey);
   }
@@ -85,47 +79,45 @@ async function fetchWithTimeout(url, deadlineMs) {
   }
 }
 
+// Resilient page fetch — returns null on failure instead of throwing (matches irrops pattern)
 async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${encodeURIComponent(dir)}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    if (deadlineMs && Date.now() > deadlineMs - 500) throw new Error('Deadline exceeded');
+    if (deadlineMs && Date.now() > deadlineMs - 500) return null;
     await acquireFR24Slot();
-    let shouldRetry = false;
     try {
       const resp = await fetchWithTimeout(url, deadlineMs);
       if (resp.ok) {
         const data = await resp.json();
         const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
-        if (!sched) throw new Error('No schedule data in response');
+        if (!sched) return null;
         return sched;
       }
-      // Retry on transient FR24 errors
-      if ([429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
-        shouldRetry = true;
+      // Retry on transient FR24 errors (including 403 — FR24 uses it for rate limiting)
+      if ([403, 429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
+        // fall through to retry
       } else {
-        throw new Error(`FR24 returned ${resp.status}`);
+        console.error(`FR24 returned ${resp.status} for ${hub} page ${page}`);
+        return null;
       }
     } catch (e) {
-      if (attempt < MAX_RETRIES && e.name !== 'AbortError' && !e.message.includes('Deadline')) {
-        shouldRetry = true;
-      } else {
-        throw e;
+      if (attempt >= MAX_RETRIES || e.name === 'AbortError') {
+        return null;
       }
+      // fall through to retry
     } finally {
       releaseFR24Slot();
     }
-    if (shouldRetry) {
-      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
-    }
+    await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
   }
+  return null;
 }
 
 const pendingAggs = new Map();
 
-// Fire-and-forget background refresh for stale cache entries
 function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
-  if (pendingAggs.has(aggKey)) return; // already refreshing
+  if (pendingAggs.has(aggKey)) return;
   const promise = fetchAllPages(hub, dir, ts).then(result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
     return result;
@@ -137,7 +129,6 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   pendingAggs.set(aggKey, promise);
 }
 
-// Core aggregation logic — extracted so it can be used by both handler and background refresh
 async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
   const deadline = Date.now() + timeoutMs;
   const dayEnd = ts + 86400;
@@ -166,11 +157,9 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
   }
 
   // Fetch page 1 to discover totalPages
-  try {
-    var firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
-  } catch (e) {
-    if (e.name === 'AbortError') return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
-    throw e;
+  const firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
+  if (!firstPage) {
+    return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
   }
   totalPages = firstPage.page?.total || 1;
   pagesScanned = 1;
@@ -194,9 +183,9 @@ async function fetchAllPages(hub, dir, ts, timeoutMs = 45000) {
       let batchDone = false;
       for (const result of batchResults) {
         pagesScanned++;
-        if (result.status === 'rejected') {
-          if (allUAFlights.length > 0) { partial = true; batchDone = true; break; }
-          throw result.reason;
+        if (result.status === 'rejected' || !result.value) {
+          // Page failed — mark partial and stop (we have what we have)
+          partial = true; batchDone = true; break;
         }
         const sched = result.value;
         if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
@@ -274,6 +263,9 @@ export default async function handler(req, res) {
         return res.status(200).json({ ...cached.data, cached: true });
       }
       const sched = await fetchOnePage(hub, dir, ts, pageNum);
+      if (!sched) {
+        return res.status(502).json({ error: 'Upstream service unavailable' });
+      }
       cacheSet(cacheKey, sched, ttl);
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...sched, cached: false });
@@ -292,7 +284,6 @@ export default async function handler(req, res) {
     // Stale-while-revalidate: serve stale data immediately, refresh in background
     const stale = cacheGetStale(aggKey);
     if (stale && !stale.data.partial) {
-      // Serve stale non-partial data immediately; refresh in background
       triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
@@ -307,6 +298,7 @@ export default async function handler(req, res) {
       }
     }
 
+    // fetchAllPages NEVER throws — always returns a result (possibly partial/empty)
     const aggPromise = fetchAllPages(hub, dir, ts).then(result => {
       cacheSet(aggKey, result, result.partial ? 60000 : ttl);
       return result;
@@ -322,7 +314,6 @@ export default async function handler(req, res) {
     }
   } catch (e) {
     console.error('Schedule API error:', e);
-    if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });
   }
 }
