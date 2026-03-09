@@ -1,7 +1,8 @@
 {
   "cleanUrls": true,
     "functions": {
-        "api/irrops.js": { "maxDuration": 90 }
+        "api/irrops.js": { "maxDuration": 90 },
+        "api/schedule.js": { "maxDuration": 60 }
     },
   "buildCommand": "npm run build",
   "outputDirectory": "dist",

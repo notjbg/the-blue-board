@@ -5,8 +5,7 @@ const isRateLimited = createRateLimiter('schedule', 30);
 // In-memory LRU cache for FR24 schedule data
 const cache = new Map();
 const MAX_CACHE_SIZE = 200;
-let lastFR24Request = 0;
-const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between FR24 requests
+const BATCH_DELAY = 500; // 500ms pause between parallel batches (polite to FR24)
 
 function cacheGet(key) {
   const entry = cache.get(key);
@@ -27,15 +26,9 @@ function cacheSet(key, data, ttlMs) {
   cache.set(key, { data, expires: Date.now() + ttlMs, time: Date.now() });
 }
 
-async function rateLimitedFetch(url, deadlineMs) {
-  const now = Date.now();
-  const wait = Math.max(0, MIN_REQUEST_INTERVAL - (now - lastFR24Request));
-  if (wait > 0) await new Promise(r => setTimeout(r, wait));
-  lastFR24Request = Date.now();
-
-  // Use remaining time until deadline if provided, capped at 8s
-  const remaining = deadlineMs ? Math.max(500, deadlineMs - Date.now()) : 8000;
-  const fetchTimeout = Math.min(remaining, 8000);
+async function fetchWithTimeout(url, deadlineMs) {
+  const remaining = deadlineMs ? Math.max(500, deadlineMs - Date.now()) : 45000;
+  const fetchTimeout = Math.min(remaining, 45000);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), fetchTimeout);
@@ -57,7 +50,7 @@ async function rateLimitedFetch(url, deadlineMs) {
 
 async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${encodeURIComponent(dir)}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
-  const resp = await rateLimitedFetch(url, deadlineMs);
+  const resp = await fetchWithTimeout(url, deadlineMs);
   if (!resp.ok) throw new Error(`FR24 returned ${resp.status}`);
   const data = await resp.json();
   const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
@@ -139,29 +132,22 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...result, cached: true });
     }
 
-    const HANDLER_TIMEOUT = 8000; // Return partial results before Vercel kills us
+    const HANDLER_TIMEOUT = 45000; // 45s — leaves 15s buffer within maxDuration: 60
+    const BATCH_SIZE = 4; // Fetch 4 pages in parallel per batch
+    const MAX_PAGES = 50; // ORD can have 30+ pages; 50 is safe with timeout as real limit
     const aggPromise = (async () => {
     const deadline = Date.now() + HANDLER_TIMEOUT;
     const dayEnd = ts + 86400;
     const allUAFlights = [];
-    let pageNum = 1;
     let totalPages = 1;
-    const MAX_PAGES = 20;
     let totalFetched = 0;
     let partial = false;
+    let pagesScanned = 0;
 
-    while (pageNum <= totalPages && pageNum <= MAX_PAGES) {
-      if (Date.now() > deadline - 1000) { partial = true; break; } // 1s buffer
-      try {
-        var sched = await fetchOnePage(hub, dir, ts, pageNum, deadline);
-      } catch (e) {
-        if (e.name === 'AbortError' && allUAFlights.length > 0) { partial = true; break; }
-        throw e;
-      }
-      totalPages = sched.page?.total || 1;
-      if (!sched.data || sched.data.length === 0) break;
-
-      let pastDay = false;
+    // Helper: extract UA flights from a page, returns true if past day boundary
+    function processPage(sched) {
+      if (!sched.data || sched.data.length === 0) return false;
+      totalFetched += sched.data.length;
       for (const entry of sched.data) {
         const fl = entry.flight;
         if (!fl) continue;
@@ -169,19 +155,68 @@ export default async function handler(req, res) {
         const schedDep = fl.time?.scheduled?.departure;
         const schedArr = fl.time?.scheduled?.arrival;
         const flightTime = dir === 'departures' ? schedDep : schedArr;
-        if (flightTime && flightTime >= dayEnd) { pastDay = true; break; }
+        if (flightTime && flightTime >= dayEnd) return true;
         allUAFlights.push(fl);
       }
-      totalFetched += sched.data.length;
-      if (pastDay) break;
-      pageNum++;
+      return false;
+    }
+
+    // Fetch page 1 to discover totalPages
+    try {
+      var firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
+    } catch (e) {
+      if (e.name === 'AbortError') return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir };
+      throw e;
+    }
+    totalPages = firstPage.page?.total || 1;
+    pagesScanned = 1;
+    const pastDay = processPage(firstPage);
+
+    if (!pastDay && totalPages > 1) {
+      const pagesToFetch = Math.min(totalPages, MAX_PAGES);
+      let pageNum = 2;
+
+      while (pageNum <= pagesToFetch) {
+        if (Date.now() > deadline - 2000) { partial = true; break; }
+
+        // Build a batch of page numbers
+        const batchEnd = Math.min(pageNum + BATCH_SIZE - 1, pagesToFetch);
+        const batchPages = [];
+        for (let p = pageNum; p <= batchEnd; p++) batchPages.push(p);
+
+        // Fetch batch in parallel
+        const batchResults = await Promise.allSettled(
+          batchPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+        );
+
+        // Process results in order
+        let batchDone = false;
+        for (const result of batchResults) {
+          pagesScanned++;
+          if (result.status === 'rejected') {
+            if (allUAFlights.length > 0) { partial = true; batchDone = true; break; }
+            throw result.reason;
+          }
+          const sched = result.value;
+          if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
+          if (processPage(sched)) { batchDone = true; break; }
+        }
+        if (batchDone) break;
+
+        pageNum = batchEnd + 1;
+
+        // Brief pause between batches to be polite to FR24
+        if (pageNum <= pagesToFetch && Date.now() < deadline - 2000) {
+          await new Promise(r => setTimeout(r, BATCH_DELAY));
+        }
+      }
     }
 
     const result = {
       flights: allUAFlights,
       total: allUAFlights.length,
       totalFetched,
-      pagesScanned: Math.min(pageNum, totalPages, MAX_PAGES),
+      pagesScanned,
       totalPages,
       cached: false,
       partial,
