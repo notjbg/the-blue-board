@@ -95,8 +95,10 @@ async function tryFR24Summary(req, res, flight, cacheKey) {
     }
     const data = await resp.json();
     const flights = data?.data || [];
-    // Find the active/most recent flight
-    const f = flights.find(fl => !fl.flight_ended) || flights[0];
+    // Find the most relevant flight — prefer in-air (has takeoff but no landing) over others
+    const f = flights.find(fl => fl.datetime_takeoff && !fl.datetime_landed && !fl.flight_ended)
+      || flights.find(fl => !fl.flight_ended)
+      || flights[0];
     if (!f) {
       return res.status(404).json({ success: false, error: 'No flight data available' });
     }
@@ -204,23 +206,24 @@ export default async function handler(req, res) {
       return await tryFR24Summary(req, res, flight, cacheKey);
     }
 
-    // Find the most recent/active flight
+    // Find the most relevant flight — prefer in-progress over future scheduled
     const flights = bootstrap?.flights || {};
-    let bestFlight = null;
-    let bestKey = null;
+    const candidates = [];
 
     for (const [key, val] of Object.entries(flights)) {
       const actLog = val?.activityLog?.flights || [];
       if (!actLog.length) continue;
-      // First entry is the most current
       const f = actLog[0];
-      const fTime = f.gateDepartureTimes?.scheduled || f.gateDepartureTimes?.estimated || f.gateDepartureTimes?.actual || f.takeoffTimes?.scheduled || 0;
-      const bestTime = bestFlight ? (bestFlight.gateDepartureTimes?.scheduled || bestFlight.gateDepartureTimes?.estimated || bestFlight.gateDepartureTimes?.actual || bestFlight.takeoffTimes?.scheduled || 0) : 0;
-      if (!bestFlight || fTime > bestTime) {
-        bestFlight = f;
-        bestKey = key;
-      }
+      const hasActualDep = !!(f.takeoffTimes?.actual || f.gateDepartureTimes?.actual);
+      const hasLanded = !!f.landingTimes?.actual;
+      const depTime = f.gateDepartureTimes?.scheduled || f.gateDepartureTimes?.estimated || f.gateDepartureTimes?.actual || f.takeoffTimes?.scheduled || 0;
+      // Priority: in-air (departed but not landed) > landed today > scheduled
+      const priority = (hasActualDep && !hasLanded) ? 2 : hasActualDep ? 1 : 0;
+      candidates.push({ flight: f, key, priority, depTime });
     }
+    candidates.sort((a, b) => b.priority - a.priority || b.depTime - a.depTime);
+    const bestFlight = candidates[0]?.flight || null;
+    const bestKey = candidates[0]?.key || null;
 
     if (!bestFlight) {
       return res.status(404).json({ success: false, error: 'No active flight found' });
