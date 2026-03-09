@@ -3977,7 +3977,7 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
     if (!resp.ok) throw new Error(`Schedule API ${resp.status}`);
     const data = await resp.json();
     if (data.error) throw new Error(data.error);
-    schedCache[cacheKey] = data;
+    if (!data.partial) schedCache[cacheKey] = data;
     return data;
   } catch (e) {
     clearTimeout(timeout);
@@ -4074,7 +4074,7 @@ async function loadScheduleData() {
     document.getElementById('sched-risk').value = '';
     loadEl.style.display = 'none';
     if (result.partial) {
-      loadEl.innerHTML = `<div style="padding:8px 12px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:11px;color:#eab308;margin-bottom:8px">⚠️ Partial results — some flights may be missing. The upstream data source timed out before all pages were fetched. <button onclick="loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
+      loadEl.innerHTML = `<div style="padding:8px 12px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:11px;color:#eab308;margin-bottom:8px">⚠️ Partial results — some flights may be missing. The upstream data source timed out before all pages were fetched. <button onclick="delete schedCache['agg-${schedCurrentHub}-${schedCurrentDir}-${getSchedDayTimestamp(schedCurrentDay)}']; loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
       loadEl.style.display = 'block';
     } else {
       loadEl.style.display = 'none';
@@ -5666,6 +5666,8 @@ document.addEventListener('click', function(e) {
       refreshFlights();
       break;
     case 'schedule-refresh':
+      { const ts = getSchedDayTimestamp(schedCurrentDay);
+        delete schedCache[`agg-${schedCurrentHub}-${schedCurrentDir}-${ts}`]; }
       loadScheduleData();
       break;
     case 'schedule-more-filters':
