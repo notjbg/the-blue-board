@@ -3946,7 +3946,7 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
   if (schedCache[cacheKey]) return { ...schedCache[cacheKey], fromLocalCache: true };
   const url = `/api/schedule?hub=${encodeURIComponent(hub)}&dir=${encodeURIComponent(dir)}&timestamp=${timestamp}`;
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 60000);
   try {
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
@@ -4048,7 +4048,12 @@ async function loadScheduleData() {
     schedRawByHub[hubKey] = allUAFlights;
     detectEquipmentSwaps(allUAFlights, schedCurrentHub, schedCurrentDir, schedCurrentDay);
     populateAircraftFilter();
-    loadEl.style.display = 'none';
+    if (result.partial) {
+      loadEl.innerHTML = `<div style="padding:8px 12px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:11px;color:#eab308;margin-bottom:8px">⚠️ Partial results — some flights may be missing. The upstream data source timed out before all pages were fetched. <button onclick="loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
+      loadEl.style.display = 'block';
+    } else {
+      loadEl.style.display = 'none';
+    }
     tableWrap.style.display = 'block';
     renderScheduleTable();
     renderScheduleStats();
