@@ -338,6 +338,35 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .popup-links a:hover{opacity:1}
 .hub-tooltip{background:rgba(10,14,20,.85)!important;border:1px solid var(--ua-blue)!important;color:var(--ua-accent)!important;font-size:10px!important;font-weight:700!important;padding:2px 6px!important;border-radius:3px!important;font-family:var(--mono)!important}
 
+/* ═══ MY FLIGHTS ═══ */
+.mf-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;margin-bottom:14px;overflow:hidden}
+.mf-card-header{background:linear-gradient(135deg,rgba(0,93,170,.25),rgba(0,50,100,.15));padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ua-border)}
+.mf-flight-num{font-size:18px;font-weight:700;color:var(--ua-accent);font-family:var(--mono)}
+.mf-route{font-size:11px;color:var(--ua-muted);margin-top:2px}
+.mf-countdown{font-size:24px;font-weight:700;font-family:var(--mono);color:var(--ua-accent);text-align:right}
+.mf-countdown.departed{color:var(--ua-green);font-size:14px}
+.mf-countdown.landed{color:var(--ua-muted);font-size:14px}
+.mf-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.mf-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
+.mf-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px}
+.mf-value{font-size:12px;color:var(--ua-text);font-family:var(--mono)}
+.mf-inbound{background:rgba(0,93,170,.08);border:1px solid rgba(0,93,170,.15);border-radius:4px;padding:8px 10px;font-size:11px}
+.mf-inbound-title{font-size:9px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700}
+.mf-weather-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mf-weather-cell{background:rgba(15,23,41,.5);border:1px solid var(--ua-border);border-radius:4px;padding:6px 8px;font-size:10px}
+.mf-weather-code{font-weight:700;font-family:var(--mono)}
+.mf-actions{display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--ua-border)}
+.mf-actions button{background:rgba(0,93,170,.15);color:var(--ua-accent);border:none;padding:4px 10px;border-radius:3px;font-family:var(--font-ui);font-size:10px;cursor:pointer}
+.mf-actions button:hover{background:rgba(0,93,170,.3)}
+.mf-status{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;font-family:var(--font-ui)}
+.delay-risk-badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-ui);letter-spacing:.5px;cursor:help}
+.conn-risk-card{border-left:3px solid;border-radius:6px;background:var(--ua-panel);border-top:1px solid var(--ua-border);border-right:1px solid var(--ua-border);border-bottom:1px solid var(--ua-border);padding:14px;margin-bottom:14px}
+.conn-risk-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.conn-risk-label{font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.conn-risk-badge{padding:3px 10px;border-radius:3px;font-size:11px;font-weight:700;font-family:var(--font-ui)}
+.conn-risk-flights{font-size:11px;line-height:1.8}
+.conn-risk-detail{font-size:10px;color:var(--ua-muted);margin-top:6px}
+
 /* ═══ TAB 2: FLEET ═══ */
 #tab-fleet{padding:16px;flex:1;min-height:0;overflow-y:auto}
 .card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px}
@@ -745,6 +774,21 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
       <div class="onboarding-feature"><span class="onboarding-icon">✈️</span><div><strong>Fleet &amp; WiFi</strong><span class="onboarding-desc">Check if your plane has Starlink WiFi, seat config, and aircraft details</span></div></div>
       <div class="onboarding-feature"><span class="onboarding-icon">📊</span><div><strong>Stats</strong><span class="onboarding-desc">Fleet utilization, route patterns, and network health — the truly nerdy stuff</span></div></div>
     </div>
+    <div class="onboarding-home-airport" style="margin:16px 0 12px;text-align:center">
+      <label for="onboarding-home-hub" style="font-size:11px;color:var(--ua-muted);display:block;margin-bottom:6px">Set your home hub for a personalized experience</label>
+      <select id="onboarding-home-hub" style="background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:8px 12px;border-radius:4px;font-family:var(--font-ui);font-size:12px;width:260px;text-align:center">
+        <option value="">No preference</option>
+        <option value="ORD">ORD — Chicago O'Hare</option>
+        <option value="DEN">DEN — Denver</option>
+        <option value="IAH">IAH — Houston</option>
+        <option value="EWR">EWR — Newark</option>
+        <option value="SFO">SFO — San Francisco</option>
+        <option value="IAD">IAD — Washington Dulles</option>
+        <option value="LAX">LAX — Los Angeles</option>
+        <option value="NRT">NRT — Tokyo Narita</option>
+        <option value="GUM">GUM — Guam</option>
+      </select>
+    </div>
     <p class="onboarding-footer">Built by a United flyer, for United flyers. Not affiliated with United Airlines.</p>
     <button id="onboarding-dismiss">Let's Fly the Friendly Skies ✈️</button>
   </div>
@@ -801,12 +845,14 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     <span id="clock" style="color:var(--ua-muted)"></span>
     <div style="position:relative"><button id="watch-header-btn" data-action="toggle-watch-panel" title="Watched flights" aria-label="Toggle watched flights panel">👁️<span class="watch-badge" id="watch-badge" style="display:none">0</span></button><div id="watch-panel"><div class="watch-panel-header"><span>👁️ Watched Flights</span><button data-action="clear-all-watched" style="background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:9px;font-family:var(--mono)">Clear All</button></div><div id="watch-panel-list"></div></div></div>
     <button id="mobile-search-toggle" aria-label="Toggle search" title="Search">🔍</button>
+    <button id="home-hub-btn" data-action="cycle-home-hub" title="Home hub (click to change)" aria-label="Change home hub" style="font-size:10px;font-family:var(--font-ui);cursor:pointer;background:none;border:1px solid var(--ua-border);color:var(--ua-accent);padding:2px 6px;border-radius:3px">🏠 <span id="home-hub-display">—</span></button>
     <button id="onboarding-help" title="About this dashboard" aria-label="About this dashboard">?</button>
   </div>
 </div>
 
 <!-- TAB BAR -->
 <nav id="tab-bar" aria-label="Dashboard navigation" role="tablist">
+  <button class="tab-btn" data-tab="tab-myflight" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-myflight"><span aria-hidden="true">🎫</span> MY FLIGHTS</button>
   <button class="tab-btn active" data-tab="tab-live" role="tab" tabindex="0" aria-selected="true" aria-controls="tab-live"><span aria-hidden="true">📡</span> LIVE OPS</button>
   <button class="tab-btn" data-tab="tab-schedule" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-schedule"><span aria-hidden="true">📅</span> SCHEDULE</button>
   <button class="tab-btn" data-tab="tab-fleet" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-fleet"><span aria-hidden="true">✈️</span> FLEET</button>
@@ -817,21 +863,46 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
 
 <!-- MOBILE BOTTOM NAV -->
 <nav id="mobile-bottom-nav" aria-label="Mobile navigation">
+  <button data-tab="tab-myflight"><span class="bnav-icon">🎫</span><span class="bnav-label">My Flights</span></button>
   <button data-tab="tab-live" class="active"><span class="bnav-icon">📡</span><span class="bnav-label">Live</span></button>
   <button data-tab="tab-schedule"><span class="bnav-icon">📅</span><span class="bnav-label">Schedule</span></button>
   <button data-tab="tab-fleet"><span class="bnav-icon">✈️</span><span class="bnav-label">Fleet</span></button>
-  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
+  <button data-tab="tab-weather" class="bnav-overflow-item"><span class="bnav-icon">🌦</span><span class="bnav-label">Weather</span></button>
   <button data-tab="tab-analytics" class="bnav-overflow-item"><span class="bnav-icon">📊</span><span class="bnav-label">Stats</span></button>
   <button data-tab="tab-sources" class="bnav-overflow-item"><span class="bnav-icon">ℹ️</span><span class="bnav-label">Sources</span></button>
   <button id="mobile-more-btn" aria-label="More tabs"><span class="bnav-icon">▾</span><span class="bnav-label">More</span></button>
 </nav>
 <div id="mobile-more-menu">
+  <button data-tab="tab-weather"><span class="bnav-icon">🌦</span> Weather</button>
   <button data-tab="tab-analytics"><span class="bnav-icon">📊</span> Stats</button>
   <button data-tab="tab-sources"><span class="bnav-icon">ℹ️</span> Sources</button>
 </div>
 
+<!-- TAB 0: MY FLIGHTS -->
+<main><div class="tab-content" id="tab-myflight" role="tabpanel" aria-label="My watched flights dashboard" style="padding:16px;flex:1;min-height:0;overflow-y:auto">
+  <div id="myflight-empty" style="text-align:center;padding:60px 20px;color:var(--ua-muted)">
+    <div style="font-size:48px;margin-bottom:16px">🎫</div>
+    <h3 style="color:var(--ua-text);font-size:14px;margin-bottom:8px">No Flights Tracked Yet</h3>
+    <p style="font-size:11px;max-width:360px;margin:0 auto 16px;line-height:1.6">Search for a flight and tap 👁️ to watch it. You'll see countdown timers, gate info, equipment details, delay risk, and inbound aircraft tracking — all in one place.</p>
+    <div style="max-width:300px;margin:0 auto">
+      <input type="text" id="myflight-search" placeholder="Add a flight (e.g. UA 1234)" style="width:100%;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:8px 12px;border-radius:4px;font-family:var(--mono);font-size:12px;text-align:center">
+    </div>
+  </div>
+  <div id="myflight-cards"></div>
+  <div id="myflight-connection-risk"></div>
+  <div id="myflight-check" style="display:none;margin-top:16px;padding:14px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px">
+    <h4 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Check a Connection</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="text" id="conn-inbound" placeholder="Inbound (UA 1234)" style="flex:1;min-width:120px;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 10px;border-radius:4px;font-family:var(--mono);font-size:11px">
+      <input type="text" id="conn-outbound" placeholder="Outbound (UA 567)" style="flex:1;min-width:120px;background:rgba(15,23,41,.8);border:1px solid var(--ua-border);color:var(--ua-text);padding:6px 10px;border-radius:4px;font-family:var(--mono);font-size:11px">
+      <button data-action="check-connection" style="background:var(--ua-blue);color:#fff;border:none;padding:6px 14px;border-radius:4px;font-family:var(--font-ui);font-size:11px;cursor:pointer;white-space:nowrap">Check</button>
+    </div>
+    <div id="conn-manual-result" style="margin-top:10px"></div>
+  </div>
+</div>
+
 <!-- TAB 1: LIVE OPS -->
-<main><div class="tab-content active" id="tab-live" role="tabpanel" aria-label="Live flight operations map">
+<div class="tab-content active" id="tab-live" role="tabpanel" aria-label="Live flight operations map">
   <div class="ops-layout">
     <button id="mobile-sidebar-toggle" aria-label="Toggle filters">🔍 Filters ▾</button>
     <div class="sidebar" id="sidebar">
@@ -950,6 +1021,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
             <th data-sort="reg" style="cursor:pointer">Reg</th>
             <th>Gate</th>
             <th data-sort="status" style="cursor:pointer;min-width:130px">Status ↕</th>
+            <th style="width:45px">Risk</th>
             <th>Fleet</th>
             <th>👁️</th>
           </tr>
@@ -1389,6 +1461,32 @@ const AIRPORTS = [
 const HUBS = AIRPORTS.filter(a => a.hub);
 const HUB_CODES = HUBS.map(h => h.iata);
 
+// ═══ HOME AIRPORT ═══
+function getHomeAirport() { return localStorage.getItem('bb_home_airport') || ''; }
+function setHomeAirport(code) {
+  if (code) localStorage.setItem('bb_home_airport', code);
+  else localStorage.removeItem('bb_home_airport');
+  updateHomeHubDisplay();
+}
+function updateHomeHubDisplay() {
+  const el = document.getElementById('home-hub-display');
+  if (el) el.textContent = getHomeAirport() || '—';
+}
+
+// ═══ CONNECTION & DELAY DATA ═══
+const MIN_CONNECTION_TIMES = {
+  ORD:{dd:75,di:120,id:120,ii:120},DEN:{dd:60,di:90,id:90,ii:90},IAH:{dd:60,di:90,id:90,ii:120},
+  EWR:{dd:60,di:90,id:90,ii:90},SFO:{dd:60,di:90,id:90,ii:120},IAD:{dd:60,di:90,id:90,ii:90},
+  LAX:{dd:75,di:120,id:120,ii:120},NRT:{dd:60,di:90,id:90,ii:90},GUM:{dd:45,di:60,id:60,ii:60}
+};
+const TERMINAL_WALK_TIMES = {
+  ORD:{'1-2':8,'1-3':15,'2-3':10,'1-5':20,'2-5':18,'3-5':12,default:12},
+  DEN:{default:10},EWR:{'A-B':10,'A-C':15,'B-C':8,default:10},
+  IAH:{'A-B':8,'A-C':12,'A-D':15,'A-E':20,'B-C':8,'B-D':12,'B-E':15,'C-D':8,'C-E':12,'D-E':8,default:12},
+  SFO:{default:12},IAD:{default:10},LAX:{'7-8':5,'7-B':15,'8-B':12,default:10},NRT:{default:15},GUM:{default:5}
+};
+const INTL_AIRPORTS = new Set(['NRT','GUM','HND','LHR','FRA','CDG','AMS','ZRH','FCO','MAD','BCN','DUB','IST','TLV','MUC','EDI','BRU','LIS','CPH','ARN','HEL','OSL','SIN','HKG','SYD','PEK','ICN','TPE','BKK','DEL','MEL','AKL','PVG','CAN','BOM','NAN','PPT','KIX','CTU','XIY','CKG','SNN','MAN','GLA']);
+
 // ═══ UA ROUTE LOOKUP TABLE ═══
 // Static mapping of UA flight numbers to known city pairs (fallback for missing FR24 route data)
 const UA_ROUTES = {
@@ -1495,7 +1593,7 @@ let refreshTimer = null, countdown = 30;
 let deepLinkHandled = false;
 
 // ═══ TAB SWITCHING ═══
-const TAB_HASHES = {'tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#fleet','tab-weather':'#weather','tab-analytics':'#stats','tab-sources':'#sources'};
+const TAB_HASHES = {'tab-myflight':'#myflight','tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#fleet','tab-weather':'#weather','tab-analytics':'#stats','tab-sources':'#sources'};
 const HASH_TABS = Object.fromEntries(Object.entries(TAB_HASHES).map(([k,v])=>[v,k]));
 
 function switchToTab(tabId, updateHash) {
@@ -1510,6 +1608,7 @@ function switchToTab(tabId, updateHash) {
   if (updateHash !== false && TAB_HASHES[tabId]) history.replaceState(null, '', TAB_HASHES[tabId]);
   // Defer heavy tab-specific init to next frame so the click event completes fast (INP fix)
   requestAnimationFrame(() => {
+    if (tabId === 'tab-myflight') renderMyFlights();
     if (tabId === 'tab-live' && map) map.invalidateSize();
     if (tabId === 'tab-schedule') { initScheduleTab(); if (schedInitialized && !schedAllFlights.length && !schedLoading) loadScheduleData(); }
     if (tabId === 'tab-fleet') { if (!allFlights.length && !flightsLoading) refreshFlights(); updateLiveFleetPanel(); }
@@ -1554,11 +1653,12 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
 
   // Map ?tab= values to internal tab IDs
   const TAB_MAP = {
+    'myflight': 'tab-myflight',
     'live': 'tab-live',
     'schedule': 'tab-schedule',
     'fleet': 'tab-fleet',
     'weather': 'tab-weather',
-    'irrops': 'tab-weather',  // IRROPS lives inside weather tab
+    'irrops': 'tab-weather',
     'stats': 'tab-analytics',
     'sources': 'tab-sources'
   };
@@ -1633,7 +1733,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
 const _origSwitchToTab = switchToTab;
 switchToTab = function(tabId, updateHash) {
   _origSwitchToTab(tabId, updateHash);
-  var overflowTabs = ['tab-analytics','tab-sources'];
+  var overflowTabs = ['tab-weather','tab-analytics','tab-sources'];
   var moreBtn = document.getElementById('mobile-more-btn');
   document.querySelectorAll('#mobile-bottom-nav button[data-tab]:not(.bnav-overflow-item)').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tabId);
@@ -1920,8 +2020,12 @@ function matchAircraft(f) {
 
 // ═══ MAP INIT ═══
 function initMap() {
+  var homeCode = getHomeAirport();
+  var homeAp = homeCode && AIRPORTS.find(a => a.iata === homeCode);
+  var mapCenter = homeAp ? [homeAp.lat, homeAp.lon] : [39, -98];
+  var mapZoom = homeAp ? 5 : 4;
   map = L.map('map', {
-    center: [39, -98], zoom: 4, zoomControl: false,
+    center: mapCenter, zoom: mapZoom, zoomControl: false,
     attributionControl: false, worldCopyJump: true
   });
   L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -3760,8 +3864,9 @@ function initScheduleTab() {
     });
     // Auto-load if hub already selected
     if (!schedCurrentHub) {
-      document.getElementById('sched-hub').value = 'ORD';
-      schedCurrentHub = 'ORD';
+      var homeHub = getHomeAirport() || 'ORD';
+      document.getElementById('sched-hub').value = homeHub;
+      schedCurrentHub = homeHub;
     }
     loadScheduleData();
   }
@@ -4055,7 +4160,7 @@ function renderScheduleTable() {
   });
 
   if (sorted.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--ua-muted)"><div style="font-size:24px;margin-bottom:8px">🔍</div>No flights match your filters<br><span style="font-size:10px">Try adjusting hub, status, or search criteria</span></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--ua-muted)"><div style="font-size:24px;margin-bottom:8px">🔍</div>No flights match your filters<br><span style="font-size:10px">Try adjusting hub, status, or search criteria</span></td></tr>`;
     renderScheduleStats(filtered);
     return;
   }
@@ -4160,6 +4265,10 @@ function renderScheduleTable() {
     const watchRoute = `${origCode}→${destCode}`;
     const watchBtn = ident !== '—' ? `<button class="watch-btn${isWatched ? ' watching' : ''}" data-action="toggle-watch-flight" data-flight="${escapeHtml(ident)}" data-route="${escapeHtml(watchRoute)}" data-status="${escapeHtml(status.text)}" data-stop-prop="1" aria-label="${isWatched ? 'Unwatch flight' : 'Watch flight'}" title="${isWatched ? 'Unwatch' : 'Watch'} this flight">${isWatched ? '👁️' : '👁'}</button>` : '';
 
+    // Delay risk scoring
+    const dRisk = computeDelayRiskForScheduleFlight(fl, hub);
+    const riskCell = dRisk ? `<span class="delay-risk-badge" style="background:${dRisk.color}20;color:${dRisk.color}" title="${escapeHtml(dRisk.factors.join(', '))}">${dRisk.label}</span>` : '';
+
     return `<tr>
       <td>${escapeHtml(timeStr)}${timeExtra}</td>
       <td style="font-weight:600;color:var(--ua-accent)">${escapeHtml(ident)}</td>
@@ -4168,6 +4277,7 @@ function renderScheduleTable() {
       <td style="font-family:var(--mono);font-size:10px">${reg !== '—' ? `<span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">${escapeHtml(reg)}</span>` : '—'}${schedSpecial ? ' <span class="special-badge">⭐ ' + escapeHtml(schedSpecial.name) + '</span>' : ''}${fleetEnrich}</td>
       <td>${escapeHtml(gate)}</td>
       <td><span class="sched-status ${escapeHtml(status.cls)}">${escapeHtml(status.text)}</span>${faaContext}</td>
+      <td>${riskCell}</td>
       <td>${fleetMatch}</td>
       <td>${watchBtn}</td>
     </tr>`;
@@ -4528,15 +4638,18 @@ function updateHubHealth() {
     return;
   }
 
+  const homeHub = getHomeAirport();
   let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span>';
   hubs.forEach((hub, i) => {
+    const isHome = hub === homeHub;
+    const homeStyle = isHome ? ';border:1px solid var(--ua-accent);border-radius:3px;padding:2px 6px' : '';
     const pct = hubHealthData[hub];
     if (pct === undefined) {
-      html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
     } else {
       const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
       const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-      html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
+      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
     }
     if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
   });
@@ -4809,6 +4922,8 @@ function toggleWatchFlight(flightNum, route, currentStatus) {
   saveWatchedFlights(watched);
   renderScheduleTable();
   renderWatchPanel();
+  // Re-render MY FLIGHTS if that tab is active
+  if (document.getElementById('tab-myflight')?.classList.contains('active')) renderMyFlights();
 }
 
 function updateWatchBadge() {
@@ -4845,6 +4960,453 @@ function clearAllWatched() {
   saveWatchedFlights([]);
   renderWatchPanel();
   renderScheduleTable();
+}
+
+// ═══ MY FLIGHTS DASHBOARD ═══
+let myFlightsInterval = null;
+let myFlightsCountdownInterval = null;
+let myFlightsTimeData = {};
+
+async function renderMyFlights() {
+  const flights = getWatchedFlights();
+  const container = document.getElementById('myflight-cards');
+  const empty = document.getElementById('myflight-empty');
+  const connCheck = document.getElementById('myflight-check');
+  if (!container) return;
+
+  if (!flights.length) {
+    empty.style.display = '';
+    container.innerHTML = '';
+    document.getElementById('myflight-connection-risk').innerHTML = '';
+    if (connCheck) connCheck.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  if (connCheck) connCheck.style.display = '';
+
+  // Fetch flight-times for each watched flight (parallel, with cache)
+  const timeResults = await Promise.allSettled(
+    flights.map(w => {
+      const cacheKey = 'mf_' + w.flight;
+      const cached = myFlightsTimeData[cacheKey];
+      if (cached && Date.now() - cached.ts < 120000) return Promise.resolve(cached.data);
+      return fetch('/api/flight-times?flight=' + encodeURIComponent(w.flight))
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) myFlightsTimeData[cacheKey] = { data: d, ts: Date.now() }; return d; })
+        .catch(() => null);
+    })
+  );
+
+  const timeData = timeResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+  container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
+  detectAndRenderConnections(flights, timeData);
+
+  // Start countdown ticker
+  if (myFlightsCountdownInterval) clearInterval(myFlightsCountdownInterval);
+  myFlightsCountdownInterval = setInterval(updateMyFlightsCountdowns, 1000);
+}
+
+function buildMyFlightCard(watched, td) {
+  const flightNum = escapeHtml(watched.flight);
+  const routeParts = (watched.route || '').split(/[→\-]/);
+  const origCode = (routeParts[0] || '').trim();
+  const destCode = (routeParts[1] || '').trim();
+  const origCity = IATA_CITIES[origCode] || origCode;
+  const destCity = IATA_CITIES[destCode] || destCode;
+
+  // Status + countdown
+  let statusHtml = '', countdownHtml = '', countdownClass = '';
+  if (td && td.success !== false) {
+    const depTime = td.departure?.gate?.estimated || td.departure?.gate?.scheduled;
+    const arrTime = td.arrival?.gate?.estimated || td.arrival?.gate?.scheduled;
+    const st = (td.status || '').toLowerCase();
+    const isCancelled = td.cancelled;
+    const isDiverted = td.diverted;
+
+    if (isCancelled) {
+      statusHtml = '<span class="mf-status" style="background:rgba(239,68,68,.2);color:#ef4444">CANCELLED</span>';
+      countdownClass = 'landed';
+    } else if (isDiverted) {
+      statusHtml = '<span class="mf-status" style="background:rgba(249,115,22,.2);color:#f97316">DIVERTED</span>';
+      countdownClass = 'landed';
+    } else if (st.includes('land')) {
+      statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">LANDED</span>';
+      countdownHtml = 'Landed';
+      countdownClass = 'landed';
+    } else if (st.includes('en-route') || st.includes('en route') || st.includes('airborne')) {
+      statusHtml = '<span class="mf-status" style="background:rgba(59,130,246,.2);color:#3b82f6">EN ROUTE</span>';
+      if (arrTime) {
+        const eta = new Date(arrTime);
+        const diff = eta - Date.now();
+        countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
+      }
+      countdownClass = 'departed';
+    } else if (st.includes('depart')) {
+      statusHtml = '<span class="mf-status" style="background:rgba(34,197,94,.2);color:#22c55e">DEPARTED</span>';
+      countdownClass = 'departed';
+      if (arrTime) {
+        const eta = new Date(arrTime);
+        const diff = eta - Date.now();
+        countdownHtml = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
+      }
+    } else {
+      // Scheduled
+      statusHtml = '<span class="mf-status" style="background:rgba(138,180,248,.15);color:var(--ua-accent)">SCHEDULED</span>';
+      if (depTime) {
+        const dep = new Date(depTime);
+        const diff = dep - Date.now();
+        if (diff > 0) {
+          const boardDiff = diff - 30 * 60000; // boarding ~30 min before
+          countdownHtml = boardDiff > 0 ? formatCountdown(boardDiff) + ' to boarding' : formatCountdown(diff) + ' to departure';
+        } else {
+          countdownHtml = 'Expected to depart';
+        }
+      }
+    }
+  } else {
+    statusHtml = '<span class="mf-status" style="background:rgba(100,116,139,.2);color:var(--ua-muted)">LOADING...</span>';
+  }
+
+  // Gate info
+  let gateHtml = '';
+  if (td && td.success !== false) {
+    const oGate = td.origin?.gate ? `T${td.origin.terminal || '?'} Gate ${td.origin.gate}` : (td.origin?.terminal ? `T${td.origin.terminal}` : '—');
+    const dGate = td.destination?.gate ? `T${td.destination.terminal || '?'} Gate ${td.destination.gate}` : (td.destination?.terminal ? `T${td.destination.terminal}` : '—');
+    gateHtml = `<div class="mf-grid">
+      <div><span class="mf-label">Origin Gate</span><div class="mf-value">${escapeHtml(oGate)}</div></div>
+      <div><span class="mf-label">Dest Gate</span><div class="mf-value">${escapeHtml(dGate)}</div></div>
+    </div>`;
+  }
+
+  // Equipment
+  let equipHtml = '';
+  const liveFlight = allFlights.find(f => f.flightIATA === watched.flight || f.callsign === 'UAL' + watched.flight.replace(/\D/g,''));
+  const reg = liveFlight ? liveFlight.reg?.replace('-','') : null;
+  if (reg && FLEET_BY_REG[reg]) {
+    const ac = FLEET_BY_REG[reg];
+    const isStar = STARLINK_TAILS.has(reg);
+    const seatStr = ac.seats ? Object.entries(ac.seats).map(([cls,cnt]) => cnt + cls).join('/') : (ac.c || '');
+    equipHtml = `<div class="mf-grid">
+      <div><span class="mf-label">Aircraft</span><div class="mf-value">${escapeHtml(ac.t)} <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}" style="font-size:10px">${escapeHtml(reg)}</span></div></div>
+      <div><span class="mf-label">Config</span><div class="mf-value">${escapeHtml(seatStr)}${isStar ? ' <span class="starlink-badge">⚡ Starlink</span>' : ''}</div></div>
+    </div>`;
+  } else if (td && td.aircraft) {
+    equipHtml = `<div><span class="mf-label">Aircraft</span><div class="mf-value">${escapeHtml(td.aircraft)}</div></div>`;
+  }
+
+  // Inbound aircraft tracking ("Where's my plane?")
+  let inboundHtml = '';
+  if (reg && liveFlight && !liveFlight.onGround) {
+    // The flight itself is airborne — show its own position
+  } else if (reg) {
+    // Find this registration operating a DIFFERENT flight heading to our origin
+    const inbound = allFlights.find(f => f.reg?.replace('-','') === reg && f.flightIATA !== watched.flight && f.dest === origCode && !f.onGround);
+    if (inbound) {
+      const inbCity = IATA_CITIES[inbound.origin] || inbound.origin;
+      inboundHtml = `<div class="mf-inbound">
+        <div class="mf-inbound-title">Where's My Plane?</div>
+        Your aircraft is currently operating <strong>${escapeHtml(inbound.flightIATA)}</strong> from ${escapeHtml(inbCity)} (${escapeHtml(inbound.origin)}) → ${escapeHtml(origCity)} (${escapeHtml(origCode)}) at ${Math.round(inbound.alt * 3.28084).toLocaleString()}ft
+      </div>`;
+    }
+  }
+
+  // Delay risk
+  let riskHtml = '';
+  const risk = computeDelayRisk(watched, origCode, destCode);
+  if (risk && risk.score > 0) {
+    riskHtml = `<span class="delay-risk-badge" style="background:${risk.color}20;color:${risk.color}" title="${escapeHtml(risk.factors.join(', '))}">${risk.label} RISK</span>`;
+  }
+
+  // Departure/arrival time data attributes for countdown timer
+  const depISO = td?.departure?.gate?.estimated || td?.departure?.gate?.scheduled || '';
+  const arrISO = td?.arrival?.gate?.estimated || td?.arrival?.gate?.scheduled || '';
+  const statusKey = td ? (td.cancelled ? 'cancelled' : td.diverted ? 'diverted' : td.status || '') : '';
+
+  return `<div class="mf-card" data-mf-dep="${escapeHtml(depISO)}" data-mf-arr="${escapeHtml(arrISO)}" data-mf-status="${escapeHtml(statusKey)}">
+    <div class="mf-card-header">
+      <div>
+        <div class="mf-flight-num">${flightNum}</div>
+        <div class="mf-route">${escapeHtml(origCity)} (${escapeHtml(origCode)}) → ${escapeHtml(destCity)} (${escapeHtml(destCode)})</div>
+      </div>
+      <div style="text-align:right">
+        <div class="mf-countdown ${countdownClass}" data-mf-countdown>${countdownHtml}</div>
+        <div style="margin-top:4px">${statusHtml} ${riskHtml}</div>
+      </div>
+    </div>
+    <div class="mf-body">
+      ${gateHtml}
+      ${equipHtml}
+      ${inboundHtml}
+    </div>
+    <div class="mf-actions">
+      ${liveFlight ? `<button data-action="focus-flight" data-icao24="${escapeHtml(liveFlight.icao24)}">View on Map</button>` : ''}
+      ${reg ? `<button data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">Aircraft Details</button>` : ''}
+      <button data-action="toggle-watch-flight" data-flight="${flightNum}" data-route="${escapeHtml(watched.route)}" data-status="${escapeHtml(watched.status)}" data-stop-prop="1">Unwatch</button>
+    </div>
+  </div>`;
+}
+
+function formatCountdown(ms) {
+  if (ms <= 0) return '0m';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
+}
+
+function updateMyFlightsCountdowns() {
+  document.querySelectorAll('.mf-card[data-mf-dep]').forEach(card => {
+    const el = card.querySelector('[data-mf-countdown]');
+    if (!el) return;
+    const st = card.dataset.mfStatus || '';
+    if (st === 'cancelled' || st === 'diverted') return;
+    const isLanded = st.includes('land');
+    const isEnRoute = st.includes('en-route') || st.includes('en route') || st.includes('airborne');
+    const isDeparted = st.includes('depart');
+
+    if (isLanded) { el.textContent = 'Landed'; return; }
+
+    if (isEnRoute || isDeparted) {
+      const arr = card.dataset.mfArr;
+      if (arr) {
+        const diff = new Date(arr) - Date.now();
+        el.textContent = diff > 0 ? formatCountdown(diff) + ' to arrival' : 'Arriving';
+      }
+      return;
+    }
+
+    // Scheduled: countdown to boarding (30 min before departure)
+    const dep = card.dataset.mfDep;
+    if (dep) {
+      const depTime = new Date(dep);
+      const diff = depTime - Date.now();
+      if (diff > 0) {
+        const boardDiff = diff - 30 * 60000;
+        el.textContent = boardDiff > 0 ? formatCountdown(boardDiff) + ' to boarding' : formatCountdown(diff) + ' to departure';
+      } else {
+        el.textContent = 'Expected to depart';
+      }
+    }
+  });
+}
+
+// ═══ DELAY RISK SCORING ═══
+function computeDelayRisk(flightOrWatched, origHub, destHub) {
+  let score = 0;
+  const factors = [];
+
+  // 1. FAA delays at origin (0-30)
+  const faaOrig = faaDelayIndex[origHub];
+  if (faaOrig) {
+    if (faaOrig.groundStop) { score += 30; factors.push('Ground stop at ' + origHub); }
+    else if (faaOrig.groundDelay) { score += 20; factors.push('Ground delay program at ' + origHub); }
+    else if (faaOrig.departureDelay) { score += 15; factors.push('Departure delays at ' + origHub); }
+  }
+  const faaDest = faaDelayIndex[destHub];
+  if (faaDest) {
+    if (faaDest.groundStop) { score += 15; factors.push('Ground stop at ' + destHub); }
+    else if (faaDest.groundDelay) { score += 10; factors.push('Ground delay at ' + destHub); }
+  }
+
+  // 2. Hub OTP from IRROPS (0-20)
+  const otp = hubHealthData[origHub];
+  if (otp !== undefined) {
+    if (otp < 50) { score += 20; factors.push(origHub + ' OTP ' + otp + '%'); }
+    else if (otp < 70) { score += 12; factors.push(origHub + ' OTP ' + otp + '%'); }
+    else if (otp < 85) { score += 5; }
+  }
+
+  // 3. Time-of-day cascade (0-15)
+  // Afternoon/evening flights have higher delay risk due to cascade effects
+  const now = new Date();
+  const localHour = now.getHours();
+  if (localHour >= 17) { score += 15; factors.push('Evening departure (cascade risk)'); }
+  else if (localHour >= 14) { score += 8; factors.push('Afternoon departure'); }
+
+  return {
+    score: Math.min(score, 100),
+    label: score >= 60 ? 'HIGH' : score >= 30 ? 'MOD' : 'LOW',
+    color: score >= 60 ? '#ef4444' : score >= 30 ? '#eab308' : '#22c55e',
+    factors
+  };
+}
+
+function computeDelayRiskForScheduleFlight(fl, hub) {
+  const orig = fl.airport?.origin?.code?.iata || hub;
+  const dest = fl.airport?.destination?.code?.iata || '';
+  const status = classifySchedStatus(fl);
+  // Only score not-yet-departed flights
+  if (status.key !== 'scheduled' && status.key !== 'estimated' && status.key !== 'delayed') return null;
+
+  let score = 0;
+  const factors = [];
+
+  // 1. FAA delays
+  const dir = schedCurrentDir;
+  const depHub = dir === 'departures' ? hub : orig;
+  const arrHub = dir === 'departures' ? dest : hub;
+  const faaOrig = faaDelayIndex[depHub];
+  if (faaOrig) {
+    if (faaOrig.groundStop) { score += 30; factors.push('Ground stop at ' + depHub); }
+    else if (faaOrig.groundDelay) { score += 20; factors.push('GDP at ' + depHub); }
+    else if (faaOrig.departureDelay) { score += 15; factors.push('Dep delays at ' + depHub); }
+  }
+  const faaDest = faaDelayIndex[arrHub];
+  if (faaDest) {
+    if (faaDest.groundStop) { score += 15; factors.push('Ground stop at ' + arrHub); }
+    else if (faaDest.groundDelay) { score += 10; factors.push('GDP at ' + arrHub); }
+  }
+
+  // 2. Hub OTP
+  const otp = hubHealthData[depHub];
+  if (otp !== undefined) {
+    if (otp < 50) { score += 20; factors.push(depHub + ' OTP ' + otp + '%'); }
+    else if (otp < 70) { score += 12; factors.push(depHub + ' OTP ' + otp + '%'); }
+    else if (otp < 85) { score += 5; }
+  }
+
+  // 3. Time-of-day
+  const schedTime = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival;
+  if (schedTime) {
+    const tz = SCHED_HUB_TZ[hub] || 'America/Chicago';
+    try {
+      const localStr = new Date(schedTime * 1000).toLocaleTimeString('en-US', { timeZone: tz, hour12: false, hour: 'numeric' });
+      const hr = parseInt(localStr);
+      if (hr >= 17) { score += 15; factors.push('Evening (cascade)'); }
+      else if (hr >= 14) { score += 8; factors.push('Afternoon'); }
+    } catch(e) {}
+  }
+
+  if (score === 0) return null;
+  return {
+    score: Math.min(score, 100),
+    label: score >= 60 ? 'HIGH' : score >= 30 ? 'MOD' : 'LOW',
+    color: score >= 60 ? '#ef4444' : score >= 30 ? '#eab308' : '#22c55e',
+    factors
+  };
+}
+
+// ═══ CONNECTION RISK CALCULATOR ═══
+function detectAndRenderConnections(flights, timeDataArray) {
+  const connContainer = document.getElementById('myflight-connection-risk');
+  if (!connContainer) return;
+
+  const connections = [];
+  for (let i = 0; i < flights.length; i++) {
+    for (let j = 0; j < flights.length; j++) {
+      if (i === j) continue;
+      const td1 = timeDataArray[i], td2 = timeDataArray[j];
+      if (!td1 || !td2 || td1.success === false || td2.success === false) continue;
+      const arrHub = td1.destination?.iata;
+      const depHub = td2.origin?.iata;
+      if (!arrHub || arrHub !== depHub || !HUB_CODES.includes(arrHub)) continue;
+      const arrTime = td1.arrival?.gate?.estimated || td1.arrival?.gate?.scheduled;
+      const depTime = td2.departure?.gate?.estimated || td2.departure?.gate?.scheduled;
+      if (!arrTime || !depTime) continue;
+      const arr = new Date(arrTime), dep = new Date(depTime);
+      const diffMin = (dep - arr) / 60000;
+      if (diffMin > 0 && diffMin < 480) {
+        connections.push({ inbound: { w: flights[i], td: td1 }, outbound: { w: flights[j], td: td2 }, hub: arrHub, minutes: diffMin });
+      }
+    }
+  }
+
+  if (!connections.length) { connContainer.innerHTML = ''; return; }
+
+  connContainer.innerHTML = connections.map(conn => {
+    const risk = computeConnectionRisk(conn);
+    return renderConnectionRiskCard(conn, risk);
+  }).join('');
+}
+
+function computeConnectionRisk(conn) {
+  const hub = conn.hub;
+  const inTd = conn.inbound.td;
+  const outTd = conn.outbound.td;
+
+  const isDomIn = !INTL_AIRPORTS.has(inTd.origin?.iata || '');
+  const isDomOut = !INTL_AIRPORTS.has(outTd.destination?.iata || '');
+  const mctKey = (isDomIn ? 'd' : 'i') + (isDomOut ? 'd' : 'i');
+  const mct = MIN_CONNECTION_TIMES[hub]?.[mctKey] || 60;
+
+  const inTerminal = inTd.destination?.terminal || '?';
+  const outTerminal = outTd.origin?.terminal || '?';
+  const walkKey = [inTerminal, outTerminal].sort().join('-');
+  const walkTime = inTerminal === outTerminal ? 5 : (TERMINAL_WALK_TIMES[hub]?.[walkKey] || TERMINAL_WALK_TIMES[hub]?.default || 10);
+
+  const arrEst = new Date(inTd.arrival?.gate?.estimated || inTd.arrival?.gate?.scheduled);
+  const depEst = new Date(outTd.departure?.gate?.estimated || outTd.departure?.gate?.scheduled);
+  const connectionMin = Math.round((depEst - arrEst) / 60000);
+  const buffer = connectionMin - walkTime;
+
+  let risk, color, label;
+  if (connectionMin <= 0) { risk = 'MISSED'; color = '#ef4444'; label = 'Inbound arrives after outbound departs'; }
+  else if (buffer < mct * 0.5) { risk = 'HIGH'; color = '#ef4444'; label = 'Very tight — high risk of misconnect'; }
+  else if (buffer < mct) { risk = 'MODERATE'; color = '#eab308'; label = 'Tight but possible if no further delays'; }
+  else { risk = 'SAFE'; color = '#22c55e'; label = 'Comfortable connection'; }
+
+  return { risk, color, label, connectionMin, mct, walkTime, inTerminal, outTerminal, buffer };
+}
+
+function renderConnectionRiskCard(conn, risk) {
+  const inFlight = escapeHtml(conn.inbound.w.flight);
+  const outFlight = escapeHtml(conn.outbound.w.flight);
+  const hub = escapeHtml(conn.hub);
+  const hubCity = IATA_CITIES[conn.hub] || conn.hub;
+  const inOrig = escapeHtml(conn.inbound.td.origin?.iata || '?');
+  const outDest = escapeHtml(conn.outbound.td.destination?.iata || '?');
+
+  return `<div class="conn-risk-card" style="border-left-color:${risk.color}">
+    <div class="conn-risk-header">
+      <span class="conn-risk-label">Connection at ${hub} (${escapeHtml(hubCity)})</span>
+      <span class="conn-risk-badge" style="background:${risk.color}20;color:${risk.color}">${risk.risk}</span>
+    </div>
+    <div class="conn-risk-flights">
+      <div>${inFlight} ${inOrig} → <strong>${hub}</strong> &nbsp; Arrives → walks → departs</div>
+      <div>${outFlight} <strong>${hub}</strong> → ${outDest}</div>
+    </div>
+    <div class="conn-risk-detail">
+      ${risk.connectionMin}min connection · ${risk.mct}min minimum required · T${escapeHtml(risk.inTerminal)} → T${escapeHtml(risk.outTerminal)} (~${risk.walkTime}min walk) · ${risk.buffer}min buffer after walking
+    </div>
+    <div style="margin-top:6px;font-size:10px;color:${risk.color}">${escapeHtml(risk.label)}</div>
+  </div>`;
+}
+
+async function checkManualConnection() {
+  const inFlt = (document.getElementById('conn-inbound')?.value || '').trim().toUpperCase().replace(/\s+/g, '');
+  const outFlt = (document.getElementById('conn-outbound')?.value || '').trim().toUpperCase().replace(/\s+/g, '');
+  if (!inFlt || !outFlt) return;
+
+  const resultEl = document.getElementById('conn-manual-result');
+  if (!resultEl) return;
+  resultEl.innerHTML = '<div style="color:var(--ua-muted);font-size:10px">Checking...</div>';
+
+  const normalize = f => f.startsWith('UA') ? f : 'UA' + f.replace(/^UAL?/i, '');
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch('/api/flight-times?flight=' + encodeURIComponent(normalize(inFlt))).then(r => r.ok ? r.json() : null),
+      fetch('/api/flight-times?flight=' + encodeURIComponent(normalize(outFlt))).then(r => r.ok ? r.json() : null)
+    ]);
+    if (!r1 || !r2 || r1.success === false || r2.success === false) {
+      resultEl.innerHTML = '<div style="color:#ef4444;font-size:11px">Could not find one or both flights. Check the flight numbers.</div>';
+      return;
+    }
+    const arrHub = r1.destination?.iata;
+    const depHub = r2.origin?.iata;
+    if (arrHub !== depHub) {
+      resultEl.innerHTML = `<div style="color:#ef4444;font-size:11px">These flights don't connect — ${escapeHtml(normalize(inFlt))} arrives at ${escapeHtml(arrHub || '?')}, ${escapeHtml(normalize(outFlt))} departs from ${escapeHtml(depHub || '?')}.</div>`;
+      return;
+    }
+    const conn = {
+      inbound: { w: { flight: normalize(inFlt), route: (r1.origin?.iata||'')+'→'+(r1.destination?.iata||'') }, td: r1 },
+      outbound: { w: { flight: normalize(outFlt), route: (r2.origin?.iata||'')+'→'+(r2.destination?.iata||'') }, td: r2 },
+      hub: arrHub, minutes: 0
+    };
+    const risk = computeConnectionRisk(conn);
+    resultEl.innerHTML = renderConnectionRiskCard(conn, risk);
+  } catch(e) {
+    resultEl.innerHTML = '<div style="color:#ef4444;font-size:11px">Error checking connection. Try again.</div>';
+  }
 }
 
 function isSignificantStatusChange(oldStatus, newStatus) {
@@ -5080,6 +5642,17 @@ document.addEventListener('click', function(e) {
     case 'hide-disclaimer':
       hideDisclaimer();
       break;
+    case 'check-connection':
+      checkManualConnection();
+      break;
+    case 'cycle-home-hub': {
+      const hubs = ['','ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
+      const cur = getHomeAirport();
+      const idx = hubs.indexOf(cur);
+      const next = hubs[(idx + 1) % hubs.length];
+      setHomeAirport(next);
+      break;
+    }
     case 'close-bmac': {
       const toast = actionEl.closest('#bmac-toast');
       if (toast) toast.remove();
@@ -5143,6 +5716,18 @@ document.addEventListener('click', function(e) {
 // ═══ INIT ═══
 async function initApp() {
   updateWatchBadge();
+  updateHomeHubDisplay();
+  // My Flights quick-add search
+  var mfSearch = document.getElementById('myflight-search');
+  if (mfSearch) mfSearch.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      var val = mfSearch.value.trim().toUpperCase().replace(/\s+/g,'');
+      if (!val) return;
+      var flt = val.startsWith('UA') ? val : 'UA' + val.replace(/^UAL?/i,'');
+      if (!isFlightWatched(flt)) toggleWatchFlight(flt, '', '');
+      mfSearch.value = '';
+    }
+  });
   // Start fleet data load in parallel — don't block map init
   const fleetReady = loadFleetData();
   initMap();
@@ -5248,7 +5833,7 @@ function hideDisclaimer() {
   var overlay=document.getElementById('onboarding-overlay');
   var btn=document.getElementById('onboarding-dismiss');
   var helpBtn=document.getElementById('onboarding-help');
-  function hideOverlay(){overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
+  function hideOverlay(){var hubSel=document.getElementById('onboarding-home-hub');if(hubSel&&hubSel.value){setHomeAirport(hubSel.value)}overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
   function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';overlay.offsetHeight;overlay.style.animation='obFadeIn .4s ease forwards'}
 
   // ═══ BMAC ENGAGEMENT-BASED PROMPTS ═══
