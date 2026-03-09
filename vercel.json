@@ -3,7 +3,8 @@
     "functions": {
         "api/irrops.js": { "maxDuration": 90 },
         "api/schedule.js": { "maxDuration": 60 },
-        "api/cron/warm-schedules.js": { "maxDuration": 300 }
+        "api/cron/warm-schedules.js": { "maxDuration": 300 },
+        "api/delay-explain.js": { "maxDuration": 15 }
     },
     "crons": [
         { "path": "/api/cron/warm-schedules", "schedule": "*/5 * * * *" }
