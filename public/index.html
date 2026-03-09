@@ -2749,6 +2749,8 @@ document.getElementById('search-input-side').addEventListener('input', debounce(
 function focusFlight(icao24) {
   const f = allFlights.find(fl => fl.icao24 === icao24);
   if (f && flightMarkers[icao24]) {
+    // Switch to the LIVE tab so the map is visible
+    switchToTab('tab-live');
     // Use marker's actual position (already IDL-normalized)
     const markerPos = flightMarkers[icao24].getLatLng();
     map.setView(markerPos, 8);
