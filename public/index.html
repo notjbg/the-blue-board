@@ -4068,6 +4068,11 @@ async function loadScheduleData() {
         }
         result = await fetchScheduleAggregated(schedCurrentHub, schedCurrentDir, timestamp);
         lastErr = null;
+        // Auto-retry partial results silently (don't accept partial until last attempt)
+        if (result.partial && attempt < MAX_RETRIES - 1) {
+          delete schedCache[`agg-${schedCurrentHub}-${schedCurrentDir}-${timestamp}`];
+          continue;
+        }
         break;
       } catch (e) {
         lastErr = e;
@@ -4091,8 +4096,27 @@ async function loadScheduleData() {
     document.getElementById('sched-timerange').value = '';
     document.getElementById('sched-risk').value = '';
     loadEl.style.display = 'none';
-    if (result.partial) {
-      loadEl.innerHTML = `<div style="padding:8px 12px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:11px;color:#eab308;margin-bottom:8px">⚠️ Partial results — some flights may be missing. The upstream data source timed out before all pages were fetched. <button onclick="delete schedCache['agg-${schedCurrentHub}-${schedCurrentDir}-${getSchedDayTimestamp(schedCurrentDay)}']; loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
+    if (result.partial || result.degraded) {
+      const meta = result.meta || {};
+      let msg = '';
+      if (result.degraded && meta.dataAge) {
+        const ageMin = Math.round(meta.dataAge / 60);
+        msg = `Showing cached complete data from ${ageMin}m ago while refreshing.`;
+      } else if (meta.partialReason === 'deadline_exceeded') {
+        msg = 'The request timed out before all pages were fetched.';
+      } else if (meta.partialReason === 'first_page_failed') {
+        msg = 'The upstream data source is not responding.';
+      } else if (meta.partialReason === 'page_fetch_failed') {
+        msg = `${meta.pagesFailed || 'Some'} page(s) failed to load.`;
+      } else {
+        msg = 'Some flights may be missing.';
+      }
+      const pct = meta.completeness != null && !result.degraded ? ` ${Math.round(meta.completeness * 100)}% loaded.` : '';
+      const bgColor = result.degraded ? 'rgba(78,205,196,.12)' : 'rgba(234,179,8,.12)';
+      const borderColor = result.degraded ? 'rgba(78,205,196,.3)' : 'rgba(234,179,8,.3)';
+      const textColor = result.degraded ? '#4ecdc4' : '#eab308';
+      const icon = result.degraded ? '⏳' : '⚠️';
+      loadEl.innerHTML = `<div style="padding:8px 12px;background:${bgColor};border:1px solid ${borderColor};border-radius:4px;font-size:11px;color:${textColor};margin-bottom:8px">${icon} ${msg}${pct} <button onclick="delete schedCache['agg-${schedCurrentHub}-${schedCurrentDir}-${getSchedDayTimestamp(schedCurrentDay)}']; loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
       loadEl.style.display = 'block';
     } else {
       loadEl.style.display = 'none';
