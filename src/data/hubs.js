@@ -24,13 +24,13 @@ ord: {
   iata: 'ORD',
   variant: 'full',
   title: 'United Airlines ORD Hub Status — Chicago O\'Hare Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Chicago O\'Hare (ORD). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s largest hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Chicago O\'Hare (ORD). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s largest hub — updated every 30 seconds.',
   keywords: 'United Airlines ORD delays, United Chicago O\'Hare hub status, United Airlines ORD on-time, United ORD cancellations today, United Airlines Chicago delays, ORD flight status, United hub Chicago, United Airlines O\'Hare departures',
   ogTitle: 'United Airlines ORD Hub — Live Chicago O\'Hare Status',
-  ogDescription: 'Real-time United Airlines operations at Chicago O\'Hare. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Chicago O\'Hare. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines ORD Hub Status',
   twitterTitle: 'United Airlines ORD Hub — Live Chicago O\'Hare Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s largest hub. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s largest hub. Updated every 30 seconds.',
   breadcrumbName: 'ORD — Chicago O\'Hare',
   faqSchema: [
     {
@@ -51,7 +51,7 @@ ord: {
     },
     {
       question: 'What causes the most delays at ORD for United?',
-      answer: 'Chicago O\'Hare is susceptible to weather-related delays year-round — thunderstorms and wind shear in summer, snow and ice in winter. ORD\'s parallel runway configuration can reduce capacity in low-visibility conditions. Ground delay programs (GDPs) and ground stops issued by the FAA are common during severe weather, and ripple effects from East Coast congestion (especially EWR and JFK) frequently impact ORD operations.',
+      answer: 'Chicago O\'Hare is susceptible to weather-related delays year-round — thunderstorms and wind shear in summer, snow and ice in winter. ORD\'s parallel runway configuration can reduce capacity in low-visibility conditions. Ground delay programs (GDPs) and ground stops issued by the FAA are common during severe weather, and ripple effects from East Coast congestion (especially EWR and JFK) frequently impact ORD operations. The Blue Board\'s AI-powered delay risk engine analyzes 8 signals including weather, FAA programs, hub on-time performance, and inbound aircraft position to predict delays before they happen.',
     },
   ],
   airportSchema: {
@@ -78,7 +78,7 @@ ord: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at ORD in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=ord" style="margin:0">🗺️ Live ORD Map</a>
@@ -166,13 +166,13 @@ den: {
   iata: 'DEN',
   variant: 'full',
   title: 'United Airlines DEN Hub Status — Denver International Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Denver International (DEN). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s second-largest hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Denver International (DEN). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s second-largest hub — updated every 30 seconds.',
   keywords: 'United Airlines DEN delays, United Denver hub status, United Airlines DEN on-time, United DEN cancellations today, United Airlines Denver delays, DEN flight status, United hub Denver, United Airlines Denver departures',
   ogTitle: 'United Airlines DEN Hub — Live Denver International Status',
-  ogDescription: 'Real-time United Airlines operations at Denver International. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Denver International. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines DEN Hub Status',
   twitterTitle: 'United Airlines DEN Hub — Live Denver International Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s second-largest hub. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s second-largest hub. Updated every 30 seconds.',
   breadcrumbName: 'DEN — Denver',
   faqSchema: [
     {
@@ -193,7 +193,7 @@ den: {
     },
     {
       question: 'What causes the most delays at DEN for United?',
-      answer: 'Denver International is highly susceptible to winter blizzards and spring snowstorms that can shut down operations for hours. Summer afternoon thunderstorms along the Front Range are another major delay driver. DEN\'s location 25 miles from downtown via Peña Boulevard means ground transportation disruptions during storms can compound airside delays.',
+      answer: 'Denver International is highly susceptible to winter blizzards and spring snowstorms that can shut down operations for hours. Summer afternoon thunderstorms along the Front Range are another major delay driver. DEN\'s location 25 miles from downtown via Peña Boulevard means ground transportation disruptions during storms can compound airside delays. The Blue Board\'s AI delay risk engine factors in weather, FAA programs, hub performance, and inbound aircraft to predict delays in real time.',
     },
   ],
   airportSchema: {
@@ -220,7 +220,7 @@ den: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at DEN in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=den" style="margin:0">🗺️ Live DEN Map</a>
@@ -307,13 +307,13 @@ iah: {
   iata: 'IAH',
   variant: 'full',
   title: 'United Airlines IAH Hub Status — Houston Intercontinental Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at George Bush Intercontinental Houston (IAH). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Latin America gateway — updated every 30 seconds.',
+  description: 'Live United Airlines status at George Bush Intercontinental Houston (IAH). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Latin America gateway — updated every 30 seconds.',
   keywords: 'United Airlines IAH delays, United Houston hub status, United Airlines IAH on-time, United IAH cancellations today, United Airlines Houston delays, IAH flight status, United hub Houston, United Airlines Houston departures',
   ogTitle: 'United Airlines IAH Hub — Live Houston Intercontinental Status',
-  ogDescription: 'Real-time United Airlines operations at Houston Intercontinental. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Houston Intercontinental. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines IAH Hub Status',
   twitterTitle: 'United Airlines IAH Hub — Live Houston Intercontinental Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Latin America gateway. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Latin America gateway. Updated every 30 seconds.',
   breadcrumbName: 'IAH — Houston',
   faqSchema: [
     {
@@ -334,7 +334,7 @@ iah: {
     },
     {
       question: 'What causes the most delays at IAH for United?',
-      answer: 'Houston\'s subtropical climate makes thunderstorms the dominant delay driver, particularly during summer months (May–September). Tropical systems and hurricanes can disrupt operations for days. IAH\'s five runways provide capacity, but convective weather along the Gulf Coast frequently triggers ground delay programs and ground stops.',
+      answer: 'Houston\'s subtropical climate makes thunderstorms the dominant delay driver, particularly during summer months (May–September). Tropical systems and hurricanes can disrupt operations for days. IAH\'s five runways provide capacity, but convective weather along the Gulf Coast frequently triggers ground delay programs and ground stops. The Blue Board\'s AI delay risk engine factors in weather, FAA programs, hub performance, and inbound aircraft to predict delays in real time.',
     },
   ],
   airportSchema: {
@@ -361,7 +361,7 @@ iah: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at IAH in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=iah" style="margin:0">🗺️ Live IAH Map</a>
@@ -448,13 +448,13 @@ ewr: {
   iata: 'EWR',
   variant: 'full',
   title: 'United Airlines EWR Hub Status — Newark Liberty Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Newark Liberty (EWR). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s most delay-prone hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Newark Liberty (EWR). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s most delay-prone hub — updated every 30 seconds.',
   keywords: 'United Airlines EWR delays, United Newark hub status, United Airlines EWR on-time, United EWR cancellations today, United Airlines Newark delays, EWR flight status, United hub Newark, United Airlines Newark departures',
   ogTitle: 'United Airlines EWR Hub — Live Newark Liberty Status',
-  ogDescription: 'Real-time United Airlines operations at Newark Liberty. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Newark Liberty. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines EWR Hub Status',
   twitterTitle: 'United Airlines EWR Hub — Live Newark Liberty Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s East Coast gateway. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s East Coast gateway. Updated every 30 seconds.',
   breadcrumbName: 'EWR — Newark',
   faqSchema: [
     {
@@ -475,7 +475,7 @@ ewr: {
     },
     {
       question: 'What causes the most delays at EWR for United?',
-      answer: 'Newark Liberty is consistently the most delay-prone major airport in the United States. Its close proximity to JFK and LaGuardia creates shared airspace congestion. Three intersecting runways limit capacity, and any weather — thunderstorms, fog, wind, snow — immediately triggers ground delay programs. EWR delays ripple across United\'s entire network.',
+      answer: 'Newark Liberty is consistently the most delay-prone major airport in the United States. Its close proximity to JFK and LaGuardia creates shared airspace congestion. Three intersecting runways limit capacity, and any weather — thunderstorms, fog, wind, snow — immediately triggers ground delay programs. EWR delays ripple across United\'s entire network. The Blue Board\'s AI delay risk engine analyzes 8 signals including weather, FAA programs, hub performance, and inbound aircraft to predict delays before they happen.',
     },
   ],
   airportSchema: {
@@ -502,7 +502,7 @@ ewr: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at EWR in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=ewr" style="margin:0">🗺️ Live EWR Map</a>
@@ -589,13 +589,13 @@ sfo: {
   iata: 'SFO',
   variant: 'full',
   title: 'United Airlines SFO Hub Status — San Francisco Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at San Francisco International (SFO). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Asia-Pacific gateway — updated every 30 seconds.',
+  description: 'Live United Airlines status at San Francisco International (SFO). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Asia-Pacific gateway — updated every 30 seconds.',
   keywords: 'United Airlines SFO delays, United San Francisco hub status, United Airlines SFO on-time, United SFO cancellations today, United Airlines San Francisco delays, SFO flight status, United hub San Francisco, United Airlines SFO departures',
   ogTitle: 'United Airlines SFO Hub — Live San Francisco International Status',
-  ogDescription: 'Real-time United Airlines operations at San Francisco International. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at San Francisco International. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines SFO Hub Status',
   twitterTitle: 'United Airlines SFO Hub — Live San Francisco International Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Asia-Pacific gateway. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Asia-Pacific gateway. Updated every 30 seconds.',
   breadcrumbName: 'SFO — San Francisco',
   faqSchema: [
     {
@@ -616,7 +616,7 @@ sfo: {
     },
     {
       question: 'What causes the most delays at SFO for United?',
-      answer: 'Fog is the signature delay driver at SFO. Marine layer fog from the Pacific regularly reduces visibility, forcing SFO to switch from parallel approaches to single-runway operations — cutting arrival capacity in half. Summer fog season (June–August) is paradoxically SFO\'s worst period for delays. SFO\'s closely-spaced parallel runways require visual separation in good weather but can only handle one stream of traffic in low visibility.',
+      answer: 'Fog is the signature delay driver at SFO. Marine layer fog from the Pacific regularly reduces visibility, forcing SFO to switch from parallel approaches to single-runway operations — cutting arrival capacity in half. Summer fog season (June–August) is paradoxically SFO\'s worst period for delays. SFO\'s closely-spaced parallel runways require visual separation in good weather but can only handle one stream of traffic in low visibility. The Blue Board\'s AI delay risk engine factors in weather, FAA programs, hub performance, and inbound aircraft to predict delays in real time.',
     },
   ],
   airportSchema: {
@@ -643,7 +643,7 @@ sfo: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at SFO in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=sfo" style="margin:0">🗺️ Live SFO Map</a>
@@ -730,13 +730,13 @@ iad: {
   iata: 'IAD',
   variant: 'full',
   title: 'United Airlines IAD Hub Status — Washington Dulles Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Washington Dulles (IAD). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Washington D.C. hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Washington Dulles (IAD). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Washington D.C. hub — updated every 30 seconds.',
   keywords: 'United Airlines IAD delays, United Washington Dulles hub status, United Airlines IAD on-time, United IAD cancellations today, United Airlines Dulles delays, IAD flight status, United hub Washington, United Airlines Dulles departures',
   ogTitle: 'United Airlines IAD Hub — Live Washington Dulles Status',
-  ogDescription: 'Real-time United Airlines operations at Washington Dulles. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Washington Dulles. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines IAD Hub Status',
   twitterTitle: 'United Airlines IAD Hub — Live Washington Dulles Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Washington D.C. hub. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Washington D.C. hub. Updated every 30 seconds.',
   breadcrumbName: 'IAD — Washington Dulles',
   faqSchema: [
     {
@@ -757,7 +757,7 @@ iad: {
     },
     {
       question: 'What causes the most delays at IAD for United?',
-      answer: 'Washington Dulles experiences delays from summer thunderstorms along the Eastern Seaboard, winter snow and ice events, and low-visibility fog. IAD\'s location in Northern Virginia means it shares weather patterns with the broader D.C. metro area. Ground delay programs issued for the New York TRACON also frequently affect IAD departures heading northbound.',
+      answer: 'Washington Dulles experiences delays from summer thunderstorms along the Eastern Seaboard, winter snow and ice events, and low-visibility fog. IAD\'s location in Northern Virginia means it shares weather patterns with the broader D.C. metro area. Ground delay programs issued for the New York TRACON also frequently affect IAD departures heading northbound. The Blue Board\'s AI delay risk engine factors in weather, FAA programs, hub performance, and inbound aircraft to predict delays in real time.',
     },
   ],
   airportSchema: {
@@ -784,7 +784,7 @@ iad: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at IAD in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=iad" style="margin:0">🗺️ Live IAD Map</a>
@@ -871,13 +871,13 @@ lax: {
   iata: 'LAX',
   variant: 'full',
   title: 'United Airlines LAX Status — Los Angeles Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Los Angeles International (LAX). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Pacific gateway hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Los Angeles International (LAX). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s Pacific gateway hub — updated every 30 seconds.',
   keywords: 'United Airlines LAX delays, United Los Angeles status, United Airlines LAX on-time, United LAX cancellations today, United Airlines Los Angeles delays, LAX flight status, United LAX, United Airlines LAX departures',
   ogTitle: 'United Airlines LAX — Live Los Angeles International Status',
-  ogDescription: 'Real-time United Airlines operations at Los Angeles International. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Los Angeles International. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines LAX Hub Status',
   twitterTitle: 'United Airlines LAX — Live Los Angeles International Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Pacific gateway. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Pacific gateway. Updated every 30 seconds.',
   breadcrumbName: 'LAX — Los Angeles',
   faqSchema: [
     {
@@ -898,7 +898,7 @@ lax: {
     },
     {
       question: 'What causes the most delays at LAX for United?',
-      answer: 'LAX delays are most commonly caused by morning marine layer fog (May Gray / June Gloom) that can reduce visibility and require instrument approaches, reducing runway throughput. LAX\'s complex airspace shared with nearby airports (BUR, SNA, LGB, ONT) creates congestion. Late-night construction on taxiways and runways can also cause delays during early morning hours.',
+      answer: 'LAX delays are most commonly caused by morning marine layer fog (May Gray / June Gloom) that can reduce visibility and require instrument approaches, reducing runway throughput. LAX\'s complex airspace shared with nearby airports (BUR, SNA, LGB, ONT) creates congestion. Late-night construction on taxiways and runways can also cause delays during early morning hours. The Blue Board\'s AI delay risk engine factors in weather, FAA programs, hub performance, and inbound aircraft to predict delays in real time.',
     },
   ],
   airportSchema: {
@@ -925,7 +925,7 @@ lax: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, delay alerts, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at LAX in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=lax" style="margin:0">🗺️ Live LAX Map</a>
@@ -1013,13 +1013,13 @@ nrt: {
   iata: 'NRT',
   variant: 'compact',
   title: 'United Airlines NRT Hub Status — Tokyo Narita Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Narita International Airport (NRT). Real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s primary Japan gateway — updated every 30 seconds.',
+  description: 'Live United Airlines status at Narita International Airport (NRT). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, Starlink WiFi aircraft, and departure schedules. United\'s primary Japan gateway — updated every 30 seconds.',
   keywords: 'United Airlines NRT delays, United Tokyo Narita hub status, United Airlines NRT on-time, United NRT cancellations today, United Airlines Tokyo Narita delays, NRT flight status, United hub Tokyo Narita, United Airlines NRT departures',
   ogTitle: 'United Airlines NRT Hub — Live Tokyo Narita Status',
-  ogDescription: 'Real-time United Airlines operations at Narita International. Delays, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Narita International. AI delay predictions, cancellations, on-time %, Starlink WiFi fleet, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines NRT Hub Status',
   twitterTitle: 'United Airlines NRT Hub — Live Tokyo Narita Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Japan gateway. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Japan gateway. Updated every 30 seconds.',
   breadcrumbName: 'NRT — Tokyo Narita',
   faqSchema: [
     {
@@ -1133,13 +1133,13 @@ gum: {
   iata: 'GUM',
   variant: 'compact',
   title: 'United Airlines GUM Hub Status — Guam Delays, On-Time Performance & Flight Tracker',
-  description: 'Live United Airlines status at Antonio B. Won Pat International Airport, Guam (GUM). Real-time delays, cancellations, on-time performance, and departure schedules. United\'s Western Pacific hub — updated every 30 seconds.',
+  description: 'Live United Airlines status at Antonio B. Won Pat International Airport, Guam (GUM). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, and departure schedules. United\'s Western Pacific hub — updated every 30 seconds.',
   keywords: 'United Airlines GUM delays, United Guam hub status, United Airlines GUM on-time, United GUM cancellations today, United Airlines Guam delays, GUM flight status, United hub Guam, United Airlines GUM departures, United Island Hopper',
   ogTitle: 'United Airlines GUM Hub — Live Guam Status',
-  ogDescription: 'Real-time United Airlines operations at Guam International. Delays, cancellations, on-time %, and schedules.',
+  ogDescription: 'Real-time United Airlines operations at Guam International. AI delay predictions, cancellations, on-time %, and schedules.',
   ogImageAlt: 'The Blue Board — United Airlines GUM Hub Status',
   twitterTitle: 'United Airlines GUM Hub — Live Guam Status',
-  twitterDescription: 'Real-time delays, cancellations, on-time performance at United\'s Western Pacific hub. Updated every 30 seconds.',
+  twitterDescription: 'AI delay predictions, cancellations, on-time performance at United\'s Western Pacific hub. Updated every 30 seconds.',
   breadcrumbName: 'GUM — Guam',
   faqSchema: [
     {
