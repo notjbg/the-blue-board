@@ -206,21 +206,22 @@ export default async function handler(req, res) {
       return await tryFR24Summary(req, res, flight, cacheKey);
     }
 
-    // Find the most relevant flight — prefer in-progress over future scheduled
+    // Find the most relevant flight — scan ALL activity log entries, prefer in-air
     const flights = bootstrap?.flights || {};
     const candidates = [];
 
     for (const [key, val] of Object.entries(flights)) {
       const actLog = val?.activityLog?.flights || [];
-      if (!actLog.length) continue;
-      const f = actLog[0];
-      const hasActualDep = !!(f.takeoffTimes?.actual || f.gateDepartureTimes?.actual);
-      const hasLanded = !!f.landingTimes?.actual;
-      const depTime = f.gateDepartureTimes?.scheduled || f.gateDepartureTimes?.estimated || f.gateDepartureTimes?.actual || f.takeoffTimes?.scheduled || 0;
-      // Priority: in-air (departed but not landed) > landed today > scheduled
-      const priority = (hasActualDep && !hasLanded) ? 2 : hasActualDep ? 1 : 0;
-      candidates.push({ flight: f, key, priority, depTime });
+      for (const f of actLog) {
+        const hasActualDep = !!(f.takeoffTimes?.actual || f.gateDepartureTimes?.actual);
+        const hasLanded = !!f.landingTimes?.actual;
+        const depTime = f.gateDepartureTimes?.scheduled || f.gateDepartureTimes?.estimated || f.gateDepartureTimes?.actual || f.takeoffTimes?.scheduled || 0;
+        // Priority: in-air (departed but not landed) > landed > scheduled
+        const priority = (hasActualDep && !hasLanded) ? 2 : hasActualDep ? 1 : 0;
+        candidates.push({ flight: f, key, priority, depTime });
+      }
     }
+    // Sort by priority desc, then by most recent departure
     candidates.sort((a, b) => b.priority - a.priority || b.depTime - a.depTime);
     const bestFlight = candidates[0]?.flight || null;
     const bestKey = candidates[0]?.key || null;
