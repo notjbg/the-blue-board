@@ -998,6 +998,29 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
         <select id="sched-aircraft" aria-label="Schedule aircraft filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
           <option value="">All Aircraft</option>
         </select>
+        <select id="sched-route-type" aria-label="Schedule route type filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Routes</option>
+          <option value="domestic">Domestic Only</option>
+          <option value="international">International Only</option>
+        </select>
+        <select id="sched-starlink" aria-label="Schedule Starlink filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All WiFi</option>
+          <option value="starlink">⚡ Starlink Only</option>
+          <option value="no-starlink">Non-Starlink</option>
+        </select>
+        <select id="sched-timerange" aria-label="Schedule time range filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Day</option>
+          <option value="morning">Morning (5a–12p)</option>
+          <option value="afternoon">Afternoon (12p–5p)</option>
+          <option value="evening">Evening (5p–10p)</option>
+          <option value="redeye">Red-eye (10p–5a)</option>
+        </select>
+        <select id="sched-risk" aria-label="Schedule delay risk filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px">
+          <option value="">All Risk</option>
+          <option value="high">High Risk</option>
+          <option value="moderate">Moderate+</option>
+          <option value="low">Low Only</option>
+        </select>
         <input type="text" id="sched-search" aria-label="Schedule search" placeholder="Flight, city, reg..." style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px;width:140px">
         </div>
       </div>
@@ -3858,6 +3881,10 @@ function initScheduleTab() {
     const debouncedSchedRender = debounce(renderScheduleTable, 120);
     document.getElementById('sched-status').addEventListener('change', debouncedSchedRender);
     document.getElementById('sched-aircraft').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-route-type').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-starlink').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-timerange').addEventListener('change', debouncedSchedRender);
+    document.getElementById('sched-risk').addEventListener('change', debouncedSchedRender);
     document.getElementById('sched-search').addEventListener('input', debouncedSchedRender);
     // Sort headers
     document.querySelectorAll('#sched-table th[data-sort]').forEach(th => {
@@ -4048,6 +4075,11 @@ async function loadScheduleData() {
     schedRawByHub[hubKey] = allUAFlights;
     detectEquipmentSwaps(allUAFlights, schedCurrentHub, schedCurrentDir, schedCurrentDay);
     populateAircraftFilter();
+    // Reset advanced filters on hub/direction/day change
+    document.getElementById('sched-route-type').value = '';
+    document.getElementById('sched-starlink').value = '';
+    document.getElementById('sched-timerange').value = '';
+    document.getElementById('sched-risk').value = '';
     loadEl.style.display = 'none';
     tableWrap.style.display = 'block';
     renderScheduleTable();
@@ -4090,6 +4122,10 @@ function formatSchedTime(utcTimestamp, hub) {
 function getFilteredScheduleFlights() {
   const statusFilter = document.getElementById('sched-status').value;
   const aircraftFilter = document.getElementById('sched-aircraft').value;
+  const routeTypeFilter = document.getElementById('sched-route-type').value;
+  const starlinkFilter = document.getElementById('sched-starlink').value;
+  const timeRangeFilter = document.getElementById('sched-timerange').value;
+  const riskFilter = document.getElementById('sched-risk').value;
   const searchFilter = document.getElementById('sched-search').value.toLowerCase().trim();
 
   return schedAllFlights.filter(fl => {
@@ -4100,6 +4136,47 @@ function getFilteredScheduleFlights() {
     }
     // Aircraft filter
     if (aircraftFilter && fl.aircraft?.model?.code !== aircraftFilter) return false;
+    // Route type filter (domestic / international)
+    if (routeTypeFilter) {
+      const endpoint = schedCurrentDir === 'departures'
+        ? fl.airport?.destination?.code?.iata
+        : fl.airport?.origin?.code?.iata;
+      const isIntl = endpoint && INTL_AIRPORTS.has(endpoint);
+      if (routeTypeFilter === 'domestic' && isIntl) return false;
+      if (routeTypeFilter === 'international' && !isIntl) return false;
+    }
+    // Starlink filter
+    if (starlinkFilter) {
+      const reg = fl.aircraft?.registration;
+      const hasSL = reg && STARLINK_TAILS.has(reg);
+      if (starlinkFilter === 'starlink' && !hasSL) return false;
+      if (starlinkFilter === 'no-starlink' && hasSL) return false;
+    }
+    // Time range filter
+    if (timeRangeFilter) {
+      const ts = schedCurrentDir === 'departures'
+        ? fl.time?.scheduled?.departure
+        : fl.time?.scheduled?.arrival;
+      if (ts) {
+        const h = parseInt(new Date(ts * 1000).toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: SCHED_HUB_TZ[schedCurrentHub] || 'America/Chicago' }));
+        if (timeRangeFilter === 'morning' && !(h >= 5 && h < 12)) return false;
+        if (timeRangeFilter === 'afternoon' && !(h >= 12 && h < 17)) return false;
+        if (timeRangeFilter === 'evening' && !(h >= 17 && h < 22)) return false;
+        if (timeRangeFilter === 'redeye' && !(h >= 22 || h < 5)) return false;
+      }
+    }
+    // Delay risk filter
+    if (riskFilter) {
+      const status = classifySchedStatus(fl);
+      if (['scheduled', 'estimated', 'delayed'].includes(status.key)) {
+        const risk = computeDelayRisk(fl, schedCurrentHub);
+        if (riskFilter === 'high' && risk.label !== 'HIGH') return false;
+        if (riskFilter === 'moderate' && risk.label === 'LOW') return false;
+        if (riskFilter === 'low' && risk.label !== 'LOW') return false;
+      } else if (riskFilter === 'high' || riskFilter === 'moderate') {
+        return false;
+      }
+    }
     // Search filter
     if (searchFilter) {
       const flNum = fl.identification?.number?.default?.toLowerCase() || '';
