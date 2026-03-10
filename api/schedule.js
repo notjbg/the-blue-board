@@ -222,6 +222,16 @@ function icaoToIata(icao) {
   return map[icao] || icao;
 }
 
+// Convert ICAO flight designator (e.g. "UAL838") to IATA (e.g. "UA838")
+const ICAO_TO_IATA_AIRLINE = { UAL:'UA', AAL:'AA', DAL:'DL', SWA:'WN', JBU:'B6', ASA:'AS', SKW:'OO', RPA:'YX', ENY:'MQ', GJS:'G7', ACA:'AC', BAW:'BA', DLH:'LH', AFR:'AF', KLM:'KL' };
+function icaoFlightToIata(icaoFlight) {
+  if (!icaoFlight) return '';
+  const match = /^([A-Z]{3})(\d+)$/.exec(icaoFlight);
+  if (!match) return icaoFlight;
+  const iataAirline = ICAO_TO_IATA_AIRLINE[match[1]];
+  return iataAirline ? iataAirline + match[2] : icaoFlight;
+}
+
 function toUnix(val) {
   if (!val) return null;
   if (typeof val === 'number') return val > 1e12 ? Math.floor(val / 1000) : val;
@@ -275,25 +285,27 @@ function mapStatus(f) {
 }
 
 function normalizeSummaryFlight(f) {
-  const flightNum = f.flight_iata || f.flight_number?.iata || '';
-  const callsign = f.callsign || f.flight_number?.icao || '';
+  // Flight number: try IATA first, then convert from ICAO callsign (UAL838 → UA838)
+  const flightNum = f.flight_iata || f.flight_number?.iata || icaoFlightToIata(f.flight_icao || f.callsign || f.flight_number?.icao || '') || '';
+  const callsign = f.callsign || f.flight_icao || f.flight_number?.icao || '';
 
-  // Resolve origin/destination IATA (try multiple field paths)
+  // Resolve origin/destination IATA — prioritize ICAO conversion since flat ICAO fields
+  // are reliably present in the light API response (orig_icao, dest_icao)
   const origIata = f.orig_iata || f.origin?.iata || icaoToIata(f.orig_icao || f.origin?.icao || '');
   const destIata = f.dest_iata || f.destination?.iata || icaoToIata(f.dest_icao_actual || f.dest_icao || f.destination?.icao || '');
-  const origName = f.origin?.name || '';
-  const destName = f.destination?.name || '';
+  const origName = f.origin?.name || f.orig_name || '';
+  const destName = f.destination?.name || f.dest_name || '';
 
-  // Resolve timestamps
-  const schedDep = toUnix(f.departure?.scheduled || f.scheduled_departure);
-  const schedArr = toUnix(f.arrival?.scheduled || f.scheduled_arrival);
-  const realDep = toUnix(f.departure?.actual || f.datetime_takeoff || f.actual_departure);
-  const realArr = toUnix(f.arrival?.actual || f.datetime_landed || f.actual_arrival);
-  const estDep = toUnix(f.departure?.estimated || f.estimated_departure);
-  const estArr = toUnix(f.arrival?.estimated || f.estimated_arrival);
+  // Resolve timestamps — try nested objects first, then flat fields (light API uses flat)
+  const schedDep = toUnix(f.departure?.scheduled || f.scheduled_departure || f.datetime_scheduled_departure);
+  const schedArr = toUnix(f.arrival?.scheduled || f.scheduled_arrival || f.datetime_scheduled_arrival);
+  const realDep = toUnix(f.departure?.actual || f.actual_departure || f.datetime_takeoff || f.datetime_actual_departure);
+  const realArr = toUnix(f.arrival?.actual || f.actual_arrival || f.datetime_landed || f.datetime_actual_arrival);
+  const estDep = toUnix(f.departure?.estimated || f.estimated_departure || f.datetime_estimated_departure);
+  const estArr = toUnix(f.arrival?.estimated || f.estimated_arrival || f.datetime_estimated_arrival);
 
-  // Aircraft
-  const acType = f.aircraft?.type || f.type || f.aircraft_type || '';
+  // Aircraft — try nested object, then flat fields
+  const acType = f.aircraft?.type || f.aircraft_type || f.type || '';
   const acReg = f.aircraft?.registration || f.registration || '';
 
   return {
@@ -313,16 +325,21 @@ function normalizeSummaryFlight(f) {
   };
 }
 
+// Page size for Official FR24 API pagination (API caps responses at ~20 per page)
+const OFFICIAL_API_PAGE_SIZE = 100;
+
 async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
+  // Capture hub at entry for all logging in this invocation (avoids stale closure issues)
+  const logHub = String(hub);
   const token = process.env.FR24_API_TOKEN;
   if (!token) {
     console.log('Official FR24 API: no FR24_API_TOKEN configured');
     return null;
   }
-  console.log(`Official FR24 API: fetching ${hub} ${dir} (token: ${token.slice(0, 8)}...)`);
 
-  timeoutMs = timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000;
+  timeoutMs = timeoutMs || HUB_TIMEOUT_MS[logHub.toUpperCase()] || 45000;
   const startTime = Date.now();
+  const deadline = startTime + timeoutMs;
 
   // Build date range from the unix timestamp (day boundaries)
   const dayStart = new Date(ts * 1000);
@@ -330,141 +347,192 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
   // Clamp dayEnd so it never exceeds end-of-today in the hub's local timezone
   // FR24 rejects requests where the date range extends into tomorrow
-  const endOfToday = getEndOfTodayForHub(hub);
+  const endOfToday = getEndOfTodayForHub(logHub);
+  if (dayStart > endOfToday) {
+    // Requested date is entirely in the future (tomorrow) — skip Official API
+    console.log(`Official FR24 API: skipping ${logHub} ${dir} — requested date is tomorrow (ts=${ts})`);
+    return null;
+  }
   if (dayEnd > endOfToday) {
     dayEnd = endOfToday;
   }
 
-  const params = new URLSearchParams({
-    airports: hub,
-    operating_as: 'UAL',
-    flight_datetime_from: formatForFR24(dayStart),
-    flight_datetime_to: formatForFR24(dayEnd),
-    limit: '5000'
-  });
+  console.log(`Official FR24 API: fetching ${logHub} ${dir} from=${formatForFR24(dayStart)} to=${formatForFR24(dayEnd)}`);
 
-  const queriedHub = params.get('airports'); // use for all logs to match the actual API query
-  const url = `${FR24_API_BASE}/api/flight-summary/light?${params}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(timeoutMs, 30000));
+  // Paginate until we have all flights or hit deadline
+  const allRawFlights = [];
+  let page = 1;
+  let totalPages = 1;
+  const MAX_OFFICIAL_PAGES = 50;
 
-  try {
-    const resp = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'Accept-Version': 'v1',
-        'User-Agent': 'TheBlueBoardDashboard/1.0 (https://theblueboard.co)',
-      },
+  while (page <= MAX_OFFICIAL_PAGES) {
+    if (Date.now() > deadline - 2000) {
+      console.log(`Official FR24 API: deadline approaching for ${logHub}, stopping at page ${page}`);
+      break;
+    }
+
+    const params = new URLSearchParams({
+      airports: logHub,
+      operating_as: 'UAL',
+      flight_datetime_from: formatForFR24(dayStart),
+      flight_datetime_to: formatForFR24(dayEnd),
+      limit: String(OFFICIAL_API_PAGE_SIZE),
+      page: String(page)
     });
-    clearTimeout(timeout);
 
-    if (!resp.ok) {
-      const body = await resp.text().catch(() => '');
-      console.error(`Official FR24 API returned ${resp.status} for ${queriedHub}: ${body.slice(0, 200)}`);
-      return null;
-    }
+    const url = `${FR24_API_BASE}/api/flight-summary/light?${params}`;
+    const controller = new AbortController();
+    const remaining = Math.max(2000, deadline - Date.now());
+    const timeout = setTimeout(() => controller.abort(), Math.min(remaining, 30000));
 
-    const data = await resp.json();
-    const flights = data?.data || [];
-    // Log response shape for debugging
-    console.log(`Official FR24 API response for ${queriedHub}: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
-    if (flights.length > 0) {
-      const sample = flights[0];
-      console.log(`Sample flight: flight_iata=${sample.flight_iata}, orig_iata=${sample.orig_iata}, orig_icao=${sample.orig_icao}, dest_iata=${sample.dest_iata}, dest_icao=${sample.dest_icao}, origin=${JSON.stringify(sample.origin)?.slice(0,100)}, destination=${JSON.stringify(sample.destination)?.slice(0,100)}`);
-    }
-    if (!flights.length) {
-      console.log(`Official FR24 API returned 0 flights for ${queriedHub} ${dir}`);
-      return {
-        flights: [],
-        total: 0,
-        totalFetched: 0,
-        pagesScanned: 1,
-        totalPages: 1,
-        cached: false,
-        partial: false,
-        hub,
-        dir,
-        meta: {
-          partialReason: null,
-          pagesRequested: 1,
-          pagesSucceeded: 1,
-          pagesFailed: 0,
-          missingPages: [],
-          completeness: 1,
-          elapsedMs: Date.now() - startTime,
-          source: 'official-api'
+    try {
+      const resp = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Accept-Version': 'v1',
+          'User-Agent': 'TheBlueBoardDashboard/1.0 (https://theblueboard.co)',
+        },
+      });
+      clearTimeout(timeout);
+
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => '');
+        console.error(`Official FR24 API returned ${resp.status} for ${logHub} (page ${page}): ${body.slice(0, 200)}`);
+        // Non-retryable error on first page — bail out entirely
+        if (page === 1) return null;
+        // On later pages, stop pagination and return what we have
+        break;
+      }
+
+      const data = await resp.json();
+      const flights = data?.data || [];
+
+      // Log full response keys on first page for debugging field mapping
+      if (page === 1) {
+        console.log(`Official FR24 API [${logHub}] page 1: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
+        if (flights.length > 0) {
+          const s = flights[0];
+          // Log all available field values for mapping diagnostics
+          console.log(`Official FR24 API [${logHub}] sample: ${JSON.stringify(s).slice(0, 500)}`);
         }
-      };
+      } else {
+        console.log(`Official FR24 API [${logHub}] page ${page}: ${flights.length} flights`);
+      }
+
+      allRawFlights.push(...flights);
+
+      // Detect pagination completion:
+      // If API returns fewer flights than our limit, we've reached the end
+      if (flights.length < OFFICIAL_API_PAGE_SIZE) break;
+
+      page++;
+
+      // Brief pause between pages to be respectful
+      if (page <= MAX_OFFICIAL_PAGES && Date.now() < deadline - 2000) {
+        await new Promise(r => setTimeout(r, 200));
+      }
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        console.error(`Official FR24 API timeout for ${logHub} (page ${page})`);
+      } else {
+        console.error(`Official FR24 API error for ${logHub} (page ${page}):`, e.message);
+      }
+      // On first page failure, bail. On later pages, return what we have.
+      if (page === 1) return null;
+      break;
     }
+  }
 
-    // Normalize each flight and filter by direction
-    // Compare against both IATA and ICAO variants of the hub code
-    const hubUpper = hub.toUpperCase();
-    const hubIcao = hub.length === 3 ? ('K' + hub).toUpperCase() : hub.toUpperCase();
-    const allUAFlights = [];
-    for (const f of flights) {
-      // Check direction using raw API fields BEFORE normalization (more reliable)
-      const rawOrigIata = (f.orig_iata || f.origin?.iata || '').toUpperCase();
-      const rawOrigIcao = (f.orig_icao || f.origin?.icao || '').toUpperCase();
-      const rawDestIata = (f.dest_iata || f.destination?.iata || '').toUpperCase();
-      const rawDestIcao = (f.dest_icao || f.destination?.icao || '').toUpperCase();
+  totalPages = page;
 
-      const origMatchesHub = rawOrigIata === hubUpper || rawOrigIcao === hubIcao || rawOrigIcao === hubUpper || icaoToIata(rawOrigIcao).toUpperCase() === hubUpper;
-      const destMatchesHub = rawDestIata === hubUpper || rawDestIcao === hubIcao || rawDestIcao === hubUpper || icaoToIata(rawDestIcao).toUpperCase() === hubUpper;
-
-      if (dir === 'departures' && !origMatchesHub) continue;
-      if (dir === 'arrivals' && !destMatchesHub) continue;
-
-      allUAFlights.push(normalizeSummaryFlight(f));
-    }
-
-    const elapsedMs = Date.now() - startTime;
-    console.log(`Official FR24 API: ${flights.length} total flights, ${allUAFlights.length} ${dir} for ${queriedHub} in ${elapsedMs}ms`);
-
+  if (!allRawFlights.length) {
+    console.log(`Official FR24 API returned 0 flights for ${logHub} ${dir}`);
     return {
-      flights: allUAFlights,
-      total: allUAFlights.length,
-      totalFetched: flights.length,
-      pagesScanned: 1,
-      totalPages: 1,
+      flights: [],
+      total: 0,
+      totalFetched: 0,
+      pagesScanned: totalPages,
+      totalPages,
       cached: false,
       partial: false,
-      hub,
+      hub: logHub,
       dir,
       meta: {
         partialReason: null,
-        pagesRequested: 1,
-        pagesSucceeded: 1,
+        pagesRequested: totalPages,
+        pagesSucceeded: totalPages,
         pagesFailed: 0,
         missingPages: [],
         completeness: 1,
-        elapsedMs,
+        elapsedMs: Date.now() - startTime,
         source: 'official-api'
       }
     };
-  } catch (e) {
-    clearTimeout(timeout);
-    if (e.name === 'AbortError') {
-      console.error(`Official FR24 API timeout for ${queriedHub}`);
-    } else {
-      console.error(`Official FR24 API error for ${queriedHub}:`, e.message);
-    }
-    return null;
   }
+
+  // Normalize each flight and filter by direction
+  // Compare against both IATA and ICAO variants of the hub code
+  const hubUpper = logHub.toUpperCase();
+  const hubIcao = logHub.length === 3 ? ('K' + logHub).toUpperCase() : logHub.toUpperCase();
+  const allUAFlights = [];
+  for (const f of allRawFlights) {
+    // Check direction using raw API fields BEFORE normalization
+    // Prioritize ICAO fields since they're reliably present in the light API
+    const rawOrigIcao = (f.orig_icao || f.origin?.icao || '').toUpperCase();
+    const rawDestIcao = (f.dest_icao || f.destination?.icao || '').toUpperCase();
+    const rawOrigIata = (f.orig_iata || f.origin?.iata || icaoToIata(rawOrigIcao)).toUpperCase();
+    const rawDestIata = (f.dest_iata || f.destination?.iata || icaoToIata(rawDestIcao)).toUpperCase();
+
+    const origMatchesHub = rawOrigIata === hubUpper || rawOrigIcao === hubIcao || rawOrigIcao === hubUpper;
+    const destMatchesHub = rawDestIata === hubUpper || rawDestIcao === hubIcao || rawDestIcao === hubUpper;
+
+    if (dir === 'departures' && !origMatchesHub) continue;
+    if (dir === 'arrivals' && !destMatchesHub) continue;
+
+    allUAFlights.push(normalizeSummaryFlight(f));
+  }
+
+  const elapsedMs = Date.now() - startTime;
+  console.log(`Official FR24 API: ${allRawFlights.length} total flights (${totalPages} pages), ${allUAFlights.length} ${dir} for ${logHub} in ${elapsedMs}ms`);
+
+  return {
+    flights: allUAFlights,
+    total: allUAFlights.length,
+    totalFetched: allRawFlights.length,
+    pagesScanned: totalPages,
+    totalPages,
+    cached: false,
+    partial: false,
+    hub: logHub,
+    dir,
+    meta: {
+      partialReason: null,
+      pagesRequested: totalPages,
+      pagesSucceeded: totalPages,
+      pagesFailed: 0,
+      missingPages: [],
+      completeness: 1,
+      elapsedMs,
+      source: 'official-api'
+    }
+  };
 }
 
 const pendingAggs = new Map();
 
 function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   if (pendingAggs.has(aggKey)) return;
-  const promise = fetchAllPages(hub, dir, ts, undefined, Date.now() + 55000).then(result => {
+  // Capture hub as a local const to prevent any stale closure over the caller's variable
+  const refreshHub = String(hub);
+  const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000).then(result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
     saveComplete(aggKey, result);
     return result;
   }).catch(e => {
-    console.error(`Background refresh failed for ${hub}:`, e.message);
+    console.error(`Background refresh failed for ${refreshHub} [${aggKey}]:`, e.message);
   }).finally(() => {
     pendingAggs.delete(aggKey);
   });
@@ -472,18 +540,20 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
 }
 
 async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
+  // Capture hub as a local const for all logging in this invocation
+  const logHub = String(hub);
   const now = Date.now();
-  const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000));
+  const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[logHub.toUpperCase()] || 45000));
 
-  // Try official FR24 API first (single authenticated request, no pagination)
+  // Try official FR24 API first (paginated authenticated requests)
   if (process.env.FR24_API_TOKEN) {
     try {
       // Cap official API to 40% of remaining time (max 20s), saving 60% for scraping fallback
       const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.4), 20000);
-      const officialResult = await fetchViaOfficialAPI(hub, dir, ts, officialTimeout);
+      const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, officialTimeout);
       if (officialResult) return officialResult;
     } catch (e) {
-      console.error(`Official FR24 API failed for ${hub}, falling back to scraping:`, e.message);
+      console.error(`Official FR24 API failed for ${logHub}, falling back to scraping:`, e.message);
     }
   }
 
@@ -518,9 +588,9 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
 
   // Fetch page 1 to discover totalPages
   const startTime = Date.now();
-  const firstPage = await fetchOnePage(hub, dir, ts, 1, deadline);
+  const firstPage = await fetchOnePage(logHub, dir, ts, 1, deadline);
   if (!firstPage || firstPage._rateLimited) {
-    return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub, dir,
+    return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub: logHub, dir,
       meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime }
     };
   }
@@ -541,7 +611,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
       for (let p = pageNum; p <= batchEnd; p++) batchPages.push(p);
 
       const batchResults = await Promise.allSettled(
-        batchPages.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+        batchPages.map(p => fetchOnePage(logHub, dir, ts, p, deadline))
       );
 
       let batchDone = false;
@@ -601,7 +671,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
 
       const retryBatch = failedPages.slice(i, i + RETRY_BATCH);
       const retryResults = await Promise.allSettled(
-        retryBatch.map(p => fetchOnePage(hub, dir, ts, p, deadline))
+        retryBatch.map(p => fetchOnePage(logHub, dir, ts, p, deadline))
       );
 
       for (let j = 0; j < retryResults.length; j++) {
@@ -644,7 +714,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
     totalPages,
     cached: false,
     partial,
-    hub,
+    hub: logHub,
     dir,
     meta: {
       partialReason,
