@@ -8,6 +8,7 @@ const MAX_CACHE_SIZE = 200;
 
 // Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
 const lastCompleteCache = new Map();
+const lastCompleteByRouteCache = new Map();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
 const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
@@ -60,6 +61,19 @@ function saveComplete(key, data) {
     lastCompleteCache.delete(lastCompleteCache.keys().next().value);
   }
   lastCompleteCache.set(key, { data, time: Date.now() });
+
+  const keyParts = String(key).split(':');
+  if (keyParts.length === 4 && keyParts[0] === 'agg') {
+    const routeKey = `${keyParts[1]}:${keyParts[2]}`;
+    if (lastCompleteByRouteCache.size >= MAX_COMPLETE_CACHE_SIZE) {
+      lastCompleteByRouteCache.delete(lastCompleteByRouteCache.keys().next().value);
+    }
+    lastCompleteByRouteCache.set(routeKey, {
+      data,
+      time: Date.now(),
+      timestamp: Number.parseInt(keyParts[3], 10) || null
+    });
+  }
 }
 
 function getLastComplete(key) {
@@ -67,6 +81,17 @@ function getLastComplete(key) {
   if (!entry) return null;
   if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
     lastCompleteCache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function getLastCompleteByRoute(hub, dir) {
+  const routeKey = `${hub}:${dir}`;
+  const entry = lastCompleteByRouteCache.get(routeKey);
+  if (!entry) return null;
+  if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
+    lastCompleteByRouteCache.delete(routeKey);
     return null;
   }
   return entry;
@@ -635,13 +660,20 @@ export default async function handler(req, res) {
     }
 
     // Fallback: serve last-known-complete data if stale cache is partial or missing
-    const lastComplete = getLastComplete(aggKey);
-    if (lastComplete) {
+    const exactLastComplete = getLastComplete(aggKey);
+    const fallbackComplete = exactLastComplete || getLastCompleteByRoute(hub, dir);
+    if (fallbackComplete) {
       triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
-      const dataAge = Math.round((Date.now() - lastComplete.time) / 1000);
+      const dataAge = Math.round((Date.now() - fallbackComplete.time) / 1000);
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-      return res.status(200).json({ ...lastComplete.data, cached: true, stale: true, degraded: true,
-        meta: { ...lastComplete.data.meta, dataAge }
+      return res.status(200).json({ ...fallbackComplete.data, cached: true, stale: true, degraded: true,
+        meta: {
+          ...fallbackComplete.data.meta,
+          dataAge,
+          fallbackScope: exactLastComplete ? 'exact' : 'route',
+          requestedTimestamp: ts,
+          fallbackTimestamp: fallbackComplete.timestamp ?? ts
+        }
       });
     }
 
@@ -666,12 +698,19 @@ export default async function handler(req, res) {
       const result = await aggPromise;
       // If fresh result is partial, prefer last-known-complete data if available
       if (result.partial) {
-        const lc = getLastComplete(aggKey);
+        const exactLc = getLastComplete(aggKey);
+        const lc = exactLc || getLastCompleteByRoute(hub, dir);
         if (lc) {
           const dataAge = Math.round((Date.now() - lc.time) / 1000);
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
           return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
-            meta: { ...lc.data.meta, dataAge }
+            meta: {
+              ...lc.data.meta,
+              dataAge,
+              fallbackScope: exactLc ? 'exact' : 'route',
+              requestedTimestamp: ts,
+              fallbackTimestamp: lc.timestamp ?? ts
+            }
           });
         }
       }
