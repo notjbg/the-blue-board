@@ -68,6 +68,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await new Promise(r => setTimeout(r, 1000));
   }
 
+  // Phase 1.5: warm Starlink data cache (single fast request)
+  try {
+    const slController = new AbortController();
+    const slTimeout = setTimeout(() => slController.abort(), 20000);
+    const slResp = await fetch(`${BASE_URL}/api/starlink-data`, {
+      signal: slController.signal,
+      headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' },
+    });
+    clearTimeout(slTimeout);
+    results['starlink-data'] = { status: slResp.ok ? 'ok' : `http_${slResp.status}` };
+    if (slResp.ok) warmed++; else failed++;
+  } catch (e: any) {
+    results['starlink-data'] = { status: 'error', message: e.message };
+    failed++;
+  }
+
   // Phase 2: warm tomorrow for all hubs (if time permits — cron has 300s max)
   for (const hub of HUBS) {
     const tomorrowTs = TIMESTAMPS(hub)[1];

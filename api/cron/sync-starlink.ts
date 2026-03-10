@@ -28,25 +28,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const upstream = await resp.json() as {
       totalCount: number;
-      starlinkPlanes: Array<{ tail_number: string; aircraft_type: string; fleet: string; operator: string }>;
+      starlinkPlanes: Array<{ TailNumber: string; Aircraft: string; fleet: string; OperatedBy: string }>;
       lastUpdated: string;
-      fleetStats: { mainline: number; express: number; total: number };
-      flightsByTail: Record<string, Array<{ flight_number: string; origin: string; destination: string; departure_time: string }>>;
+      fleetStats: { mainline: { total: number; starlink: number }; express: { total: number; starlink: number }; combined: { total: number; starlink: number } };
+      flightsByTail: Record<string, Array<{ flight_number: string; departure_airport: string; arrival_airport: string; departure_time: string }>>;
     };
 
     // Transform to our format: keep backwards-compatible starlink.json shape + extras
+    // Upstream uses: TailNumber, Aircraft (=type), fleet ("express"/"mainline"), OperatedBy
     const aircraft = (upstream.starlinkPlanes || []).map(p => ({
-      tail: p.tail_number,
-      fleet: p.fleet || 'Express',
-      type: p.aircraft_type || 'Unknown',
-      operator: p.operator || 'United Airlines',
+      tail: p.TailNumber,
+      fleet: (p.fleet || 'express').charAt(0).toUpperCase() + (p.fleet || 'express').slice(1),
+      type: p.Aircraft || 'Unknown',
+      operator: p.OperatedBy || 'United Airlines',
     }));
+
+    // Normalize fleet stats to simple counts
+    const fs = upstream.fleetStats;
+    const fleetStats = fs ? {
+      mainline: fs.mainline?.starlink ?? 0,
+      express: fs.express?.starlink ?? 0,
+      total: fs.combined?.starlink ?? aircraft.length,
+      mainlineTotal: fs.mainline?.total ?? 0,
+      expressTotal: fs.express?.total ?? 0,
+    } : null;
+
+    // Normalize flight fields (upstream uses departure_airport/arrival_airport)
+    const flightsByTail: Record<string, Array<{ flight_number: string; origin: string; destination: string; departure_time: string }>> = {};
+    for (const [tail, flights] of Object.entries(upstream.flightsByTail || {})) {
+      flightsByTail[tail] = flights.map((f: any) => ({
+        flight_number: f.flight_number,
+        origin: f.departure_airport || f.origin || '',
+        destination: f.arrival_airport || f.destination || '',
+        departure_time: f.departure_time || '',
+      }));
+    }
 
     const enriched = {
       aircraft,
       totalCount: upstream.totalCount || aircraft.length,
-      fleetStats: upstream.fleetStats || null,
-      flightsByTail: upstream.flightsByTail || {},
+      fleetStats,
+      flightsByTail,
       lastUpdated: upstream.lastUpdated || new Date().toISOString(),
       syncedAt: new Date().toISOString(),
     };
