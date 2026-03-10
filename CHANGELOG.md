@@ -4,6 +4,53 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3] - 2026-03-10
+
+### Added
+- **AI-Powered Delay Explanations** — Claude Haiku explains why a flight is delayed in plain language, with inbound aircraft context
+- **Delay Risk Engine v3** — 8-signal scoring with phenomena-aware weather, IRROPS stress, ETA-based turnaround analysis
+- **Aircraft Journey Chain Tracking** — see where an aircraft has been and predict downstream delay propagation
+- **Schedule Filters** — filter by route type (domestic/international), Starlink-equipped, time range, and delay risk level
+- **Live Starlink Data** — replaced static Starlink database with live API feed and flight connectivity predictions
+- **Fleet Stats Chips** — at-a-glance fleet statistics in the fleet panel
+- **Clickable LIVE STATUS Card** — click to focus the flight on the map
+- **"Daily Cockpit" v1.3 Feature Set** — My Flights, Delay Risk, Connection Risk, Home Airport
+- **Background Cache Warming** — Vercel cron pre-warms schedule data for faster tab loads
+
+### Changed
+- **TypeScript migration** — core modules migrated to TypeScript for type safety
+- **CSS extraction** — styles extracted from inline to dedicated stylesheets
+- **JS modularization** — monolithic scripts split into focused modules
+- **Architecture overhaul** — shared cache layer, hub data split, expanded test coverage
+- **Official FR24 API** — schedule data now uses official FlightRadar24 API with scraping fallback
+- **Cron interval** — warming interval changed from 5min to 15min to reduce API costs
+- **Flight cards redesign** — compact inline row layout with reduced cache banner padding
+- **UI/UX polish** — "Risk" renamed to "Delay" for clarity, improved feature discovery
+- **SEO, security, and performance** — audited and hardened foundations
+- **"View on Map" button** — now switches to LIVE tab first before focusing flight
+
+### Fixed
+- FR24 API: datetime format, pagination, field mapping, tomorrow skip, hub closure detection
+- FR24 rate-limiting: adaptive handling, concurrency control, retry logic, browser User-Agent
+- Schedule resilience: partial data instead of 502, non-fatal batching, stale-complete fallback
+- Schedule gate format and hub cache warming
+- Flight schedule: broken pagination, missing hub timeouts, restrictive flight regex
+- Direction filtering with ICAO/IATA code matching
+- Cron auth, IRROPS performance, flight-times 404
+- Client-side schedule cache: stop caching partial/empty results, stop IRROPS from clobbering cache
+- ORD international flights: parallel batching to fetch all schedule pages
+- In-air flight status detection and watched flight map highlighting
+- Flight-times API: prefer in-air flights over future scheduled
+- Activity log scanning for in-air flight lookup
+- Scroll on international flights (overflow:visible override)
+- AI explanation: third-person voice, plain text output, explicit API key passing
+- Schedule footer built with DOM nodes instead of innerHTML (XSS hardening)
+- Recurring upstream data source failures for schedule data
+
+### Security
+- innerHTML replaced with DOM node construction in schedule footer
+- Anthropic SDK API key passed explicitly (not leaked via env)
+
 ## [1.2] - 2026-03-01
 
 ### Added
@@ -66,7 +113,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ## [1.1] - 2026-02-23
 
-80 commits since launch. Full release notes: [v1.1](https://github.com/notjbg/the-blue-board/releases/tag/v1.1)
+80 commits since launch.
 
 ### Added
 - Shareable flight links (`?flight=UA1234`) with push notification watch alerts
@@ -112,7 +159,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ## [1.0] - 2026-02-12
 
-Initial public launch. Full release notes: [v1.0](https://github.com/notjbg/the-blue-board/releases/tag/v1.0)
+Initial public launch.
 
 ### Added
 - Live flight tracking map (30s updates via FlightRadar24)
@@ -128,6 +175,7 @@ Initial public launch. Full release notes: [v1.0](https://github.com/notjbg/the-
 - JSON-LD structured data, Open Graph metadata
 - Vercel hosting with edge caching
 
+[1.3]: https://github.com/notjbg/the-blue-board/compare/v1.2...v1.3
 [1.2]: https://github.com/notjbg/the-blue-board/compare/v1.1.1...v1.2
 [1.1.1]: https://github.com/notjbg/the-blue-board/compare/v1.1...v1.1.1
 [1.1]: https://github.com/notjbg/the-blue-board/compare/v1.0...v1.1
