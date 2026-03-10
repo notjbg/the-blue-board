@@ -4148,7 +4148,12 @@ async function loadScheduleData() {
       let msg = '';
       if (result.degraded && meta.dataAge) {
         const ageMin = Math.round(meta.dataAge / 60);
-        msg = `Showing cached complete data from ${ageMin}m ago while refreshing.`;
+        if (meta.fallbackDeltaMin) {
+          const fallbackHours = Math.round(meta.fallbackDeltaMin / 60);
+          msg = `Showing cached complete data from ${ageMin}m ago (${fallbackHours}h from selected day) while refreshing.`;
+        } else {
+          msg = `Showing cached complete data from ${ageMin}m ago while refreshing.`;
+        }
       } else if (meta.partialReason === 'deadline_exceeded') {
         msg = 'The request timed out before all pages were fetched.';
       } else if (meta.partialReason === 'first_page_failed') {

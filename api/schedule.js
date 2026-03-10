@@ -72,6 +72,40 @@ function getLastComplete(key) {
   return entry;
 }
 
+function getRecentCompleteForHubDir(hub, dir, requestedTs) {
+  const reqHub = String(hub || '').toUpperCase();
+  const reqDir = String(dir || '').toLowerCase();
+  let best = null;
+
+  for (const [key, entry] of lastCompleteCache.entries()) {
+    if (!entry || (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE)) {
+      lastCompleteCache.delete(key);
+      continue;
+    }
+
+    const parts = key.split(':');
+    if (parts.length !== 4 || parts[0] !== 'agg') continue;
+    const [, keyHub, keyDir, keyTsRaw] = parts;
+    if (keyHub.toUpperCase() !== reqHub || keyDir !== reqDir) continue;
+
+    const keyTs = parseInt(keyTsRaw, 10);
+    if (Number.isNaN(keyTs)) continue;
+
+    // Prefer same-day complete snapshot first, then closest timestamp.
+    const sameDay = Math.abs(keyTs - requestedTs) < 86400;
+    const tsDistance = Math.abs(keyTs - requestedTs);
+
+    if (!best ||
+      (sameDay && !best.sameDay) ||
+      (sameDay === best.sameDay && tsDistance < best.tsDistance) ||
+      (sameDay === best.sameDay && tsDistance === best.tsDistance && entry.time > best.entry.time)) {
+      best = { entry, keyTs, sameDay, tsDistance };
+    }
+  }
+
+  return best;
+}
+
 function cacheSet(key, data, ttlMs) {
   if (cache.size >= MAX_CACHE_SIZE) {
     const firstKey = cache.keys().next().value;
@@ -645,6 +679,24 @@ export default async function handler(req, res) {
       });
     }
 
+    // Broader fallback: use the most recent complete dataset for the same hub/dir
+    // (helps when a new day has no fresh cache yet and upstream briefly fails).
+    const recentComplete = getRecentCompleteForHubDir(hub, dir, ts);
+    if (recentComplete) {
+      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
+      const dataAge = Math.round((Date.now() - recentComplete.entry.time) / 1000);
+      const fallbackDeltaMin = Math.round(Math.abs(ts - recentComplete.keyTs) / 60);
+      res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+      return res.status(200).json({ ...recentComplete.entry.data, cached: true, stale: true, degraded: true,
+        meta: {
+          ...recentComplete.entry.data.meta,
+          dataAge,
+          fallbackTimestamp: recentComplete.keyTs,
+          fallbackDeltaMin
+        }
+      });
+    }
+
     // Dedup concurrent aggregation requests
     if (pendingAggs.has(aggKey)) {
       const result = await pendingAggs.get(aggKey);
@@ -672,6 +724,21 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
           return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
             meta: { ...lc.data.meta, dataAge }
+          });
+        }
+
+        const recentComplete = getRecentCompleteForHubDir(hub, dir, ts);
+        if (recentComplete) {
+          const dataAge = Math.round((Date.now() - recentComplete.entry.time) / 1000);
+          const fallbackDeltaMin = Math.round(Math.abs(ts - recentComplete.keyTs) / 60);
+          res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+          return res.status(200).json({ ...recentComplete.entry.data, cached: true, stale: true, degraded: true,
+            meta: {
+              ...recentComplete.entry.data.meta,
+              dataAge,
+              fallbackTimestamp: recentComplete.keyTs,
+              fallbackDeltaMin
+            }
           });
         }
       }
