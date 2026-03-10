@@ -389,3 +389,100 @@ describe('getStartOfDayForHub', () => {
     expect(typeof ts).toBe('number');
   });
 });
+
+// ═══ AIRCRAFT HISTORY TESTS ═══
+import { normalizeSegments } from '../api/aircraft-history.js';
+
+describe('normalizeSegments', () => {
+  it('normalizes FR24 summary data into segments with delay calculation', () => {
+    const data = {
+      data: [
+        {
+          flight_iata: 'UA302',
+          origin: { iata: 'SFO' },
+          destination: { iata: 'ORD' },
+          status: 'landed',
+          departure: { scheduled: '2026-03-10T10:00:00Z', actual: '2026-03-10T10:42:00Z' },
+          arrival: { scheduled: '2026-03-10T14:00:00Z', actual: '2026-03-10T14:38:00Z' },
+        },
+      ],
+    };
+    const segs = normalizeSegments(data);
+    expect(segs).toHaveLength(1);
+    expect(segs[0].flightNumber).toBe('UA302');
+    expect(segs[0].origin).toBe('SFO');
+    expect(segs[0].destination).toBe('ORD');
+    expect(segs[0].delayMin).toBe(42);
+    expect(segs[0].status).toBe('landed');
+  });
+
+  it('filters out segments with missing airport data', () => {
+    const data = {
+      data: [
+        { flight_iata: 'UA1', origin: { iata: 'SFO' }, destination: { iata: 'ORD' }, status: 'landed',
+          departure: { scheduled: '2026-03-10T10:00:00Z' }, arrival: {} },
+        { flight_iata: 'UA2', origin: {}, destination: { iata: 'LAX' }, status: 'landed',
+          departure: { scheduled: '2026-03-10T11:00:00Z' }, arrival: {} },
+      ],
+    };
+    const segs = normalizeSegments(data);
+    expect(segs).toHaveLength(1);
+    expect(segs[0].flightNumber).toBe('UA1');
+  });
+
+  it('sorts by departure time descending and limits to 5', () => {
+    const data = { data: [] };
+    for (let i = 0; i < 8; i++) {
+      data.data.push({
+        flight_iata: 'UA' + (100 + i),
+        origin: { iata: 'SFO' },
+        destination: { iata: 'ORD' },
+        status: 'landed',
+        departure: { scheduled: new Date(Date.now() - (i * 3600000)).toISOString() },
+        arrival: {},
+      });
+    }
+    const segs = normalizeSegments(data);
+    expect(segs).toHaveLength(5);
+    // Most recent should be first
+    expect(segs[0].flightNumber).toBe('UA100');
+  });
+
+  it('handles null/missing delay gracefully', () => {
+    const data = {
+      data: [
+        {
+          flight_iata: 'UA500',
+          origin: { iata: 'DEN' },
+          destination: { iata: 'EWR' },
+          status: 'en-route',
+          departure: { scheduled: '2026-03-10T12:00:00Z' },
+          arrival: { estimated: '2026-03-10T16:30:00Z' },
+        },
+      ],
+    };
+    const segs = normalizeSegments(data);
+    expect(segs[0].delayMin).toBeNull(); // No actual departure → can't compute delay
+  });
+
+  it('returns empty array for empty data', () => {
+    expect(normalizeSegments({})).toEqual([]);
+    expect(normalizeSegments({ data: [] })).toEqual([]);
+    expect(normalizeSegments(null)).toEqual([]);
+  });
+
+  it('computes negative delay for early departures', () => {
+    const data = {
+      data: [{
+        flight_iata: 'UA999',
+        origin: { iata: 'IAH' },
+        destination: { iata: 'LAX' },
+        status: 'landed',
+        departure: { scheduled: '2026-03-10T15:00:00Z', actual: '2026-03-10T14:55:00Z' },
+        arrival: { scheduled: '2026-03-10T17:00:00Z', actual: '2026-03-10T16:50:00Z' },
+      }],
+    };
+    const segs = normalizeSegments(data);
+    expect(segs[0].delayMin).toBe(-5); // 5 minutes early
+  });
+});

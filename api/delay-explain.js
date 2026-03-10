@@ -16,7 +16,8 @@ const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 function getCacheKey(ctx) {
-  return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}`;
+  const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
+  return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${inboundKey}`;
 }
 
 export default async function handler(req, res) {
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ explanation: cached.text, cached: true });
     }
 
-    // Build token-efficient prompt (~200-300 input tokens)
+    // Build context prompt with aircraft journey chain
     const lines = [
       `Flight: ${ctx.flight} (${ctx.route || 'unknown route'})`,
       `Status: ${ctx.status || 'scheduled'}`,
@@ -61,12 +62,12 @@ export default async function handler(req, res) {
     }
     if (ctx.otp) lines.push(`Hub on-time performance: ${ctx.otp}%`);
     if (ctx.weather) lines.push(`Weather conditions: ${ctx.weather}`);
-    if (ctx.inbound) lines.push(`Inbound aircraft: ${ctx.inbound}`);
+    if (ctx.inbound) lines.push(`Aircraft journey: ${ctx.inbound}`);
 
     const message = await getClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
-      system: `You are an independent flight delay analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Refer to United Airlines in the third person. Give a concise, helpful explanation (3-4 sentences) of the delay situation. Be specific about causes and what the passenger should realistically expect. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
+      max_tokens: 280,
+      system: `You are an expert flight operations analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Analyze the delay risk like a seasoned frequent flyer would. Prioritize inbound aircraft routing patterns and delay propagation over generic observations — if the aircraft has been running late across multiple segments, explain the snowball effect and what it means for this flight. If turnaround time is tight, say so directly with specifics. Give actionable insight in 3-5 sentences. Be specific about this flight's situation, not generic. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
       messages: [{ role: 'user', content: lines.join('\n') }],
     });
 
