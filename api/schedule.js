@@ -260,7 +260,11 @@ function normalizeSummaryFlight(f) {
 
 async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
   const token = process.env.FR24_API_TOKEN;
-  if (!token) return null;
+  if (!token) {
+    console.log('Official FR24 API: no FR24_API_TOKEN configured');
+    return null;
+  }
+  console.log(`Official FR24 API: fetching ${hub} ${dir} (token: ${token.slice(0, 8)}...)`);
 
   timeoutMs = timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000;
   const startTime = Date.now();
@@ -301,22 +305,36 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
     const data = await resp.json();
     const flights = data?.data || [];
+    // Log response shape for debugging
+    console.log(`Official FR24 API response for ${hub}: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
+    if (flights.length > 0) {
+      const sample = flights[0];
+      console.log(`Sample flight: flight_iata=${sample.flight_iata}, orig_iata=${sample.orig_iata}, orig_icao=${sample.orig_icao}, dest_iata=${sample.dest_iata}, dest_icao=${sample.dest_icao}, origin=${JSON.stringify(sample.origin)?.slice(0,100)}, destination=${JSON.stringify(sample.destination)?.slice(0,100)}`);
+    }
     if (!flights.length) {
       console.log(`Official FR24 API returned 0 flights for ${hub} ${dir}`);
       return null;
     }
 
     // Normalize each flight and filter by direction
+    // Compare against both IATA and ICAO variants of the hub code
     const hubUpper = hub.toUpperCase();
+    const hubIcao = hub.length === 3 ? ('K' + hub).toUpperCase() : hub.toUpperCase();
     const allUAFlights = [];
     for (const f of flights) {
-      const normalized = normalizeSummaryFlight(f);
-      // Filter by direction: departures = origin matches hub, arrivals = destination matches hub
-      const origCode = normalized.airport.origin.code.iata.toUpperCase();
-      const destCode = normalized.airport.destination.code.iata.toUpperCase();
-      if (dir === 'departures' && origCode !== hubUpper) continue;
-      if (dir === 'arrivals' && destCode !== hubUpper) continue;
-      allUAFlights.push(normalized);
+      // Check direction using raw API fields BEFORE normalization (more reliable)
+      const rawOrigIata = (f.orig_iata || f.origin?.iata || '').toUpperCase();
+      const rawOrigIcao = (f.orig_icao || f.origin?.icao || '').toUpperCase();
+      const rawDestIata = (f.dest_iata || f.destination?.iata || '').toUpperCase();
+      const rawDestIcao = (f.dest_icao || f.destination?.icao || '').toUpperCase();
+
+      const origMatchesHub = rawOrigIata === hubUpper || rawOrigIcao === hubIcao || rawOrigIcao === hubUpper || icaoToIata(rawOrigIcao).toUpperCase() === hubUpper;
+      const destMatchesHub = rawDestIata === hubUpper || rawDestIcao === hubIcao || rawDestIcao === hubUpper || icaoToIata(rawDestIcao).toUpperCase() === hubUpper;
+
+      if (dir === 'departures' && !origMatchesHub) continue;
+      if (dir === 'arrivals' && !destMatchesHub) continue;
+
+      allUAFlights.push(normalizeSummaryFlight(f));
     }
 
     const elapsedMs = Date.now() - startTime;
