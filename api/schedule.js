@@ -116,8 +116,20 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
       const resp = await fetchWithTimeout(url, deadlineMs);
       if (resp.ok) {
         const data = await resp.json();
-        const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
-        if (!sched) return null;
+        const airportData = data?.result?.response?.airport;
+        const sched = airportData?.pluginData?.schedule?.[dir];
+        // FR24 can return a successful airport payload with no schedule block
+        // (common for lightly published future dates). Treat as an empty page,
+        // not an upstream outage.
+        if (!sched) {
+          if (airportData) {
+            return {
+              page: { current: page, total: 1 },
+              data: []
+            };
+          }
+          return null;
+        }
         return sched;
       }
       // Retry on transient FR24 errors (including 403 — FR24 uses it for rate limiting)
