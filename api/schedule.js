@@ -1,4 +1,5 @@
 import { createRateLimiter } from './_rate-limit.js';
+import { HUB_TZ } from './irrops.js';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
@@ -170,8 +171,9 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
     } finally {
       releaseFR24Slot();
     }
-    const baseDelay = 750 * (attempt + 1);
-    const jitter = Math.floor(Math.random() * 300);
+    // Exponential backoff: 1s, 2s (with jitter) — heavier for rate limits
+    const baseDelay = 1000 * Math.pow(2, attempt);
+    const jitter = Math.floor(Math.random() * 500);
     await new Promise(r => setTimeout(r, baseDelay + jitter));
   }
   return null;
@@ -182,6 +184,27 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
 // Returns all UA flights at a hub in a single request (no pagination)
 
 const FR24_API_BASE = 'https://fr24api.flightradar24.com';
+
+// FR24 API requires YYYY-MM-DDTHH:MM:SS (no milliseconds, no Z suffix)
+function formatForFR24(date) {
+  return date.toISOString().replace(/\.\d{3}Z$/, '');
+}
+
+// Compute end-of-today (23:59:59) in the hub's local timezone, returned as a Date
+function getEndOfTodayForHub(hub) {
+  const tz = HUB_TZ[hub.toUpperCase()] || 'America/New_York';
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const hour = get('hour'), minute = get('minute'), second = get('second');
+  const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
+  const startOfTodayUnix = Math.floor(now.getTime() / 1000) - secondsSinceMidnight;
+  // End of today = start of today + 86400 - 1 second
+  return new Date((startOfTodayUnix + 86400 - 1) * 1000);
+}
 
 function icaoToIata(icao) {
   if (!icao) return '';
@@ -303,16 +326,24 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
   // Build date range from the unix timestamp (day boundaries)
   const dayStart = new Date(ts * 1000);
-  const dayEnd = new Date((ts + 86400) * 1000);
+  let dayEnd = new Date((ts + 86400) * 1000);
+
+  // Clamp dayEnd so it never exceeds end-of-today in the hub's local timezone
+  // FR24 rejects requests where the date range extends into tomorrow
+  const endOfToday = getEndOfTodayForHub(hub);
+  if (dayEnd > endOfToday) {
+    dayEnd = endOfToday;
+  }
 
   const params = new URLSearchParams({
     airports: hub,
     operating_as: 'UAL',
-    flight_datetime_from: dayStart.toISOString(),
-    flight_datetime_to: dayEnd.toISOString(),
+    flight_datetime_from: formatForFR24(dayStart),
+    flight_datetime_to: formatForFR24(dayEnd),
     limit: '5000'
   });
 
+  const queriedHub = params.get('airports'); // use for all logs to match the actual API query
   const url = `${FR24_API_BASE}/api/flight-summary/light?${params}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Math.min(timeoutMs, 30000));
@@ -331,20 +362,20 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
     if (!resp.ok) {
       const body = await resp.text().catch(() => '');
-      console.error(`Official FR24 API returned ${resp.status} for ${hub}: ${body.slice(0, 200)}`);
+      console.error(`Official FR24 API returned ${resp.status} for ${queriedHub}: ${body.slice(0, 200)}`);
       return null;
     }
 
     const data = await resp.json();
     const flights = data?.data || [];
     // Log response shape for debugging
-    console.log(`Official FR24 API response for ${hub}: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
+    console.log(`Official FR24 API response for ${queriedHub}: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
     if (flights.length > 0) {
       const sample = flights[0];
       console.log(`Sample flight: flight_iata=${sample.flight_iata}, orig_iata=${sample.orig_iata}, orig_icao=${sample.orig_icao}, dest_iata=${sample.dest_iata}, dest_icao=${sample.dest_icao}, origin=${JSON.stringify(sample.origin)?.slice(0,100)}, destination=${JSON.stringify(sample.destination)?.slice(0,100)}`);
     }
     if (!flights.length) {
-      console.log(`Official FR24 API returned 0 flights for ${hub} ${dir}`);
+      console.log(`Official FR24 API returned 0 flights for ${queriedHub} ${dir}`);
       return {
         flights: [],
         total: 0,
@@ -390,7 +421,7 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
     }
 
     const elapsedMs = Date.now() - startTime;
-    console.log(`Official FR24 API: ${flights.length} total flights, ${allUAFlights.length} ${dir} for ${hub} in ${elapsedMs}ms`);
+    console.log(`Official FR24 API: ${flights.length} total flights, ${allUAFlights.length} ${dir} for ${queriedHub} in ${elapsedMs}ms`);
 
     return {
       flights: allUAFlights,
@@ -416,9 +447,9 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
   } catch (e) {
     clearTimeout(timeout);
     if (e.name === 'AbortError') {
-      console.error(`Official FR24 API timeout for ${hub}`);
+      console.error(`Official FR24 API timeout for ${queriedHub}`);
     } else {
-      console.error(`Official FR24 API error for ${hub}:`, e.message);
+      console.error(`Official FR24 API error for ${queriedHub}:`, e.message);
     }
     return null;
   }
@@ -464,7 +495,8 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
   let totalFetched = 0;
   let partial = false;
   let pagesScanned = 0;
-  const failedPages = [];
+  const failedPages = [];       // transient errors (worth retrying)
+  const rateLimitedPages = [];   // 429/403 failures (do NOT retry)
   const BATCH_SIZE = 4;
   const MAX_PAGES = 50;
 
@@ -513,6 +545,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
       );
 
       let batchDone = false;
+      let hitRateLimit = false;
       for (let i = 0; i < batchResults.length; i++) {
         const result = batchResults[i];
         pagesScanned++;
@@ -520,16 +553,18 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
           failedPages.push(batchPages[i]);
           continue;
         }
-        // Detect rate-limit sentinel and adapt delay
+        // Detect rate-limit sentinel — stop paginating immediately
         if (result.value._rateLimited) {
-          failedPages.push(batchPages[i]);
-          currentBatchDelay = Math.min(currentBatchDelay * 2, 2000);
+          rateLimitedPages.push(batchPages[i]);
+          hitRateLimit = true;
           continue;
         }
         const sched = result.value;
         if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
         if (processPage(sched)) { batchDone = true; break; }
       }
+      // Stop pagination entirely on rate limit — further pages will just get 429'd too
+      if (hitRateLimit) { partial = true; break; }
       if (batchDone) break;
 
       pageNum = batchEnd + 1;
@@ -540,14 +575,20 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
     }
   }
 
-  // Cooldown before retrying failed pages — let FR24 rate limits reset
-  if (failedPages.length > 0 && Date.now() < deadline - 5000) {
+  // Mark rate-limited pages as partial (they won't be retried)
+  if (rateLimitedPages.length > 0) {
+    partial = true;
+  }
+
+  // Cooldown before retrying transiently-failed pages — let FR24 rate limits reset
+  // Skip retry phase entirely if we hit rate limits (retrying will just get more 429s)
+  if (failedPages.length > 0 && rateLimitedPages.length === 0 && Date.now() < deadline - 5000) {
     const cooldown = Math.min(1500, failedPages.length * 150);
     await new Promise(r => setTimeout(r, cooldown));
   }
 
-  // Retry failed pages in mini-batches of 2 with gaps (avoid simultaneous blast)
-  if (failedPages.length > 0 && Date.now() < deadline - 3000) {
+  // Retry only transient failures (not rate-limited pages) in mini-batches
+  if (failedPages.length > 0 && rateLimitedPages.length === 0 && Date.now() < deadline - 3000) {
     const RETRY_BATCH = 2;
     const RETRY_DELAY = 800;
     const stillFailed = [];
@@ -584,11 +625,13 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
     partial = true;
   }
 
+  const allFailedPages = [...failedPages, ...rateLimitedPages];
   const elapsedMs = Date.now() - startTime;
   const pagesRequested = Math.min(totalPages, MAX_PAGES);
   let partialReason = null;
   if (partial) {
-    if (Date.now() > deadline - 2000) partialReason = 'deadline_exceeded';
+    if (rateLimitedPages.length > 0) partialReason = 'rate_limited';
+    else if (Date.now() > deadline - 2000) partialReason = 'deadline_exceeded';
     else if (failedPages.length > 0) partialReason = 'page_fetch_failed';
     else partialReason = 'unknown';
   }
@@ -606,10 +649,10 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
     meta: {
       partialReason,
       pagesRequested,
-      pagesSucceeded: pagesScanned - failedPages.length,
-      pagesFailed: failedPages.length,
-      missingPages: failedPages,
-      completeness: pagesRequested > 0 ? Math.round(((pagesScanned - failedPages.length) / pagesRequested) * 100) / 100 : 1,
+      pagesSucceeded: pagesScanned - allFailedPages.length,
+      pagesFailed: allFailedPages.length,
+      missingPages: allFailedPages,
+      completeness: pagesRequested > 0 ? Math.round(((pagesScanned - allFailedPages.length) / pagesRequested) * 100) / 100 : 1,
       elapsedMs
     }
   };
