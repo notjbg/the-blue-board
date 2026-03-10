@@ -160,7 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!rawFlight) return res.status(400).json({ success: false, error: 'Missing flight parameter' });
 
   const flight = normalizeFlightNumber(rawFlight);
-  if (!/^UAL\d{1,4}[A-Z]?$/i.test(flight)) {
+  if (!/^UAL\d{1,5}[A-Z]?$/i.test(flight)) {
     return res.status(400).json({ success: false, error: 'Invalid flight number' });
   }
 
