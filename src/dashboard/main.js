@@ -3052,8 +3052,8 @@ function renderScheduleTable() {
     const reg = fl.aircraft?.registration || '—';
 
     const gate = schedCurrentDir === 'departures'
-      ? (orig?.info?.gate ? `${orig.info.terminal || ''}${orig.info.gate}` : (orig?.info?.terminal ? `T${orig.info.terminal}` : '—'))
-      : (dest?.info?.gate ? `${dest.info.terminal || ''}${dest.info.gate}` : (dest?.info?.terminal ? `T${dest.info.terminal}` : '—'));
+      ? (orig?.info?.gate ? orig.info.gate : (orig?.info?.terminal ? `T${orig.info.terminal}` : '—'))
+      : (dest?.info?.gate ? dest.info.gate : (dest?.info?.terminal ? `T${dest.info.terminal}` : '—'));
 
     const status = classifySchedStatus(fl);
 
