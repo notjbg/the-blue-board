@@ -5,6 +5,8 @@
 //   Live positions: GET /api/live/flight-positions/full?flights={iata}
 //   Flight summary: GET /api/flight-summary/light?flights={iata}
 
+import type { VercelRequest, VercelResponse } from './types.js';
+
 const FR24_BASE = 'https://fr24api.flightradar24.com';
 const LIVE_PATH = '/api/live/flight-positions/full';
 const SUMMARY_PATH = '/api/flight-summary/light';
@@ -12,34 +14,34 @@ const API_VERSION = 'v1';
 const CACHE_TTL_MS = 60_000;
 
 // Simple in-memory cache
-const cache = new Map();
-function getCached(key) {
+const cache = new Map<string, { data: any; ts: number }>();
+function getCached(key: string): any | null {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > CACHE_TTL_MS) { cache.delete(key); return null; }
   return entry.data;
 }
-function setCache(key, data) {
+function setCache(key: string, data: any): void {
   // Evict if cache too large
   if (cache.size > 200) {
     const oldest = cache.keys().next().value;
-    cache.delete(oldest);
+    if (oldest !== undefined) cache.delete(oldest);
   }
   cache.set(key, { data, ts: Date.now() });
 }
 
 // Rate limiting: 10 req/min per IP, 60 req/min global
-const rateLimitByIp = new Map();
-const globalLog = [];
+const rateLimitByIp = new Map<string, number[]>();
+const globalLog: number[] = [];
 const MAX_PER_IP = 10;
 const MAX_GLOBAL = 60;
 let lastCleanup = Date.now();
-function getClientIp(req) {
+function getClientIp(req: VercelRequest): string {
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
-  return raw.split(',')[0]?.trim() || req.headers?.['x-real-ip'] || 'unknown';
+  return raw.split(',')[0]?.trim() || (req.headers?.['x-real-ip'] as string) || 'unknown';
 }
-function isRateLimited(req) {
+function isRateLimited(req: VercelRequest): boolean {
   const now = Date.now();
   const ip = getClientIp(req);
   // Global limit
@@ -47,7 +49,7 @@ function isRateLimited(req) {
   if (globalLog.length >= MAX_GLOBAL) return true;
   // Per-IP limit
   if (!rateLimitByIp.has(ip)) rateLimitByIp.set(ip, []);
-  const ipLog = rateLimitByIp.get(ip);
+  const ipLog = rateLimitByIp.get(ip)!;
   while (ipLog.length && ipLog[0] < now - 60_000) ipLog.shift();
   if (ipLog.length >= MAX_PER_IP) return true;
   globalLog.push(now);
@@ -63,17 +65,17 @@ function isRateLimited(req) {
   return false;
 }
 
-function corsHeaders(req) {
+function corsHeaders(req: VercelRequest): Record<string, string> {
   const origin = req.headers?.origin || '';
-  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin as string);
   return {
-    'Access-Control-Allow-Origin': allowed ? origin : 'https://theblueboard.co',
+    'Access-Control-Allow-Origin': allowed ? (origin as string) : 'https://theblueboard.co',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 }
 
-export function normalizeFlightNumber(raw) {
+export function normalizeFlightNumber(raw: string): string {
   let q = (raw || '').trim().toUpperCase().replace(/\s+/g, '');
   // "UAL838" → "UA838"
   if (q.startsWith('UAL') && /^\d/.test(q.slice(3))) q = 'UA' + q.slice(3);
@@ -82,7 +84,7 @@ export function normalizeFlightNumber(raw) {
   return q;
 }
 
-async function fr24Fetch(path, params) {
+async function fr24Fetch(path: string, params: Record<string, string>): Promise<Response> {
   const url = new URL(FR24_BASE + path);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
@@ -102,7 +104,7 @@ async function fr24Fetch(path, params) {
   return resp;
 }
 
-export function normalizeLiveResponse(data, flightNumber) {
+export function normalizeLiveResponse(data: any, flightNumber: string): any | null {
   // FR24 live positions return { data: [ { ... } ] }
   const flights = data?.data || [];
   if (!flights.length) return null;
@@ -147,7 +149,7 @@ export function normalizeLiveResponse(data, flightNumber) {
   };
 }
 
-export function normalizeSummaryResponse(data, flightNumber) {
+export function normalizeSummaryResponse(data: any, flightNumber: string): any | null {
   const flights = data?.data || [];
   if (!flights.length) return null;
 
@@ -185,7 +187,7 @@ export function normalizeSummaryResponse(data, flightNumber) {
   };
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = corsHeaders(req);
   for (const [k, v] of Object.entries(cors)) res.setHeader(k, v);
 
@@ -197,7 +199,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'FR24 API not configured' });
   }
 
-  const rawFlight = req.query.flight;
+  const rawFlight = req.query.flight as string;
   if (!rawFlight) return res.status(400).json({ success: false, error: 'Missing flight parameter' });
 
   const flight = normalizeFlightNumber(rawFlight);
@@ -220,7 +222,7 @@ export default async function handler(req, res) {
 
   try {
     // 1. Try live positions first
-    let flightData = null;
+    let flightData: any = null;
     let source = 'live';
 
     const liveResp = await fr24Fetch(LIVE_PATH, { flights: flight });
@@ -282,7 +284,7 @@ export default async function handler(req, res) {
     setCache(cacheKey, result);
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
     return res.status(200).json(result);
-  } catch (e) {
+  } catch (e: any) {
     console.error('FR24 flight lookup error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ success: false, error: 'FR24 API timeout' });
     return res.status(502).json({ success: false, error: 'FR24 API unavailable' });

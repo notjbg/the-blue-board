@@ -2,6 +2,7 @@
 // Runs every 15 minutes to ensure users always hit warm cache.
 // Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/5 * * * *" }
 
+import type { VercelRequest, VercelResponse } from '../types.js';
 import { getStartOfDayForHub } from '../irrops.js';
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
@@ -11,13 +12,13 @@ const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_URL}`
     : 'https://theblueboard.co';
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Vercel cron sends authorization header with CRON_SECRET
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const results = {};
+  const results: Record<string, any> = {};
   let warmed = 0;
   let failed = 0;
 
@@ -42,14 +43,14 @@ export default async function handler(req, res) {
           });
           clearTimeout(timeout);
           if (resp.ok) {
-            const data = await resp.json();
+            const data = await resp.json() as any;
             results[key] = { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false };
             warmed++;
           } else {
             results[key] = { status: `http_${resp.status}` };
             failed++;
           }
-        } catch (e) {
+        } catch (e: any) {
           results[key] = { status: 'error', message: e.message };
           failed++;
         }

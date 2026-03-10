@@ -1,12 +1,13 @@
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('fr24-feed', 30);
 
 const feedCache = new CacheStore('fr24-feed', { maxSize: 1, defaultTTL: 15_000 });
-let feedFetching = null;
+let feedFetching: Promise<any> | null = null;
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const airline = req.query.airline || 'UAL';
+    const airline = (req.query.airline as string) || 'UAL';
     // Validate airline: 2-4 letter ICAO code
     if (!/^[A-Z0-9]{2,4}$/i.test(airline)) {
       return res.status(400).json({ error: 'Invalid airline code' });
@@ -65,7 +66,7 @@ export default async function handler(req, res) {
     } finally {
       feedFetching = null;
     }
-  } catch (e) {
+  } catch (e: any) {
     console.error('FR24 feed error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });

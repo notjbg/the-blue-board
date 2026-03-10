@@ -2,17 +2,18 @@
 // via the internal /api/schedule endpoint (which benefits from cron cache warming),
 // computes disruption metrics, caches for 15 minutes.
 
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('irrops', 60);
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
-export const HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
+export const HUB_TZ: Record<string, string> = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
 const irropsCache = new CacheStore('irrops', { maxSize: 1, defaultTTL: 15 * 60 * 1000 });
-let fetching = null;
+let fetching: Promise<any> | null = null;
 // Persistent per-hub cache — survives full refresh failures
-let hubCache = {};
+let hubCache: Record<string, { flights: any[]; fetchedAt: number }> = {};
 
 const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
@@ -20,7 +21,7 @@ const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_URL}`
     : 'https://theblueboard.co';
 
-async function fetchHubFromScheduleAPI(hub, timestamp) {
+async function fetchHubFromScheduleAPI(hub: string, timestamp: number): Promise<any[]> {
   const url = `${BASE_URL}/api/schedule?hub=${hub}&dir=departures&timestamp=${timestamp}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 55000);
@@ -32,17 +33,33 @@ async function fetchHubFromScheduleAPI(hub, timestamp) {
     clearTimeout(timeout);
     if (!resp.ok) return [];
     const data = await resp.json();
-    return data.flights || [];
-  } catch (e) {
+    return (data as any).flights || [];
+  } catch (e: any) {
     clearTimeout(timeout);
     console.error(`IRROPS: Failed to fetch schedule for ${hub}:`, e.message);
     return [];
   }
 }
 
-export function computeMetrics(flightsByHub) {
-  let allFlights = [];
-  const hubMetrics = {};
+interface HubMetric {
+  total: number;
+  cancellations: number;
+  delayed30: number;
+  delayed60: number;
+  diversions: number;
+  operated: number;
+  onTime: number;
+}
+
+interface WorstDelay {
+  ident: string;
+  route: string;
+  delay: number;
+}
+
+export function computeMetrics(flightsByHub: Record<string, any[]>) {
+  let allFlights: any[] = [];
+  const hubMetrics: Record<string, HubMetric> = {};
 
   for (const [hub, flights] of Object.entries(flightsByHub)) {
     allFlights = allFlights.concat(flights);
@@ -75,7 +92,7 @@ export function computeMetrics(flightsByHub) {
   }
 
   let cancellations = 0, delayed30 = 0, delayed60 = 0, diversions = 0;
-  const worstDelays = [];
+  const worstDelays: WorstDelay[] = [];
 
   for (const fl of allFlights) {
     const status = fl.status?.generic?.status?.text?.toLowerCase() || '';
@@ -118,14 +135,14 @@ export function computeMetrics(flightsByHub) {
   };
 }
 
-export function getStartOfDayForHub(hub) {
+export function getStartOfDayForHub(hub: string): number {
   const tz = HUB_TZ[hub] || 'America/New_York';
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   }).formatToParts(now);
-  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
   const hour = get('hour'), minute = get('minute'), second = get('second');
   const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
   const startOfToday = Math.floor((now.getTime() / 1000) - secondsSinceMidnight);
@@ -135,7 +152,7 @@ export function getStartOfDayForHub(hub) {
 }
 
 async function buildIrropsData() {
-  const flightsByHub = {};
+  const flightsByHub: Record<string, any[]> = {};
 
   // Fetch all hubs in parallel via the internal schedule API (cached by cron)
   const results = await Promise.allSettled(
@@ -171,7 +188,7 @@ async function buildIrropsData() {
   return computeMetrics(flightsByHub);
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

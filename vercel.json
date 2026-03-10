@@ -1,10 +1,10 @@
 {
   "cleanUrls": true,
     "functions": {
-        "api/irrops.js": { "maxDuration": 90 },
-        "api/schedule.js": { "maxDuration": 60 },
-        "api/cron/warm-schedules.js": { "maxDuration": 300 },
-        "api/delay-explain.js": { "maxDuration": 15 }
+        "api/irrops.ts": { "maxDuration": 90 },
+        "api/schedule.ts": { "maxDuration": 60 },
+        "api/cron/warm-schedules.ts": { "maxDuration": 300 },
+        "api/delay-explain.ts": { "maxDuration": 15 }
     },
     "crons": [
         { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
@@ -58,6 +58,18 @@
       "source": "/data/(.*).json",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=600" }
+      ]
+    },
+    {
+      "source": "/css/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     }
   ]

@@ -4,6 +4,7 @@
 // Uses FR24 Official API flight-summary endpoint with `regs` parameter
 // Returns the last 5 flight segments for the aircraft within a 36-hour window
 
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 
 const isRateLimited = createRateLimiter('aircraft-history', 15);
@@ -13,29 +14,39 @@ const SUMMARY_PATH = '/api/flight-summary/light';
 const API_VERSION = 'v1';
 
 // 5-minute cache — historical data doesn't change fast
-const cache = new Map();
+const cache = new Map<string, { data: any; ts: number }>();
 const CACHE_TTL_MS = 5 * 60_000;
 
-function getCached(key) {
+function getCached(key: string): any | null {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > CACHE_TTL_MS) { cache.delete(key); return null; }
   return entry.data;
 }
 
-function setCache(key, data) {
+function setCache(key: string, data: any): void {
   if (cache.size > 100) {
     const oldest = cache.keys().next().value;
-    cache.delete(oldest);
+    if (oldest !== undefined) cache.delete(oldest);
   }
   cache.set(key, { data, ts: Date.now() });
 }
 
-export function normalizeSegments(data) {
+interface NormalizedSegment {
+  flightNumber: string;
+  origin: string;
+  destination: string;
+  status: string;
+  departure: { scheduled: string; actual: string };
+  arrival: { scheduled: string; actual: string; estimated: string };
+  delayMin: number | null;
+}
+
+export function normalizeSegments(data: any): NormalizedSegment[] {
   const flights = data?.data || [];
   if (!flights.length) return [];
 
-  return flights.map(f => {
+  return flights.map((f: any) => {
     const depSched = f.departure?.scheduled || f.scheduled_departure || '';
     const depActual = f.departure?.actual || f.actual_departure || '';
     const arrSched = f.arrival?.scheduled || f.scheduled_arrival || '';
@@ -43,7 +54,7 @@ export function normalizeSegments(data) {
     const arrEst = f.arrival?.estimated || f.estimated_arrival || '';
 
     // Compute departure delay in minutes
-    let delayMin = null;
+    let delayMin: number | null = null;
     if (depSched && depActual) {
       const schedMs = new Date(depSched).getTime();
       const actualMs = new Date(depActual).getTime();
@@ -66,8 +77,8 @@ export function normalizeSegments(data) {
       delayMin,
     };
   })
-  .filter(s => s.origin && s.destination) // Drop segments with missing airports
-  .sort((a, b) => {
+  .filter((s: NormalizedSegment) => s.origin && s.destination) // Drop segments with missing airports
+  .sort((a: NormalizedSegment, b: NormalizedSegment) => {
     // Sort by departure time descending (most recent first)
     const tA = new Date(a.departure.actual || a.departure.scheduled || 0).getTime();
     const tB = new Date(b.departure.actual || b.departure.scheduled || 0).getTime();
@@ -76,9 +87,9 @@ export function normalizeSegments(data) {
   .slice(0, 5); // Return up to 5 segments
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const origin = req.headers?.origin || '';
-  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin as string);
   res.setHeader('Access-Control-Allow-Origin', allowed ? origin : 'https://theblueboard.co');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -90,7 +101,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'FR24 API not configured' });
   }
 
-  const reg = (req.query.reg || '').trim().toUpperCase().replace('-', '');
+  const reg = ((req.query.reg as string) || '').trim().toUpperCase().replace('-', '');
   if (!reg || !/^[A-Z0-9]{4,8}$/.test(reg)) {
     return res.status(400).json({ success: false, error: 'Invalid registration format' });
   }
@@ -144,7 +155,7 @@ export default async function handler(req, res) {
     setCache(cacheKey, result);
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     return res.status(200).json(result);
-  } catch (e) {
+  } catch (e: any) {
     console.error('Aircraft history error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ success: false, error: 'FR24 API timeout' });
     return res.status(502).json({ success: false, error: 'FR24 API unavailable' });
