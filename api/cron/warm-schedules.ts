@@ -1,6 +1,6 @@
 // Vercel Cron Job: warms schedule CDN + in-memory cache for all UA hubs.
 // Runs every 15 minutes to ensure users always hit warm cache.
-// Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/5 * * * *" }
+// Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
 
 import type { VercelRequest, VercelResponse } from '../types.js';
 import { getStartOfDayForHub } from '../irrops.js';
@@ -12,6 +12,27 @@ const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_URL}`
     : 'https://theblueboard.co';
 
+async function warmOne(hub: string, dir: string, timestamp: number, label: string): Promise<{ key: string; result: any }> {
+  const key = `${hub}-${dir}-${label}`;
+  const url = `${BASE_URL}/api/schedule?hub=${hub}&dir=${dir}&timestamp=${timestamp}`;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000);
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' }
+    });
+    clearTimeout(timeout);
+    if (resp.ok) {
+      const data = await resp.json() as any;
+      return { key, result: { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false } };
+    }
+    return { key, result: { status: `http_${resp.status}` } };
+  } catch (e: any) {
+    return { key, result: { status: 'error', message: e.message } };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Vercel cron sends authorization header with CRON_SECRET
   if (req.headers.authorization !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -22,42 +43,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let warmed = 0;
   let failed = 0;
 
-  const DIRS = ['departures', 'arrivals'];
-  for (const hub of HUBS) {
+  // Warm today first for ALL hubs (most important), then tomorrow.
+  // For each hub, fetch departures & arrivals in parallel to cut time in half.
+  const TIMESTAMPS = (hub: string) => {
     const todayTs = getStartOfDayForHub(hub);
-    const tomorrowTs = todayTs + 86400;
-    const timestamps = [
+    return [
       { ts: todayTs, label: 'today' },
-      { ts: tomorrowTs, label: 'tomorrow' },
+      { ts: todayTs + 86400, label: 'tomorrow' },
     ];
-    for (const { ts: timestamp, label } of timestamps) {
-      for (const dir of DIRS) {
-        const key = `${hub}-${dir}-${label}`;
-        const url = `${BASE_URL}/api/schedule?hub=${hub}&dir=${dir}&timestamp=${timestamp}`;
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 55000);
-          const resp = await fetch(url, {
-            signal: controller.signal,
-            headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' }
-          });
-          clearTimeout(timeout);
-          if (resp.ok) {
-            const data = await resp.json() as any;
-            results[key] = { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false };
-            warmed++;
-          } else {
-            results[key] = { status: `http_${resp.status}` };
-            failed++;
-          }
-        } catch (e: any) {
-          results[key] = { status: 'error', message: e.message };
-          failed++;
-        }
-        // 2s pause between requests to avoid overwhelming FR24
-        await new Promise(r => setTimeout(r, 2000));
-      }
+  };
+
+  // Phase 1: warm today for all hubs (departures + arrivals in parallel per hub)
+  for (const hub of HUBS) {
+    const todayTs = TIMESTAMPS(hub)[0];
+    const batch = await Promise.all([
+      warmOne(hub, 'departures', todayTs.ts, todayTs.label),
+      warmOne(hub, 'arrivals', todayTs.ts, todayTs.label),
+    ]);
+    for (const { key, result } of batch) {
+      results[key] = result;
+      if (result.status === 'ok') warmed++; else failed++;
     }
+    // Brief pause between hubs to avoid overwhelming FR24
+    await new Promise(r => setTimeout(r, 1000));
+  }
+
+  // Phase 2: warm tomorrow for all hubs (if time permits — cron has 300s max)
+  for (const hub of HUBS) {
+    const tomorrowTs = TIMESTAMPS(hub)[1];
+    const batch = await Promise.all([
+      warmOne(hub, 'departures', tomorrowTs.ts, tomorrowTs.label),
+      warmOne(hub, 'arrivals', tomorrowTs.ts, tomorrowTs.label),
+    ]);
+    for (const { key, result } of batch) {
+      results[key] = result;
+      if (result.status === 'ok') warmed++; else failed++;
+    }
+    await new Promise(r => setTimeout(r, 1000));
   }
 
   console.log(`Cron warm-schedules: ${warmed} warmed, ${failed} failed`, results);

@@ -18,7 +18,7 @@ const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
-const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000, LAX: 55000, DEN: 55000, IAD: 55000 };
+const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000, LAX: 55000, DEN: 55000, IAD: 55000, NRT: 55000, GUM: 55000 };
 
 // Global concurrency limiter for FR24 outbound requests
 const MAX_CONCURRENT_FR24 = 6;
