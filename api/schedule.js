@@ -8,6 +8,8 @@ const MAX_CACHE_SIZE = 200;
 
 // Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
 const lastCompleteCache = new Map();
+// Broader fallback cache keyed by hub+direction (survives day-key misses)
+const lastCompleteByHubDir = new Map();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
 const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
@@ -60,6 +62,15 @@ function saveComplete(key, data) {
     lastCompleteCache.delete(lastCompleteCache.keys().next().value);
   }
   lastCompleteCache.set(key, { data, time: Date.now() });
+
+  const aggMatch = /^agg:([A-Z]{3,4}):(departures|arrivals):\d+$/i.exec(key);
+  if (aggMatch) {
+    const hdKey = `${aggMatch[1].toUpperCase()}:${aggMatch[2]}`;
+    if (lastCompleteByHubDir.size >= MAX_COMPLETE_CACHE_SIZE) {
+      lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value);
+    }
+    lastCompleteByHubDir.set(hdKey, { data, time: Date.now(), sourceKey: key });
+  }
 }
 
 function getLastComplete(key) {
@@ -67,6 +78,17 @@ function getLastComplete(key) {
   if (!entry) return null;
   if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
     lastCompleteCache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function getLastCompleteByHubDir(hub, dir) {
+  const hdKey = `${hub.toUpperCase()}:${dir}`;
+  const entry = lastCompleteByHubDir.get(hdKey);
+  if (!entry) return null;
+  if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
+    lastCompleteByHubDir.delete(hdKey);
     return null;
   }
   return entry;
@@ -645,6 +667,18 @@ export default async function handler(req, res) {
       });
     }
 
+    // Broader fallback: if we don't have this exact day cached, serve latest complete
+    // data for the same hub+direction to avoid hard 0%-loaded outages.
+    const fallbackHubDir = getLastCompleteByHubDir(hub, dir);
+    if (fallbackHubDir) {
+      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
+      const dataAge = Math.round((Date.now() - fallbackHubDir.time) / 1000);
+      res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+      return res.status(200).json({ ...fallbackHubDir.data, cached: true, stale: true, degraded: true,
+        meta: { ...fallbackHubDir.data.meta, dataAge, fallbackScope: 'hub_dir', sourceKey: fallbackHubDir.sourceKey }
+      });
+    }
+
     // Dedup concurrent aggregation requests
     if (pendingAggs.has(aggKey)) {
       const result = await pendingAggs.get(aggKey);
@@ -672,6 +706,15 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
           return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
             meta: { ...lc.data.meta, dataAge }
+          });
+        }
+
+        const lcHubDir = getLastCompleteByHubDir(hub, dir);
+        if (lcHubDir) {
+          const dataAge = Math.round((Date.now() - lcHubDir.time) / 1000);
+          res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+          return res.status(200).json({ ...lcHubDir.data, cached: true, stale: true, degraded: true,
+            meta: { ...lcHubDir.data.meta, dataAge, fallbackScope: 'hub_dir', sourceKey: lcHubDir.sourceKey }
           });
         }
       }
