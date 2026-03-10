@@ -13,8 +13,9 @@ import { hubOrder, hubNavLabels } from '../data/hubs/index.js';
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style is:inline>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--mono:'JetBrains Mono',monospace}
-body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#8ab4f8;--ua-green:#22c55e;--mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center}
 a{color:var(--ua-accent);text-decoration:none}
 a:hover{text-decoration:underline}
 .code{font-size:120px;font-weight:700;color:var(--ua-blue);line-height:1;margin-bottom:8px;letter-spacing:-4px}
@@ -29,6 +30,7 @@ a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
+<main>
   <div class="code">404</div>
   <div class="title">Flight not found.</div>
   <div class="subtitle">This page doesn't exist — but every United flight does. Head back to the dashboard or check a hub below.</div>
@@ -38,6 +40,7 @@ a:hover{text-decoration:underline}
       <a href={`/hubs/${hub}`} class="hub-link">{hubNavLabels[hub]}</a>
     ))}
   </div>
+</main>
   <div class="footer">The Blue Board · Independent · Not affiliated with United Airlines, Inc.</div>
 </body>
 </html>

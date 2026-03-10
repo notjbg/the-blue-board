@@ -99,6 +99,8 @@ airportSchemaObj.url = airport.url;
 body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);font-size:13px;line-height:1.7;min-height:100vh}
 a{color:var(--ua-accent);text-decoration:none}
 a:hover{text-decoration:underline}
+.section p a,.section li a{text-decoration:underline;text-decoration-color:rgba(138,180,248,.4);text-underline-offset:2px}
+.section p a:hover,.section li a:hover{text-decoration-color:var(--ua-accent)}
 
 .container{max-width:900px;margin:0 auto;padding:20px 16px}
 
@@ -127,7 +129,8 @@ a:hover{text-decoration:underline}
 .live-panel .cta:hover{background:#0069c0;text-decoration:none}
 
 /* Content Sections */
-.section{margin-bottom:32px}
+.section{margin-bottom:40px;padding-top:24px;border-top:1px solid var(--ua-border)}
+.section:first-of-type{border-top:none;padding-top:0}
 .section h2{font-size:16px;font-weight:700;color:var(--ua-text);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
 .section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
 .section p{color:var(--ua-text);margin-bottom:12px}
@@ -170,6 +173,8 @@ a:hover{text-decoration:underline}
 body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);font-size:13px;line-height:1.7;min-height:100vh}
 a{color:var(--ua-accent);text-decoration:none}
 a:hover{text-decoration:underline}
+.section p a,.section li a{text-decoration:underline;text-decoration-color:rgba(138,180,248,.4);text-underline-offset:2px}
+.section p a:hover,.section li a:hover{text-decoration-color:var(--ua-accent)}
 .container{max-width:900px;margin:0 auto;padding:20px 16px}
 h1{font-size:22px;color:var(--ua-accent);margin:0 0 4px;font-weight:700}
 h2{font-size:16px;color:var(--ua-accent);border-bottom:1px solid var(--ua-border);padding-bottom:6px;margin:28px 0 12px}
@@ -205,7 +210,7 @@ nav.jump-nav a:hover{border-color:var(--ua-accent);color:var(--ua-accent);text-d
 </head>
 <body>
 
-<div class="container">
+<main class="container">
 
 {variant === 'full' && (
   <>
@@ -264,7 +269,7 @@ nav.jump-nav a:hover{border-color:var(--ua-accent);color:var(--ua-accent);text-d
     </nav>
   </div>
 
-</div>
+</main>
 
 <!-- Footer -->
 <div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8;margin-top:40px">

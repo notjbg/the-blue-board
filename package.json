@@ -13,7 +13,8 @@
     "build:dashboard": "vite build --config vite.dashboard.config.js",
     "preview": "astro preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ui-audit": "node scripts/ui-audit.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -21,7 +22,9 @@
     "fast-xml-parser": "^5.4.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@vercel/node": "^5.6.12",
+    "playwright": "^1.58.2",
     "typescript": "^5.9.3",
     "vitest": "^3.0.0"
   }
