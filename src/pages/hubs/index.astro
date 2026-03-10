@@ -118,10 +118,12 @@ for (const key of hubOrder) {
 
 <style is:inline>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#64748b;--ua-accent:#8ab4f8;--ua-green:#22c55e;--mono:'JetBrains Mono',monospace}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#8ab4f8;--ua-green:#22c55e;--mono:'JetBrains Mono',monospace}
 body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--mono);font-size:13px;line-height:1.7;min-height:100vh}
 a{color:var(--ua-accent);text-decoration:none}
 a:hover{text-decoration:underline}
+.section p a,.section li a{text-decoration:underline;text-decoration-color:rgba(138,180,248,.4);text-underline-offset:2px}
+.section p a:hover,.section li a:hover{text-decoration-color:var(--ua-accent)}
 .container{max-width:900px;margin:0 auto;padding:20px 16px}
 h1{font-size:22px;font-weight:700;color:var(--ua-text);letter-spacing:-.5px;margin-bottom:4px}
 h1 .iata{color:var(--ua-blue)}
@@ -156,19 +158,13 @@ p{margin-bottom:12px}
 </head>
 <body>
 
-<div class="container">
+<main class="container">
 
   <!-- Header -->
   <div class="header">
     <div class="nav"><a href="/">&#8592; The Blue Board</a> / Hubs</div>
     <h1>United Airlines <span class="iata">Hub Airports</span> — Live Status & Delays</h1>
     <div class="subtitle">Real-time operations at all 9 United hubs · Delays, cancellations, on-time performance</div>
-  </div>
-
-  <!-- Intro -->
-  <div class="section">
-    <p>United Airlines operates a network of <strong>9 hub airports</strong> spanning the United States, Asia, and the Pacific. Together, these hubs handle thousands of daily departures connecting over 350 destinations worldwide. The Blue Board tracks every United flight at every hub in real time — updated every 30 seconds.</p>
-    <p>Select a hub below to see live delay counts, on-time performance, Starlink WiFi fleet information, seasonal delay patterns, terminal details, and more.</p>
   </div>
 
   <!-- CTA -->
@@ -191,6 +187,12 @@ p{margin-bottom:12px}
         </div>
       );
     })}
+  </div>
+
+  <!-- Intro -->
+  <div class="section">
+    <p>United Airlines operates a network of <strong>9 hub airports</strong> spanning the United States, Asia, and the Pacific. Together, these hubs handle thousands of daily departures connecting over 350 destinations worldwide. The Blue Board tracks every United flight at every hub in real time — updated every 30 seconds.</p>
+    <p>Select a hub above to see live delay counts, on-time performance, Starlink WiFi fleet information, seasonal delay patterns, terminal details, and more.</p>
   </div>
 
   <!-- Content Sections -->
@@ -232,7 +234,7 @@ p{margin-bottom:12px}
     <p>All 9 United hubs have some level of international service. The primary international gateways are: <a href="/hubs/ewr">Newark (EWR)</a> for transatlantic flights, <a href="/hubs/sfo">San Francisco (SFO)</a> for transpacific routes, <a href="/hubs/iah">Houston (IAH)</a> for Latin America, and <a href="/hubs/nrt">Tokyo Narita (NRT)</a> for Asia connections.</p>
   </div>
 
-</div>
+</main>
 
 <!-- Footer -->
 <div class="footer">
