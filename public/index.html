@@ -494,11 +494,12 @@ tbody td{padding:5px 8px;white-space:nowrap}
 
 /* ═══ TAB 4: ANALYTICS ═══ */
 #tab-analytics{padding:16px;flex:1;min-height:0;overflow-y:auto}
-.metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
-@media(max-width:900px){.metric-row{grid-template-columns:repeat(2,1fr)}}
-.metric-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;text-align:center}
-.metric-val{font-size:28px;font-weight:700;color:var(--ua-blue)}
-.metric-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.metric-row{display:flex;align-items:center;gap:0;margin-bottom:6px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;overflow:hidden}
+@media(max-width:900px){.metric-row{flex-wrap:wrap}}
+.metric-card{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-right:1px solid var(--ua-border);min-width:0}
+.metric-card:last-child{border-right:none}
+.metric-val{font-size:16px;font-weight:700;color:var(--ua-blue);line-height:1}
+.metric-label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 
 /* ═══ TAB 5: SOURCES ═══ */
 #tab-sources{padding:20px;flex:1;min-height:0;overflow-y:auto}
@@ -608,7 +609,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-schedule .card:first-child > div > div{flex-direction:column;gap:6px;width:100%}
   #tab-schedule select,#tab-schedule input[type="text"]{width:100%!important;min-height:44px;font-size:14px!important;padding:8px 10px!important}
   #tab-schedule button{min-height:44px}
-  #sched-stats.metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  #sched-stats.metric-row{flex-wrap:wrap;gap:0}
   #sched-table-wrap{max-height:none}
   .fleet-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   #sched-table th{position:static}
@@ -627,8 +628,9 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #radar-map{height:300px}
   .hub-cards{grid-template-columns:1fr;padding:10px}
   /* Analytics mobile */
-  .metric-row{grid-template-columns:repeat(2,1fr)!important;gap:8px}
-  .metric-val{font-size:22px}
+  .metric-row{flex-wrap:wrap;gap:0}
+  .metric-card{min-width:45%}
+  .metric-val{font-size:14px}
   /* General touch targets */
   .sched-day-btn{min-height:44px;padding:8px 14px;font-size:14px}
   .hub-row{padding:10px 12px}
@@ -1091,9 +1093,9 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
     </div>
   </div>
   <div id="equip-change-summary"></div>
-  <div id="sched-stats" class="metric-row" style="margin:8px 0"></div>
+  <div id="sched-stats" class="metric-row" style="margin:4px 0"></div>
   <div class="card" style="padding:0;overflow:hidden">
-    <div id="sched-loading" style="text-align:center;padding:40px;color:var(--ua-muted);font-size:12px">
+    <div id="sched-loading" style="text-align:center;padding:10px;color:var(--ua-muted);font-size:11px">
       <div style="font-size:24px;margin-bottom:8px">📅</div>
       Select a hub and click Refresh to load schedule data
     </div>
@@ -4187,7 +4189,7 @@ async function loadScheduleData() {
       const borderColor = result.degraded ? 'rgba(78,205,196,.3)' : 'rgba(234,179,8,.3)';
       const textColor = result.degraded ? '#4ecdc4' : '#eab308';
       const icon = result.degraded ? '⏳' : '⚠️';
-      loadEl.innerHTML = `<div style="padding:8px 12px;background:${bgColor};border:1px solid ${borderColor};border-radius:4px;font-size:11px;color:${textColor};margin-bottom:8px">${icon} ${msg}${pct} <button onclick="delete schedCache['agg-${schedCurrentHub}-${schedCurrentDir}-${getSchedDayTimestamp(schedCurrentDay)}']; loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
+      loadEl.innerHTML = `<div style="padding:4px 12px;background:${bgColor};border:1px solid ${borderColor};border-radius:4px;font-size:11px;color:${textColor};margin:0">${icon} ${msg}${pct} <button onclick="delete schedCache['agg-${schedCurrentHub}-${schedCurrentDir}-${getSchedDayTimestamp(schedCurrentDay)}']; loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
       loadEl.style.display = 'block';
     } else {
       loadEl.style.display = 'none';
@@ -4534,24 +4536,24 @@ function renderScheduleStats(filtered) {
 
   document.getElementById('sched-stats').innerHTML = `
     <div class="metric-card">
-      <div class="metric-value" style="color:var(--ua-blue)">${showing}</div>
-      <div class="metric-label">UA ${dirLabel} · ${dayLabel}</div>
+      <span class="metric-val" style="color:var(--ua-blue)">${showing}</span>
+      <span class="metric-label">UA ${dirLabel} · ${dayLabel}</span>
     </div>
     <div class="metric-card">
-      <div class="metric-value" style="color:${otpColor}">${otpStr}</div>
-      <div class="metric-label">On-Time % (${totalOperated} operated)</div>
+      <span class="metric-val" style="color:${otpColor}">${otpStr}</span>
+      <span class="metric-label">On-Time (${totalOperated} opr)</span>
     </div>
     <div class="metric-card">
-      <div class="metric-value" style="color:#22c55e">${depOnTime}</div>
-      <div class="metric-label">On Time (±30m)</div>
+      <span class="metric-val" style="color:#22c55e">${depOnTime}</span>
+      <span class="metric-label">On Time</span>
     </div>
     <div class="metric-card">
-      <div class="metric-value" style="color:#f59e0b">${depDelayed}</div>
-      <div class="metric-label">Late (&gt;30m)</div>
+      <span class="metric-val" style="color:#f59e0b">${depDelayed}</span>
+      <span class="metric-label">Late</span>
     </div>
     <div class="metric-card">
-      <div class="metric-value" style="color:#94a3b8">${scheduled}</div>
-      <div class="metric-label">Upcoming</div>
+      <span class="metric-val" style="color:#94a3b8">${scheduled}</span>
+      <span class="metric-label">Upcoming</span>
     </div>
   `;
 }
