@@ -10,7 +10,7 @@ const CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours
 interface StarlinkCache {
   aircraft: Array<{ tail: string; fleet: string; type: string; operator: string }>;
   totalCount: number;
-  fleetStats: { mainline: number; express: number; total: number } | null;
+  fleetStats: { mainline: number; express: number; total: number; mainlineTotal: number; expressTotal: number } | null;
   flightsByTail: Record<string, Array<{ flight_number: string; origin: string; destination: string; departure_time: string }>>;
   lastUpdated: string;
   syncedAt: string;
@@ -32,18 +32,40 @@ async function fetchUpstream(): Promise<StarlinkCache> {
   if (!resp.ok) throw new Error(`Upstream ${resp.status}`);
 
   const upstream = await resp.json() as any;
+  // Upstream uses: TailNumber, Aircraft (=type), fleet ("express"/"mainline"), OperatedBy
   const aircraft = (upstream.starlinkPlanes || []).map((p: any) => ({
-    tail: p.tail_number,
-    fleet: p.fleet || 'Express',
-    type: p.aircraft_type || 'Unknown',
-    operator: p.operator || 'United Airlines',
+    tail: p.TailNumber,
+    fleet: (p.fleet || 'express').charAt(0).toUpperCase() + (p.fleet || 'express').slice(1),
+    type: p.Aircraft || 'Unknown',
+    operator: p.OperatedBy || 'United Airlines',
   }));
+
+  // Normalize fleet stats to simple counts
+  const fs = upstream.fleetStats;
+  const fleetStats = fs ? {
+    mainline: fs.mainline?.starlink ?? 0,
+    express: fs.express?.starlink ?? 0,
+    total: fs.combined?.starlink ?? aircraft.length,
+    mainlineTotal: fs.mainline?.total ?? 0,
+    expressTotal: fs.express?.total ?? 0,
+  } : null;
+
+  // Normalize flight fields (upstream uses departure_airport/arrival_airport)
+  const flightsByTail: Record<string, any[]> = {};
+  for (const [tail, flights] of Object.entries(upstream.flightsByTail || {} as Record<string, any[]>)) {
+    flightsByTail[tail] = (flights as any[]).map((f: any) => ({
+      flight_number: f.flight_number,
+      origin: f.departure_airport || f.origin || '',
+      destination: f.arrival_airport || f.destination || '',
+      departure_time: f.departure_time || '',
+    }));
+  }
 
   return {
     aircraft,
     totalCount: upstream.totalCount || aircraft.length,
-    fleetStats: upstream.fleetStats || null,
-    flightsByTail: upstream.flightsByTail || {},
+    fleetStats,
+    flightsByTail,
     lastUpdated: upstream.lastUpdated || new Date().toISOString(),
     syncedAt: new Date().toISOString(),
   };

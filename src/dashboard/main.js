@@ -1680,6 +1680,21 @@ function initFleetTab() {
   document.getElementById('starlink-progress').style.width = (mainlineStarlink / FLEET_DB.length * 100) + '%';
   document.getElementById('starlink-pct').textContent = Math.round(mainlineStarlink / FLEET_DB.length * 100) + '% (' + mainlineStarlink + '/' + FLEET_DB.length + ')';
 
+  // Render fleet stats chips if live data available
+  if (STARLINK_FLEET_STATS) {
+    const statsEl = document.getElementById('starlink-fleet-stats');
+    if (statsEl) {
+      const fs = STARLINK_FLEET_STATS;
+      const chipStyle = 'display:inline-flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:4px;font-size:10px';
+      statsEl.style.display = 'flex';
+      statsEl.innerHTML =
+        `<div style="${chipStyle};background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)"><span style="font-size:16px;font-weight:700;color:var(--ua-green)">${fs.total}</span><span style="color:var(--ua-muted)">Total</span></div>` +
+        `<div style="${chipStyle};background:rgba(0,93,170,.1);border:1px solid rgba(0,93,170,.2)"><span style="font-size:16px;font-weight:700;color:var(--ua-accent)">${fs.mainline}</span><span style="color:var(--ua-muted)">Mainline</span></div>` +
+        `<div style="${chipStyle};background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2)"><span style="font-size:16px;font-weight:700;color:#a855f7">${fs.express}</span><span style="color:var(--ua-muted)">Express</span></div>` +
+        (fs.mainlineTotal ? `<div style="${chipStyle};background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15)"><span style="font-size:16px;font-weight:700;color:var(--ua-text)">${Math.round(fs.mainline / fs.mainlineTotal * 100)}%</span><span style="color:var(--ua-muted)">Mainline Fleet</span></div>` : '');
+    }
+  }
+
   // Update Starlink tracker freshness indicator
   if (STARLINK_LAST_UPDATED) {
     const updatedEl = document.getElementById('starlink-updated');
