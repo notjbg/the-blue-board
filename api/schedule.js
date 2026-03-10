@@ -591,7 +591,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid timestamp' });
     }
     const isOld = (now - ts) > 86400;
-    const ttl = isOld ? 600000 : 300000;
+    const ttl = isOld ? 600000 : 900000;
     const cdnMaxAge = isOld ? 3600 : 900;
     const swr = 300;
 
