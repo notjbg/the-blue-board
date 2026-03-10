@@ -588,7 +588,7 @@
   </div>
   <div class="card">
     <h3>⚡ Starlink Tracker — <span id="starlink-count">258</span> Aircraft</h3>
-    <div style="font-size:10px;color:var(--ua-muted);margin-bottom:8px">Starlink data via <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-green)">unitedstarlinktracker.com</a>, updated daily</div>
+    <div style="font-size:10px;color:var(--ua-muted);margin-bottom:8px">Starlink data via <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-green)">unitedstarlinktracker.com</a> · <span id="starlink-updated" style="color:var(--ua-green)">live</span></div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
       <input type="text" id="starlink-search" aria-label="Search Starlink aircraft" placeholder="Search tail..." style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px;width:120px">
       <select id="starlink-filter-fleet" aria-label="Starlink fleet filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 6px;font-family:var(--mono);font-size:10px;border-radius:3px"><option value="">All Fleets</option><option value="Mainline">Mainline</option><option value="Express">Express</option></select>
@@ -598,7 +598,7 @@
     </div>
     <div class="fleet-table-wrap" style="max-height:400px">
       <table id="starlink-table">
-        <thead><tr><th data-starlink-sort="tail" style="cursor:pointer">Tail ↕</th><th data-starlink-sort="fleet" style="cursor:pointer">Fleet ↕</th><th data-starlink-sort="type" style="cursor:pointer">Type ↕</th><th data-starlink-sort="operator" style="cursor:pointer">Operator ↕</th></tr></thead>
+        <thead><tr><th data-starlink-sort="tail" style="cursor:pointer">Tail ↕</th><th data-starlink-sort="fleet" style="cursor:pointer">Fleet ↕</th><th data-starlink-sort="type" style="cursor:pointer">Type ↕</th><th data-starlink-sort="operator" style="cursor:pointer">Operator ↕</th><th id="starlink-next-flight-th" style="display:none">Next Flight</th></tr></thead>
         <tbody id="starlink-tbody"></tbody>
       </table>
     </div>
@@ -692,8 +692,8 @@
   <div class="source-item">
     <div class="source-icon">⚡</div>
     <div>
-      <div class="source-name">Starlink Tracker — @martinamps <span class="freshness fresh-daily">DAILY</span></div>
-      <div class="source-desc">258 Starlink-equipped United aircraft. Community-maintained tracker.</div>
+      <div class="source-name">Starlink Tracker — @martinamps <span class="freshness fresh-daily">LIVE</span></div>
+      <div class="source-desc">Starlink-equipped United aircraft with live fleet stats &amp; predictions. Community-maintained tracker.</div>
       <a class="source-link" href="https://github.com/martinamps/ua-starlink-tracker" target="_blank" rel="noopener noreferrer">github.com/martinamps/ua-starlink-tracker →</a>
       <a class="source-link" href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer" style="margin-left:12px">unitedstarlinktracker.com →</a>
     </div>

@@ -4,10 +4,14 @@
         "api/irrops.ts": { "maxDuration": 90 },
         "api/schedule.ts": { "maxDuration": 60 },
         "api/cron/warm-schedules.ts": { "maxDuration": 300 },
-        "api/delay-explain.ts": { "maxDuration": 15 }
+        "api/delay-explain.ts": { "maxDuration": 15 },
+        "api/cron/sync-starlink.ts": { "maxDuration": 30 },
+        "api/starlink-data.ts": { "maxDuration": 20 },
+        "api/predict-flight.ts": { "maxDuration": 15 }
     },
     "crons": [
-        { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
+        { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" },
+        { "path": "/api/cron/sync-starlink", "schedule": "0 */4 * * *" }
     ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",

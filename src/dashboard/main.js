@@ -31,19 +31,43 @@ function escapeHtml(str) {
 let FLEET_DB = [];
 let STARLINK_DB = [];
 let STARLINK_TAILS = new Set();
+let STARLINK_FLIGHTS_BY_TAIL = {};  // upcoming flights keyed by tail number
+let STARLINK_FLEET_STATS = null;    // { mainline, express, total }
+let STARLINK_LAST_UPDATED = null;   // ISO timestamp from upstream
 
 // Build registration lookup
 const FLEET_BY_REG = {};
 
 async function loadFleetData() {
   try {
-    const [fleetRes, starlinkRes] = await Promise.all([
-      fetch('/data/fleet.json'),
-      fetch('/data/starlink.json')
-    ]);
-    if (!fleetRes.ok || !starlinkRes.ok) throw new Error('Fleet data load failed');
+    // Fetch fleet data and try live Starlink API (fall back to static file)
+    const fleetRes = await fetch('/data/fleet.json');
+    if (!fleetRes.ok) throw new Error('Fleet data load failed');
     FLEET_DB = await fleetRes.json();
-    STARLINK_DB = await starlinkRes.json();
+
+    // Try live API first for always-current Starlink data
+    let starlinkLoaded = false;
+    try {
+      const liveRes = await fetch('/api/starlink-data');
+      if (liveRes.ok) {
+        const liveData = await liveRes.json();
+        STARLINK_DB = liveData.aircraft || [];
+        STARLINK_FLIGHTS_BY_TAIL = liveData.flightsByTail || {};
+        STARLINK_FLEET_STATS = liveData.fleetStats || null;
+        STARLINK_LAST_UPDATED = liveData.lastUpdated || null;
+        starlinkLoaded = true;
+      }
+    } catch (e) {
+      console.warn('Live Starlink API unavailable, falling back to static file');
+    }
+
+    // Fallback to static file
+    if (!starlinkLoaded) {
+      const starlinkRes = await fetch('/data/starlink.json');
+      if (starlinkRes.ok) {
+        STARLINK_DB = await starlinkRes.json();
+      }
+    }
   } catch (err) {
     console.error('Fleet data load error:', err);
     FLEET_DB = [];
@@ -1102,7 +1126,11 @@ function showFlightPopup(f, marker) {
     html += `<div class="popup-aircraft">`;
     html += `<div class="popup-aircraft-type">${escapeHtml(aircraft.t)} <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(aircraft.r)}" style="font-size:10px">${escapeHtml(aircraft.r)}</span></div>`;
     html += `<div style="font-size:10px;color:var(--ua-muted)">${escapeHtml(aircraft.c || '')} | ${escapeHtml(aircraft.w || '')} | ${escapeHtml(aircraft.i || '')}</div>`;
-    if (isStarlink) html += `<span class="starlink-badge">⚡ STARLINK</span> `;
+    if (isStarlink) {
+      html += `<span class="starlink-badge">⚡ STARLINK CONFIRMED</span> `;
+    } else if (flightNum && flightNum !== 'N/A') {
+      html += `<span class="starlink-badge starlink-predict" data-flight="${escapeHtml(flightNum)}" style="background:rgba(100,116,139,.15);color:var(--ua-muted)">⚡ Checking…</span> `;
+    }
     const popupSpecial = isSpecialAircraft(aircraft.r);
     if (popupSpecial) html += `<span class="special-badge">⭐ ${escapeHtml(popupSpecial.name)}</span> `;
     if (aircraft.seats && Object.keys(aircraft.seats).length > 0) {
@@ -1258,6 +1286,9 @@ function showFlightPopup(f, marker) {
       });
   })();
 
+  // Async fetch Starlink probability for non-confirmed flights
+  fetchStarlinkPredictions();
+
   // Draw great circle route lines with traveled/remaining segments + endpoint markers
   {
     let oApt = null, dApt = null;
@@ -1329,6 +1360,47 @@ function normalizeLonContinuity(pts) {
 // Legacy wrapper — no longer splits; just returns a single continuous segment
 function splitAtAntimeridian(pts) {
   return [normalizeLonContinuity(pts)];
+}
+
+// ═══ STARLINK PREDICTION ═══
+const starlinkPredictionCache = new Map();
+
+function fetchStarlinkPredictions() {
+  document.querySelectorAll('.starlink-predict').forEach(el => {
+    const flight = el.getAttribute('data-flight');
+    if (!flight || flight === 'N/A') { el.style.display = 'none'; return; }
+
+    // Check cache first
+    const cached = starlinkPredictionCache.get(flight);
+    if (cached) {
+      applyStarlinkPrediction(el, cached);
+      return;
+    }
+
+    fetch('/api/predict-flight?flight_number=' + encodeURIComponent(flight))
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data || data.probability === undefined) {
+          el.style.display = 'none';
+          return;
+        }
+        starlinkPredictionCache.set(flight, data);
+        applyStarlinkPrediction(el, data);
+      })
+      .catch(() => { el.style.display = 'none'; });
+  });
+}
+
+function applyStarlinkPrediction(el, data) {
+  const pct = Math.round(data.probability * 100);
+  if (pct < 5) { el.style.display = 'none'; return; }
+
+  const color = pct >= 75 ? 'var(--ua-green)' : pct >= 40 ? 'var(--ua-yellow)' : 'var(--ua-muted)';
+  const bgColor = pct >= 75 ? 'rgba(34,197,94,.2)' : pct >= 40 ? 'rgba(234,179,8,.15)' : 'rgba(100,116,139,.15)';
+  el.style.background = bgColor;
+  el.style.color = color;
+  el.textContent = '⚡ Starlink ~' + pct + '%';
+  el.title = 'Confidence: ' + (data.confidence || 'unknown') + ' (' + (data.n_observations || 0) + ' observations)';
 }
 
 // ═══ STATS ═══
@@ -1603,10 +1675,19 @@ function initFleetTab() {
     </div>`
   ).join('');
 
-  // Starlink progress
-  const mainlineStarlink = STARLINK_DB.filter(s => s.fleet === 'Mainline').length;
+  // Starlink progress — use live fleet stats if available
+  const mainlineStarlink = STARLINK_FLEET_STATS ? STARLINK_FLEET_STATS.mainline : STARLINK_DB.filter(s => s.fleet === 'Mainline').length;
   document.getElementById('starlink-progress').style.width = (mainlineStarlink / FLEET_DB.length * 100) + '%';
   document.getElementById('starlink-pct').textContent = Math.round(mainlineStarlink / FLEET_DB.length * 100) + '% (' + mainlineStarlink + '/' + FLEET_DB.length + ')';
+
+  // Update Starlink tracker freshness indicator
+  if (STARLINK_LAST_UPDATED) {
+    const updatedEl = document.getElementById('starlink-updated');
+    if (updatedEl) {
+      const ago = Math.round((Date.now() - new Date(STARLINK_LAST_UPDATED).getTime()) / 60000);
+      updatedEl.textContent = ago < 60 ? `Updated ${ago}m ago` : ago < 1440 ? `Updated ${Math.round(ago/60)}h ago` : `Updated ${Math.round(ago/1440)}d ago`;
+    }
+  }
 
   // Populate filters
   const wifiTypes = [...new Set(FLEET_DB.map(a => a.w).filter(Boolean))].sort();
@@ -1951,9 +2032,24 @@ function renderStarlinkTable() {
   document.getElementById('starlink-filtered-count').textContent = filtered.length < STARLINK_DB.length ? `${filtered.length} of ${STARLINK_DB.length}` : '';
   document.getElementById('starlink-count').textContent = STARLINK_DB.length;
 
-  document.getElementById('starlink-tbody').innerHTML = filtered.map(s =>
-    `<tr><td style="font-weight:700;color:var(--ua-green)">${escapeHtml(s.tail)}</td><td>${escapeHtml(s.fleet)}</td><td>${escapeHtml(s.type)}</td><td style="font-size:10px">${escapeHtml(s.operator)}</td></tr>`
-  ).join('');
+  const hasFlights = Object.keys(STARLINK_FLIGHTS_BY_TAIL).length > 0;
+  document.getElementById('starlink-tbody').innerHTML = filtered.map(s => {
+    let nextFlightHtml = '';
+    if (hasFlights) {
+      const flights = STARLINK_FLIGHTS_BY_TAIL[s.tail];
+      if (flights && flights.length > 0) {
+        const next = flights[0];
+        nextFlightHtml = `<td style="font-size:9px">${escapeHtml(next.flight_number || '')} ${escapeHtml((next.origin || '') + '→' + (next.destination || ''))}</td>`;
+      } else {
+        nextFlightHtml = '<td style="font-size:9px;color:var(--ua-muted)">—</td>';
+      }
+    }
+    return `<tr><td style="font-weight:700;color:var(--ua-green)">${escapeHtml(s.tail)}</td><td>${escapeHtml(s.fleet)}</td><td>${escapeHtml(s.type)}</td><td style="font-size:10px">${escapeHtml(s.operator)}</td>${nextFlightHtml}</tr>`;
+  }).join('');
+
+  // Toggle next-flight column header visibility
+  const nextFlightHeader = document.getElementById('starlink-next-flight-th');
+  if (nextFlightHeader) nextFlightHeader.style.display = hasFlights ? '' : 'none';
 }
 
 // ═══ FLEET DATA REFRESH ═══
@@ -3872,6 +3968,7 @@ async function renderMyFlights() {
 
   container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
   detectAndRenderConnections(flights, timeData);
+  fetchStarlinkPredictions();
 
   // Async: fetch aircraft journey chains for watched flights (non-blocking)
   flights.forEach((w, i) => {
@@ -4120,7 +4217,7 @@ function buildMyFlightCard(watched, td) {
     const seatStr = ac.seats ? Object.entries(ac.seats).map(([cls,cnt]) => cnt + cls).join('/') : (ac.c || '');
     equipHtml = `<div class="mf-grid">
       <div><span class="mf-label">Aircraft</span><div class="mf-value">${escapeHtml(ac.t)} <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}" style="font-size:10px">${escapeHtml(reg)}</span></div></div>
-      <div><span class="mf-label">Config</span><div class="mf-value">${escapeHtml(seatStr)}${isStar ? ' <span class="starlink-badge">⚡ Starlink</span>' : ''}</div></div>
+      <div><span class="mf-label">Config</span><div class="mf-value">${escapeHtml(seatStr)}${isStar ? ' <span class="starlink-badge">⚡ Starlink Confirmed</span>' : ` <span class="starlink-badge starlink-predict" data-flight="${escapeHtml(flightNum)}" style="background:rgba(100,116,139,.15);color:var(--ua-muted)">⚡ Checking…</span>`}</div></div>
     </div>`;
   } else if (td && td.aircraft) {
     equipHtml = `<div><span class="mf-label">Aircraft</span><div class="mf-value">${escapeHtml(td.aircraft)}</div></div>`;
