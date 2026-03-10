@@ -1,0 +1,30 @@
+/**
+ * Hub data for all 9 United Airlines hub pages.
+ * Split into per-hub files for maintainability.
+ */
+
+import { ord } from './ord.js';
+import { den } from './den.js';
+import { iah } from './iah.js';
+import { ewr } from './ewr.js';
+import { sfo } from './sfo.js';
+import { iad } from './iad.js';
+import { lax } from './lax.js';
+import { nrt } from './nrt.js';
+import { gum } from './gum.js';
+
+export const hubOrder = ['ord', 'den', 'iah', 'ewr', 'sfo', 'iad', 'lax', 'nrt', 'gum'];
+
+export const hubNavLabels = {
+  ord: 'ORD · Chicago',
+  den: 'DEN · Denver',
+  iah: 'IAH · Houston',
+  ewr: 'EWR · Newark',
+  sfo: 'SFO · San Francisco',
+  iad: 'IAD · Washington',
+  lax: 'LAX · Los Angeles',
+  nrt: 'NRT · Tokyo',
+  gum: 'GUM · Guam',
+};
+
+export const hubs = { ord, den, iah, ewr, sfo, iad, lax, nrt, gum };

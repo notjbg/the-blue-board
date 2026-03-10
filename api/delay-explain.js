@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createRateLimiter } from './_rate-limit.js';
+import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('delay-explain', 20);
 
@@ -11,9 +12,7 @@ function getClient() {
   return client;
 }
 
-// Simple in-memory cache — avoids redundant AI calls for same flight state
-const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const cache = new CacheStore('delay-explain', { maxSize: 200, defaultTTL: 5 * 60 * 1000 });
 
 function getCacheKey(ctx) {
   const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
@@ -47,8 +46,8 @@ export default async function handler(req, res) {
     // Check cache
     const key = getCacheKey(ctx);
     const cached = cache.get(key);
-    if (cached && Date.now() - cached.time < CACHE_TTL) {
-      return res.status(200).json({ explanation: cached.text, cached: true });
+    if (cached) {
+      return res.status(200).json({ explanation: cached, cached: true });
     }
 
     // Build context prompt with aircraft journey chain
@@ -74,14 +73,7 @@ export default async function handler(req, res) {
     const text = message.content[0]?.text || 'Unable to generate analysis.';
 
     // Cache the result
-    cache.set(key, { text, time: Date.now() });
-    // Evict old entries periodically
-    if (cache.size > 200) {
-      const now = Date.now();
-      for (const [k, v] of cache) {
-        if (now - v.time > CACHE_TTL) cache.delete(k);
-      }
-    }
+    cache.set(key, text);
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ explanation: text, cached: false });

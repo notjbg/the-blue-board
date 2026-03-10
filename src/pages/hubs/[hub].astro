@@ -1,6 +1,6 @@
 ---
 import HubLayout from '../../layouts/HubLayout.astro';
-import { hubs } from '../../data/hubs.js';
+import { hubs } from '../../data/hubs/index.js';
 
 export function getStaticPaths() {
   return Object.keys(hubs).map((hub) => ({ params: { hub } }));
