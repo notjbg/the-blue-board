@@ -29,6 +29,7 @@ interface DelayContext {
   hub?: string;
   irrops?: string;
   hubTime?: string;
+  connection?: string;
 }
 
 function getCacheKey(ctx: DelayContext): string {
@@ -82,21 +83,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (ctx.destWeather) lines.push(`Destination weather: ${ctx.destWeather}`);
     if (ctx.irrops) lines.push(`Hub disruption status: ${ctx.irrops}`);
     if (ctx.hubTime) lines.push(`Current local time at hub: ${ctx.hubTime}`);
+    if (ctx.connection) lines.push(`Passenger connection: ${ctx.connection}`);
     if (ctx.inbound) lines.push(`Aircraft journey: ${ctx.inbound}`);
 
     const message = await getClient().messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 350,
-      system: `You are an expert flight operations analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Analyze the delay risk like a seasoned frequent flyer would.
+      max_tokens: 400,
+      system: `You are a senior flight operations analyst briefing for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Analyze delay risk the way a network operations center dispatcher would.
 
-Key analysis priorities:
-- Inbound aircraft routing patterns and delay propagation are the strongest predictors. If the aircraft has been running late across multiple segments, explain the snowball effect and what it means for this flight. If turnaround time is tight, say so directly with specifics.
-- Destination weather matters for arrival — if severe weather or IFR/LIFR conditions exist at the destination, note the risk of holds, diversions, or arrival delays.
-- Time-of-day cascade effects: late afternoon and evening flights inherit accumulated network delays. If it's evening at the hub, factor that in.
-- Hub disruption context: if the hub has elevated cancellation rates or widespread delays, explain what that means for this specific flight.
-- For LOW-risk flights, be honest that the outlook is good — don't manufacture concern. A clean score with no flags is worth noting positively.
+Analysis framework — evaluate in this order:
+1. AIRCRAFT ROUTING: This is the #1 predictor. If the inbound aircraft has been running late across multiple segments, explain the compounding effect — each late turn erodes schedule padding. If turnaround time is tight or impossible, state the specific math (ETA, minimum turn time, buffer). If de-icing is required, note the queue time impact (typically 15-45 min depending on conditions and holdover limits).
+2. FAA PROGRAMS: Ground stops freeze departures. GDPs absorb delays in controlled-rate releases — explain what the average delay means for this flight's departure window. A GDP at the destination means the flight may be held on the ground at origin even if the origin airport is clear.
+3. RUNWAY & CAPACITY: SFO in IFR/LIFR loses roughly half its capacity (28L/28R go single-stream). EWR's crossing runways (4/22 and 11/29) lose intersecting operations. ORD in thunderstorms can drop to 50% acceptance rate. These capacity reductions cascade into departure queues and ground holds.
+4. WEATHER: Distinguish between departure weather (affects taxi, de-icing, takeoff) and arrival weather (affects holds, diversions, missed approaches). Freezing precipitation below 0C means active de-icing with reduced holdover times. Thunderstorms can halt ground operations entirely.
+5. NETWORK HEALTH: High cancellation rates mean displaced crews, gate shortages, and rebooking chaos. When a hub's OTP is below 50%, the system is in IRROPS mode — expect cascading effects on staffing and equipment.
+6. TIME-OF-DAY: Morning flights have the best on-time performance (fresh aircraft, rested crews, minimal accumulated delays). By evening, network delays have compounded. Flights after 7pm local inherit the day's cumulative disruptions.
+7. CONNECTIONS: If the passenger has a connecting flight, assess delay impact on the connection. A 15-min delay on a 45-min connection is a potential misconnect. Flag it directly.
 
-Give actionable insight in 3-5 sentences. Be specific about this flight's situation, not generic. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
+For LOW-risk flights with clean conditions, say so — don't manufacture concern. State "the outlook is favorable" and briefly note why.
+
+Deliver 3-5 sentences of direct, specific analysis. Use the language of airline operations: turnaround, block time, acceptance rate, ground hold, gate availability, crew legality. No hedging — state probabilities clearly: "likely," "probable," "unlikely." Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
       messages: [{ role: 'user', content: lines.join('\n') }],
     });
 

@@ -155,10 +155,12 @@ function makeDelayRiskScore({
   delayMin = 0, faaOrig = {}, faaDest = {},
   wxOrigLevel = 'normal', wxOrigCat = 'VFR', wxOrigThunderstorms = false,
   wxOrigFreezingPrecip = false, wxOrigSnow = false, wxOrigGustKt = 0,
+  wxOrigTempC = null,
   wxDestLevel = 'normal', wxDestCat = 'VFR', wxDestThunderstorms = false,
-  otp = undefined, hubHour = 10, origHub = 'ORD',
+  otp = undefined, hubHour = 10, origHub = 'ORD', destHub = 'LAX',
   hasInboundAirborne = false, timeToDepMin = 999,
   irropsCancel = 0, irropsDelayed60 = 0,
+  destIrropsCancel = 0, destIrropsDelayed60 = 0,
 } = {}) {
   let score = 0;
   const factors = [];
@@ -182,7 +184,7 @@ function makeDelayRiskScore({
   else if (faaDest.groundDelay)     { score += 15; factors.push('GDP dest'); }
   else if (faaDest.arrivalDelay)    { score += 8; factors.push('Arr delays dest'); }
 
-  // Signal 4: weather (0-30) — phenomena-aware
+  // Signal 4: weather (0-30+) — phenomena-aware with hub-specific IFR capacity
   if (wxOrigLevel === 'severe')       score += 15;
   else if (wxOrigLevel === 'warning') score += 10;
   else if (wxOrigLevel === 'caution') score += 4;
@@ -190,12 +192,29 @@ function makeDelayRiskScore({
   if (wxOrigFreezingPrecip) score += 6;
   if (wxOrigSnow)           score += 4;
   if (wxOrigGustKt >= 35)   score += 5;
-  if (wxOrigCat === 'LIFR')          score += 10;
-  else if (wxOrigCat === 'IFR')      score += 5;
+  // Hub-specific IFR capacity reduction
+  if (wxOrigCat === 'LIFR') {
+    if (origHub === 'SFO') score += 15;
+    else if (origHub === 'EWR') score += 14;
+    else score += 10;
+  } else if (wxOrigCat === 'IFR') {
+    if (origHub === 'SFO') score += 10;
+    else if (origHub === 'EWR') score += 8;
+    else score += 5;
+  }
+  // De-icing queue penalty
+  if ((wxOrigFreezingPrecip || wxOrigSnow) && wxOrigTempC !== null && wxOrigTempC <= 2) {
+    score += 8;
+    if (wxOrigTempC <= -5) score += 4;
+  }
   if (wxDestLevel === 'severe')      score += 10;
   else if (wxDestLevel === 'warning') score += 5;
   if (wxDestThunderstorms)           score += 5;
-  if (wxDestCat === 'LIFR')          score += 5;
+  if (wxDestCat === 'LIFR') {
+    if (destHub === 'SFO') score += 10;
+    else if (destHub === 'EWR') score += 8;
+    else score += 5;
+  }
 
   // Signal 5: OTP (0-20)
   if (otp !== undefined) {
@@ -221,11 +240,25 @@ function makeDelayRiskScore({
   const profiles = { EWR: 8, ORD: 5, SFO: 5, IAH: 3, DEN: 3, LAX: 2, IAD: 2, NRT: 1, GUM: 1 };
   score += profiles[origHub] || 0;
 
-  // Signal 9: IRROPS network stress (0-15)
+  // Signal 9: IRROPS network stress at origin (0-15)
   if (irropsCancel >= 15)     score += 15;
   else if (irropsCancel >= 8) score += 10;
   else if (irropsCancel >= 3) score += 4;
   if (irropsDelayed60 >= 20)  score += 5;
+
+  // Signal 10: Destination IRROPS (0-10)
+  if (destIrropsCancel >= 15)     score += 8;
+  else if (destIrropsCancel >= 8) score += 5;
+  if (destIrropsDelayed60 >= 20)  score += 3;
+
+  // Compound multiplier
+  let severeCount = 0;
+  if (faaOrig.groundStop || faaOrig.closure) severeCount++;
+  if (faaDest.groundStop || faaDest.closure) severeCount++;
+  if (wxOrigLevel === 'severe') severeCount++;
+  if (wxDestLevel === 'severe') severeCount++;
+  if (irropsCancel >= 15) severeCount++;
+  if (severeCount >= 3) score += Math.min(severeCount * 5, 15);
 
   const finalScore = Math.min(score, 100);
   let label;
@@ -364,6 +397,62 @@ describe('computeDelayRisk v3 algorithm', () => {
       irropsCancel: 20,
     });
     expect(r.score).toBe(100);
+  });
+
+  // ── New signals: hub-specific IFR, de-icing, dest IRROPS, compound ──
+
+  it('SFO LIFR gets 15 points (higher than default 10)', () => {
+    const sfo = makeDelayRiskScore({ wxOrigCat: 'LIFR', origHub: 'SFO', hubHour: 8 });
+    const gum = makeDelayRiskScore({ wxOrigCat: 'LIFR', origHub: 'GUM', hubHour: 8 });
+    expect(sfo.score).toBeGreaterThan(gum.score);
+    // SFO LIFR=15 + SFO base=5 = 20; GUM LIFR=10 + GUM base=1 = 11
+    expect(sfo.score - gum.score).toBe(9);
+  });
+
+  it('EWR IFR gets 8 points (higher than default 5)', () => {
+    const ewr = makeDelayRiskScore({ wxOrigCat: 'IFR', origHub: 'EWR', hubHour: 8 });
+    const gum = makeDelayRiskScore({ wxOrigCat: 'IFR', origHub: 'GUM', hubHour: 8 });
+    // EWR IFR=8 + base=8 = 16; GUM IFR=5 + base=1 = 6
+    expect(ewr.score - gum.score).toBe(10);
+  });
+
+  it('de-icing adds 8 points when freezing precip at sub-freezing temps', () => {
+    const noDeice = makeDelayRiskScore({ wxOrigLevel: 'warning', wxOrigFreezingPrecip: true, origHub: 'GUM', hubHour: 8 });
+    const deice = makeDelayRiskScore({ wxOrigLevel: 'warning', wxOrigFreezingPrecip: true, wxOrigTempC: 0, origHub: 'GUM', hubHour: 8 });
+    expect(deice.score - noDeice.score).toBe(8);
+  });
+
+  it('extreme cold de-icing adds 12 points total', () => {
+    const base = makeDelayRiskScore({ wxOrigLevel: 'warning', wxOrigFreezingPrecip: true, origHub: 'GUM', hubHour: 8 });
+    const extreme = makeDelayRiskScore({ wxOrigLevel: 'warning', wxOrigFreezingPrecip: true, wxOrigTempC: -10, origHub: 'GUM', hubHour: 8 });
+    expect(extreme.score - base.score).toBe(12); // 8 + 4
+  });
+
+  it('destination IRROPS cancellations >= 15% adds 8 points', () => {
+    const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
+    const destStress = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIrropsCancel: 20 });
+    expect(destStress.score - base.score).toBe(8);
+  });
+
+  it('destination IRROPS delayed60 >= 20% adds 3 points', () => {
+    const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
+    const destDel = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIrropsDelayed60: 25 });
+    expect(destDel.score - base.score).toBe(3);
+  });
+
+  it('compound multiplier triggers at 3+ severe signals', () => {
+    // ground stop + severe weather + 15% cancellations = 3 severe signals → +15 compound
+    const noCompound = makeDelayRiskScore({ faaOrig: { groundStop: true }, wxOrigLevel: 'severe', origHub: 'GUM', hubHour: 8 });
+    const compound = makeDelayRiskScore({ faaOrig: { groundStop: true }, wxOrigLevel: 'severe', irropsCancel: 20, origHub: 'GUM', hubHour: 8 });
+    // compound adds 15 (irrops) + 15 (compound bonus for 3 signals)
+    expect(compound.score - noCompound.score).toBe(30);
+  });
+
+  it('V.HIGH label at score >= 75', () => {
+    // 130min delay=50 + ground stop=30 + GUM base=1 = 81
+    const r = makeDelayRiskScore({ delayMin: 130, faaOrig: { groundStop: true }, origHub: 'GUM', hubHour: 8 });
+    expect(r.score).toBeGreaterThanOrEqual(75);
+    expect(r.label).toBe('V.HIGH');
   });
 });
 
