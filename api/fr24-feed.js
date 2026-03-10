@@ -1,11 +1,10 @@
 import { createRateLimiter } from './_rate-limit.js';
+import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('fr24-feed', 30);
 
-let cachedFeed = null;
-let feedExpires = 0;
+const feedCache = new CacheStore('fr24-feed', { maxSize: 1, defaultTTL: 15_000 });
 let feedFetching = null;
-const FEED_TTL = 15000; // 15 seconds
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -28,12 +27,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid airline code' });
     }
 
-    const now = Date.now();
-
     // Return cached if fresh
-    if (cachedFeed && now < feedExpires) {
+    const hit = feedCache.get('feed');
+    if (hit) {
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
-      return res.status(200).json(cachedFeed);
+      return res.status(200).json(hit);
     }
 
     // Dedup: if already fetching, wait for that
@@ -61,8 +59,7 @@ export default async function handler(req, res) {
     try {
       feedFetching = doFetch();
       const data = await feedFetching;
-      cachedFeed = data;
-      feedExpires = now + FEED_TTL;
+      feedCache.set('feed', data);
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(data);
     } finally {

@@ -3,14 +3,13 @@
 // computes disruption metrics, caches for 15 minutes.
 
 import { createRateLimiter } from './_rate-limit.js';
+import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('irrops', 60);
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 export const HUB_TZ = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes — hub health doesn't need real-time
-let cached = null;
-let cacheExpires = 0;
+const irropsCache = new CacheStore('irrops', { maxSize: 1, defaultTTL: 15 * 60 * 1000 });
 let fetching = null;
 // Persistent per-hub cache — survives full refresh failures
 let hubCache = {};
@@ -187,9 +186,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const now = Date.now();
-
-    if (cached && now < cacheExpires) {
+    const cached = irropsCache.get('irrops');
+    if (cached) {
       res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
       return res.status(200).json({ ...cached, cached: true });
     }
@@ -203,16 +201,16 @@ export default async function handler(req, res) {
     try {
       fetching = buildIrropsData();
       const result = await fetching;
-      cached = result;
-      cacheExpires = now + CACHE_TTL;
+      irropsCache.set('irrops', result);
       res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
       return res.status(200).json({ ...result, cached: false });
     } catch (e) {
       console.error('IRROPS API error:', e);
-      // Return stale cache if available
-      if (cached) {
+      // Return stale cache if available (up to 1 hour past expiry)
+      const stale = irropsCache.getStale('irrops', 60 * 60 * 1000);
+      if (stale) {
         res.setHeader('Cache-Control', 's-maxage=60');
-        return res.status(200).json({ ...cached, cached: true, stale: true });
+        return res.status(200).json({ ...stale, cached: true, stale: true });
       }
       return res.status(502).json({ error: 'Failed to compute IRROPS data' });
     } finally {

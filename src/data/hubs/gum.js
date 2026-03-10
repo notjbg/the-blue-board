@@ -1,0 +1,43 @@
+export const gum = {
+  "iata": "GUM",
+  "variant": "compact",
+  "title": "United Airlines GUM Hub Status — Guam Delays, On-Time Performance & Flight Tracker",
+  "description": "Live United Airlines status at Antonio B. Won Pat International Airport, Guam (GUM). AI-powered delay risk predictions, real-time delays, cancellations, on-time performance, and departure schedules. United's Western Pacific hub — updated every 30 seconds.",
+  "keywords": "United Airlines GUM delays, United Guam hub status, United Airlines GUM on-time, United GUM cancellations today, United Airlines Guam delays, GUM flight status, United hub Guam, United Airlines GUM departures, United Island Hopper",
+  "ogTitle": "United Airlines GUM Hub — Live Guam Status",
+  "ogDescription": "Real-time United Airlines operations at Guam International. AI delay predictions, cancellations, on-time %, and schedules.",
+  "ogImageAlt": "The Blue Board — United Airlines GUM Hub Status",
+  "twitterTitle": "United Airlines GUM Hub — Live Guam Status",
+  "twitterDescription": "AI delay predictions, cancellations, on-time performance at United's Western Pacific hub. Updated every 30 seconds.",
+  "breadcrumbName": "GUM — Guam",
+  "faqSchema": [
+    {
+      "question": "Is United Airlines delayed at GUM today?",
+      "answer": "Check The Blue Board for real-time United delay status at Guam International Airport. The dashboard shows current on-time performance, cancellations, and disruptions updated every 30 seconds."
+    },
+    {
+      "question": "What is the United Island Hopper?",
+      "answer": "The United Island Hopper (UA154/UA155) is one of aviation's most unique routes — a multi-stop 737 flight connecting Guam to Honolulu via Chuuk, Pohnpei, Kosrae, Kwajalein, and Majuro across Micronesia. It's the lifeline air service for these remote Pacific islands."
+    },
+    {
+      "question": "How many United flights operate from GUM daily?",
+      "answer": "United Airlines operates approximately 8-12 daily flights from Guam, including service to NRT (Tokyo Narita), HNL (Honolulu), MNL (Manila), and the famous Island Hopper route through Micronesia. Charter and repositioning flights (like ORD-GUM) also operate seasonally."
+    },
+    {
+      "question": "Which United planes at GUM have Starlink WiFi?",
+      "answer": "Starlink WiFi availability on GUM routes depends on the specific aircraft assigned. Check the Fleet tab on The Blue Board for the latest Starlink-equipped tail numbers."
+    }
+  ],
+  "airportSchema": {
+    "name": "Antonio B. Won Pat International Airport",
+    "iataCode": "GUM",
+    "icaoCode": "PGUM",
+    "addressLocality": "Tamuning",
+    "addressRegion": "Guam",
+    "addressCountry": "GU",
+    "latitude": 13.4834,
+    "longitude": 144.796,
+    "url": "https://www.guamairport.com/"
+  },
+  "contentHtml": "\n  <h1>✈️ United Airlines at Guam (GUM)</h1>\n  <div class=\"subtitle\">Live hub status · Updated every 30 seconds · <a href=\"/\">Open Full Dashboard →</a></div>\n\n  <div class=\"live-bar\" style=\"flex-direction:column;align-items:stretch;gap:12px\">\n    <div style=\"display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px\">\n      <div style=\"display:flex;align-items:center;gap:8px\">\n        <div class=\"live-dot\"></div>\n        <span style=\"font-size:11px;font-weight:600\">LIVE</span>\n        <span style=\"font-size:24px;font-weight:700;color:var(--ua-accent)\" id=\"active\">—</span>\n        <span style=\"font-size:11px;color:var(--ua-muted)\">active United flights at GUM</span>\n      </div>\n      <div style=\"font-size:10px;color:var(--ua-muted)\" id=\"updated-time\">Loading...</div>\n    </div>\n    <div style=\"font-size:10px;color:var(--ua-muted);border-top:1px solid var(--ua-border);padding-top:8px\">ICAO: PGUM · Timezone: ChST (UTC+10) · United's Western Pacific hub · Home of the Island Hopper</div>\n    <a href=\"/?hub=gum\" style=\"font-size:11px;color:var(--ua-accent);text-decoration:none;font-weight:600\">Open GUM on The Blue Board →</a>\n  </div>\n\n  <div class=\"scroll-hint\" id=\"scrollHint\">↓ Scroll for hub details, routes, and FAQ ↓</div>\n\n  <nav class=\"jump-nav\">\n    <a href=\"#overview\">Overview</a>\n    <a href=\"#routes\">Key Routes</a>\n    <a href=\"#island-hopper\">Island Hopper</a>\n    <a href=\"#operations\">Operations</a>\n    <a href=\"#faq\">FAQ</a>\n    <a href=\"#all-hubs\">All Hubs</a>\n  </nav>\n\n  <!-- Overview -->\n  <div class=\"section\">\n    <h2 id=\"overview\">GUM Hub Overview</h2>\n    <p><strong>Antonio B. Won Pat International Airport</strong> on Guam is United Airlines' Western Pacific hub and one of the most unique stations in the airline's network. United is by far the dominant carrier at GUM, operating the vast majority of flights.</p>\n    <p>Guam serves as a critical connecting point between the US mainland, Japan, the Philippines, and the Micronesian islands. United's presence here dates back decades and includes the legendary Island Hopper route.</p>\n  </div>\n\n  <!-- Key Routes -->\n  <div class=\"section\">\n    <h2 id=\"routes\">Key Routes from GUM</h2>\n    <ul>\n      <li><strong>Japan:</strong> NRT (Tokyo Narita) — primary connection to mainland</li>\n      <li><strong>Hawaii:</strong> HNL (Honolulu) — via Island Hopper or direct</li>\n      <li><strong>Philippines:</strong> MNL (Manila)</li>\n      <li><strong>Micronesia:</strong> ROR (Palau), YAP, TKK (Chuuk), PNI (Pohnpei), KSA (Kosrae) — Island Hopper stops</li>\n      <li><strong>Marshall Islands:</strong> KWA (Kwajalein), MAJ (Majuro) — Island Hopper stops</li>\n      <li><strong>Charter/Seasonal:</strong> ORD and other CONUS points (repositioning flights)</li>\n    </ul>\n  </div>\n\n  <!-- Island Hopper -->\n  <div class=\"section\">\n    <h2 id=\"island-hopper\">🏝️ The Island Hopper</h2>\n    <p>The <strong>United Island Hopper</strong> (UA154 westbound / UA155 eastbound) is one of aviation's most legendary routes. A single 737 flies from Honolulu to Guam (or reverse) with up to 6 stops across the remote Pacific:</p>\n    <ul>\n      <li><strong>HNL</strong> → MAJ (Majuro) → KWA (Kwajalein) → KSA (Kosrae) → PNI (Pohnpei) → TKK (Chuuk) → <strong>GUM</strong></li>\n    </ul>\n    <p>For many of these islands, United is the <em>only</em> commercial air service connecting them to the outside world. The route is a lifeline for Micronesian communities and a bucket-list flight for aviation enthusiasts.</p>\n  </div>\n\n  <!-- Operations -->\n  <div class=\"section\">\n    <h2 id=\"operations\">Operations Notes</h2>\n    <p>GUM operates in Chamorro Standard Time (ChST, UTC+10) with no daylight saving time. Typhoon season runs roughly June through November, with the peak in August–October. Tropical weather can cause significant disruptions.</p>\n    <p>The airport has a single main terminal. United's operations are concentrated in the international arrivals/departures area.</p>\n  </div>\n\n  <!-- FAQ -->\n  <div class=\"section\">\n    <h2 id=\"faq\">Frequently Asked Questions</h2>\n\n    <h3>Is United Airlines delayed at GUM today?</h3>\n    <p>Check <a href=\"/?tab=weather\">the Delays & Weather tab</a> on The Blue Board for real-time GUM status.</p>\n\n    <h3>What is the United Island Hopper?</h3>\n    <p>UA154/UA155 — a multi-stop 737 route connecting Honolulu to Guam via Majuro, Kwajalein, Kosrae, Pohnpei, and Chuuk. One of aviation's most unique flights.</p>\n\n    <h3>How many United flights operate from GUM daily?</h3>\n    <p>Approximately 8-12 daily flights, including NRT, HNL, MNL, and Island Hopper service through Micronesia.</p>\n\n    <h3>Which United planes at GUM have Starlink WiFi?</h3>\n    <p>Check <a href=\"/?tab=fleet&filter=starlink\">the Fleet tab</a> for Starlink-equipped aircraft on GUM routes.</p>\n  </div>"
+};
