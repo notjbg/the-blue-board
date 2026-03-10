@@ -4075,6 +4075,18 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
   }
 }
 
+function getScheduleLoadErrorMessage(err) {
+  const raw = (err && err.message ? String(err.message) : '').trim();
+  if (raw === 'Schedule request timed out') return raw;
+  const apiMatch = raw.match(/^Schedule API\s+(\d{3})$/);
+  if (!apiMatch) return raw || 'Unknown error';
+  const code = Number(apiMatch[1]);
+  if (code === 503 || code === 502) return `Schedule provider is temporarily unavailable (${code})`;
+  if (code === 429) return 'Schedule provider is rate-limited right now (429)';
+  if (code === 403) return 'Schedule provider access is temporarily restricted (403)';
+  return `Schedule service error (${code})`;
+}
+
 function classifySchedStatus(flight) {
   const s = flight.status;
   if (!s) return { text: 'Unknown', cls: 'unknown', key: 'unknown' };
@@ -4200,7 +4212,8 @@ async function loadScheduleData() {
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
     console.error('Schedule load error:', err);
-    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(err.message)}<br><span style="font-size:10px">Try again in a moment</span><br><button onclick="loadScheduleData()" style="margin-top:8px;padding:4px 12px;background:var(--ua-blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">↻ Retry</button>`;
+    const friendlyError = getScheduleLoadErrorMessage(err);
+    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(friendlyError)}<br><span style="font-size:10px">Try again in a moment</span><br><button onclick="loadScheduleData()" style="margin-top:8px;padding:4px 12px;background:var(--ua-blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">↻ Retry</button>`;
   } finally {
     schedLoading = false;
     btn.disabled = false;
