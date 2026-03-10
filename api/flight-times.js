@@ -177,7 +177,8 @@ export default async function handler(req, res) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const resp = await fetch(`https://www.flightaware.com/live/flight/${encodeURIComponent(flight)}`, {
+    const faFlight = flight.replace('UAL', 'UA');
+    const resp = await fetch(`https://www.flightaware.com/live/flight/${encodeURIComponent(faFlight)}`, {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
