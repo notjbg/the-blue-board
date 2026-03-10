@@ -314,6 +314,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .ac-detail-value{font-size:11px;font-weight:600}
 .ac-status-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:9px;font-weight:600}
 .ac-live-flight{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2)}
+.ac-live-flight[data-action]{cursor:pointer;transition:border-color .15s,background .15s}
+.ac-live-flight[data-action]:hover{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.4)}
 .ac-live-ground{background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.2)}
 .ac-seat-bar{display:flex;height:18px;border-radius:4px;overflow:hidden;margin-top:4px}
 .ac-seat-bar>div{display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;min-width:20px}
@@ -6338,6 +6340,15 @@ document.addEventListener('click', function(e) {
       if (acm) acm.style.display = 'none';
       break;
     }
+    case 'focus-live-flight': {
+      const icao24 = actionEl.dataset.icao24;
+      if (icao24) {
+        const acm = document.getElementById('aircraft-detail-modal');
+        if (acm) acm.style.display = 'none';
+        focusFlight(icao24);
+      }
+      break;
+    }
     case 'share-aircraft': {
       const shareReg = actionEl.dataset.reg;
       if (shareReg) {
@@ -6813,8 +6824,14 @@ function buildAircraftDetailHTML(ac, reg) {
   html += '</div>';
 
   // Live flight status
-  html += '<div class="ac-section ' + (liveFlight ? 'ac-live-flight' : 'ac-live-ground') + '">';
-  html += '<div class="ac-section-title">Live Status</div>';
+  if (liveFlight) {
+    html += '<div class="ac-section ac-live-flight" data-action="focus-live-flight" data-icao24="' + escapeHtml(liveFlight.icao24) + '" role="button" tabindex="0" aria-label="View flight on map">';
+  } else {
+    html += '<div class="ac-section ac-live-ground">';
+  }
+  html += '<div class="ac-section-title" style="display:flex;justify-content:space-between;align-items:center">Live Status';
+  if (liveFlight) html += '<span style="font-size:10px;font-weight:400;color:var(--ua-muted)">View on map →</span>';
+  html += '</div>';
   if (liveFlight) {
     var fltNum = liveFlight.flightIATA || liveFlight.callsign || '?';
     var origCode = liveFlight.origin || '?';
