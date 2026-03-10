@@ -362,6 +362,19 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .mf-value{font-size:12px;color:var(--ua-text);font-family:var(--mono)}
 .mf-inbound{background:rgba(0,93,170,.08);border:1px solid rgba(0,93,170,.15);border-radius:4px;padding:8px 10px;font-size:11px}
 .mf-inbound-title{font-size:9px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;font-weight:700}
+.mf-journey{background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.12);border-radius:6px;padding:10px 12px;font-size:11px;margin-top:6px}
+.mf-journey-title{font-size:9px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700}
+.mf-journey-seg{display:flex;align-items:center;gap:8px;padding:4px 0;border-left:2px solid var(--ua-border);padding-left:10px;margin-left:4px;position:relative}
+.mf-journey-seg::before{content:'';position:absolute;left:-5px;top:50%;transform:translateY(-50%);width:8px;height:8px;border-radius:50%;background:var(--ua-border)}
+.mf-journey-seg.current{border-left-color:var(--ua-blue)}.mf-journey-seg.current::before{background:var(--ua-blue)}
+.mf-journey-seg.landed::before{background:#22c55e}
+.mf-journey-seg.airborne::before{background:#3b82f6}
+.mf-journey-flt{font-weight:700;color:var(--ua-accent);min-width:48px;font-family:var(--mono);font-size:10px}
+.mf-journey-route{color:var(--ua-text);min-width:70px;font-size:10px}
+.mf-journey-delay{font-weight:600;font-size:10px;font-family:var(--mono)}
+.mf-journey-delay.on-time{color:#22c55e}.mf-journey-delay.minor{color:#f59e0b}.mf-journey-delay.major{color:#ef4444}
+.mf-journey-status{color:var(--ua-muted);font-size:9px;margin-left:auto}
+.mf-journey-loading{color:var(--ua-muted);font-size:10px;padding:4px 0}
 .mf-weather-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .mf-weather-cell{background:rgba(15,23,41,.5);border:1px solid var(--ua-border);border-radius:4px;padding:6px 8px;font-size:10px}
 .mf-weather-code{font-weight:700;font-family:var(--mono)}
@@ -4841,6 +4854,7 @@ function updateHubHealth() {
 let faaDelayIndex = {};
 let weatherOpsByHub = {};  // Global METAR-derived ops impact per hub — populated by initWeatherTab()
 let irropsHubData = {};    // Global IRROPS cancellation/delay rates per hub — for delay risk engine
+let aircraftJourneyCache = {};  // { reg: { segments, ts } } — aircraft history cache (5min TTL)
 
 function updateIrrops() {
   const content = document.getElementById('irrops-content');
@@ -5186,6 +5200,15 @@ async function renderMyFlights() {
   container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
   detectAndRenderConnections(flights, timeData);
 
+  // Async: fetch aircraft journey chains for watched flights (non-blocking)
+  flights.forEach((w, i) => {
+    const td2 = timeData[i];
+    const reg2 = td2 ? (td2.aircraft || '').replace('-', '') : null;
+    if (!reg2) return;
+    const route2 = (w.route || '').split(/[→\-]/);
+    fetchAircraftJourney(reg2, w.flight, (route2[0] || '').trim(), (route2[1] || '').trim());
+  });
+
   // Start countdown ticker
   if (myFlightsCountdownInterval) clearInterval(myFlightsCountdownInterval);
   myFlightsCountdownInterval = setInterval(updateMyFlightsCountdowns, 1000);
@@ -5215,6 +5238,115 @@ function resolveFlightStatus(td, liveFlight) {
     if (diffMin >= 15) return 'delayed';
   }
   return 'scheduled';
+}
+
+// ═══ AIRCRAFT JOURNEY CHAIN ═══
+
+function buildJourneyChainHtml(reg, segments, myFlight, origCode, destCode) {
+  // Filter out our own flight, show prior segments (most recent last for visual timeline)
+  const priorSegs = segments
+    .filter(s => s.flightNumber !== myFlight)
+    .slice(0, 3)
+    .reverse(); // chronological order (oldest first)
+
+  if (!priorSegs.length) return '';
+
+  let html = '<div class="mf-journey">';
+  html += '<div class="mf-journey-title">Aircraft Journey (' + escapeHtml(reg) + ')</div>';
+
+  priorSegs.forEach(function(seg) {
+    var delay = seg.delayMin;
+    var delayCls = delay === null ? '' : delay <= 5 ? 'on-time' : delay <= 45 ? 'minor' : 'major';
+    var delayText = delay === null ? '' : delay <= 0 ? 'On time' : '+' + delay + 'min';
+    var statusLower = (seg.status || '').toLowerCase();
+    var isAirborne = statusLower === 'en-route' || statusLower === 'airborne' || statusLower === 'en route';
+    var isLanded = statusLower === 'landed' || statusLower === 'arrived';
+    var segCls = isAirborne ? 'airborne' : isLanded ? 'landed' : '';
+    var statusText = isAirborne ? 'Airborne' : isLanded ? 'Landed' : seg.status || '';
+
+    html += '<div class="mf-journey-seg ' + segCls + '">';
+    html += '<span class="mf-journey-flt">' + escapeHtml(seg.flightNumber) + '</span>';
+    html += '<span class="mf-journey-route">' + escapeHtml(seg.origin) + ' \u2192 ' + escapeHtml(seg.destination) + '</span>';
+    if (delayText) html += '<span class="mf-journey-delay ' + delayCls + '">' + escapeHtml(delayText) + '</span>';
+    html += '<span class="mf-journey-status">' + escapeHtml(statusText) + '</span>';
+    html += '</div>';
+  });
+
+  // Show current flight at the bottom
+  html += '<div class="mf-journey-seg current">';
+  html += '<span class="mf-journey-flt">' + escapeHtml(myFlight) + '</span>';
+  html += '<span class="mf-journey-route">' + escapeHtml(origCode) + ' \u2192 ' + escapeHtml(destCode) + '</span>';
+  html += '<span class="mf-journey-delay">Your flight</span>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
+}
+
+function buildJourneyContextStr(reg, segments, myFlight, origCode, destCode) {
+  var priorSegs = segments
+    .filter(function(s) { return s.flightNumber !== myFlight; })
+    .slice(0, 3)
+    .reverse();
+
+  if (!priorSegs.length) return '';
+
+  var lines = ['Aircraft ' + reg + ' journey today:'];
+  priorSegs.forEach(function(seg, i) {
+    var delay = seg.delayMin;
+    var delayStr = delay === null ? 'unknown delay' : delay <= 0 ? 'on time' : 'departed ' + delay + 'min late';
+    var statusLower = (seg.status || '').toLowerCase();
+    var statusStr = statusLower === 'en-route' || statusLower === 'airborne' || statusLower === 'en route'
+      ? ', currently airborne'
+      : statusLower === 'landed' || statusLower === 'arrived' ? ', landed' : '';
+    lines.push('Seg ' + (i + 1) + ': ' + seg.flightNumber + ' ' + seg.origin + '\u2192' + seg.destination + ', ' + delayStr + statusStr);
+  });
+
+  // Summary
+  var delays = priorSegs.map(function(s) { return s.delayMin; }).filter(function(d) { return d !== null && d > 0; });
+  if (delays.length > 0) {
+    var avg = Math.round(delays.reduce(function(a, b) { return a + b; }, 0) / delays.length);
+    lines.push('Your flight ' + myFlight + ' ' + origCode + '\u2192' + destCode + ' \u2014 aircraft averaging +' + avg + 'min delays across ' + delays.length + ' prior segment' + (delays.length > 1 ? 's' : ''));
+  }
+
+  return lines.join('\n');
+}
+
+async function fetchAircraftJourney(reg, myFlight, origCode, destCode) {
+  if (!reg) return;
+
+  // Check cache
+  var cached = aircraftJourneyCache[reg];
+  if (cached && Date.now() - cached.ts < 300000) return; // 5min TTL
+
+  try {
+    var resp = await fetch('/api/aircraft-history?reg=' + encodeURIComponent(reg));
+    if (!resp.ok) return;
+    var data = await resp.json();
+    if (!data.success || !data.segments) return;
+
+    aircraftJourneyCache[reg] = { segments: data.segments, ts: Date.now() };
+
+    // Update the journey chain UI in the card
+    var container = document.getElementById('journey-' + reg);
+    if (container && data.segments.length > 0) {
+      container.innerHTML = buildJourneyChainHtml(reg, data.segments, myFlight, origCode, destCode);
+
+      // Also update the data-inbound attribute on any risk badges/buttons for this flight
+      var richInbound = buildJourneyContextStr(reg, data.segments, myFlight, origCode, destCode);
+      if (richInbound) {
+        document.querySelectorAll('[data-action="explain-delay"][data-flight="' + myFlight + '"]').forEach(function(el) {
+          el.dataset.inbound = richInbound;
+        });
+      }
+    } else if (container) {
+      container.innerHTML = ''; // No history available — remove loading placeholder
+    }
+  } catch (e) {
+    // Silently fail — journey chain is supplementary
+    var c = document.getElementById('journey-' + reg);
+    if (c) c.innerHTML = '';
+  }
 }
 
 function buildMyFlightCard(watched, td) {
@@ -5308,7 +5440,7 @@ function buildMyFlightCard(watched, td) {
 
   // Equipment
   let equipHtml = '';
-  const reg = liveFlight ? liveFlight.reg?.replace('-','') : null;
+  const reg = liveFlight ? liveFlight.reg?.replace('-','') : (td && td.aircraft ? td.aircraft.replace('-','') : null);
   if (reg && FLEET_BY_REG[reg]) {
     const ac = FLEET_BY_REG[reg];
     const isStar = STARLINK_TAILS.has(reg);
@@ -5321,21 +5453,37 @@ function buildMyFlightCard(watched, td) {
     equipHtml = `<div><span class="mf-label">Aircraft</span><div class="mf-value">${escapeHtml(td.aircraft)}</div></div>`;
   }
 
-  // Inbound aircraft tracking ("Where's my plane?")
+  // Inbound aircraft tracking + journey chain
   let inboundHtml = '';
   let inboundStr = '';
-  if (reg && liveFlight && !liveFlight.onGround) {
-    // The flight itself is airborne — show its own position
-  } else if (reg) {
-    // Find this registration operating a DIFFERENT flight heading to our origin
-    const inbound = allFlights.find(f => f.reg?.replace('-','') === reg && f.flightIATA !== watched.flight && f.dest === origCode && !f.onGround);
-    if (inbound) {
+  if (reg) {
+    // Find this registration operating a DIFFERENT flight heading to our origin (only when our flight isn't airborne)
+    var inbound = null;
+    if (!(liveFlight && !liveFlight.onGround)) {
+      inbound = allFlights.find(f => f.reg?.replace('-','') === reg && f.flightIATA !== watched.flight && f.dest === origCode && !f.onGround);
+      if (inbound) {
+        const inbCity = IATA_CITIES[inbound.origin] || inbound.origin;
+        inboundStr = inbound.flightIATA + ' from ' + inbCity + ' (' + inbound.origin + '), airborne';
+      }
+    }
+    // Check if we already have cached journey data for richer inbound context
+    const cached = aircraftJourneyCache[reg];
+    if (cached && cached.segments && cached.segments.length > 0 && Date.now() - cached.ts < 300000) {
+      inboundHtml = buildJourneyChainHtml(reg, cached.segments, watched.flight, origCode, destCode);
+      inboundStr = buildJourneyContextStr(reg, cached.segments, watched.flight, origCode, destCode);
+    } else if (inbound) {
       const inbCity = IATA_CITIES[inbound.origin] || inbound.origin;
-      inboundStr = inbound.flightIATA + ' from ' + inbCity + ' (' + inbound.origin + '), airborne';
       inboundHtml = `<div class="mf-inbound">
         <div class="mf-inbound-title">Where's My Plane?</div>
-        Your aircraft is currently operating <strong>${escapeHtml(inbound.flightIATA)}</strong> from ${escapeHtml(inbCity)} (${escapeHtml(inbound.origin)}) → ${escapeHtml(origCity)} (${escapeHtml(origCode)}) at ${Math.round(inbound.alt * 3.28084).toLocaleString()}ft
+        Your aircraft is currently operating <strong>${escapeHtml(inbound.flightIATA)}</strong> from ${escapeHtml(inbCity)} (${escapeHtml(inbound.origin)}) \u2192 ${escapeHtml(origCity)} (${escapeHtml(origCode)}) at ${Math.round(inbound.alt * 3.28084).toLocaleString()}ft
       </div>`;
+    }
+    // Placeholder for async journey chain load
+    if (!inboundHtml && reg) {
+      inboundHtml = `<div class="mf-journey" id="journey-${escapeHtml(reg)}"><div class="mf-journey-loading">Loading aircraft journey\u2026</div></div>`;
+    } else if (inboundHtml && reg) {
+      // Wrap existing html with an ID for async update
+      inboundHtml = `<div id="journey-${escapeHtml(reg)}">${inboundHtml}</div>`;
     }
   }
 
@@ -5599,6 +5747,15 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
             score += 5; factors.push('Inbound still at cruise altitude');
           }
         }
+      }
+    }
+    // 7e: Accumulated delay across prior segments (from journey chain)
+    if (reg && aircraftJourneyCache[reg] && aircraftJourneyCache[reg].segments) {
+      var priorSegs = aircraftJourneyCache[reg].segments.filter(function(s) { return s.flightNumber !== watched.flight; });
+      var lateSegs = priorSegs.filter(function(s) { return s.delayMin !== null && s.delayMin > 15; });
+      if (lateSegs.length >= 2) {
+        var avgDelay = Math.round(lateSegs.reduce(function(a, s) { return a + s.delayMin; }, 0) / lateSegs.length);
+        factors.push('Aircraft running late all day (avg +' + avgDelay + 'min across ' + lateSegs.length + ' segments)');
       }
     }
   }
