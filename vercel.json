@@ -7,7 +7,7 @@
         "api/delay-explain.js": { "maxDuration": 15 }
     },
     "crons": [
-        { "path": "/api/cron/warm-schedules", "schedule": "*/5 * * * *" }
+        { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
     ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",

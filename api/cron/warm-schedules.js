@@ -1,5 +1,5 @@
 // Vercel Cron Job: warms schedule CDN + in-memory cache for all UA hubs.
-// Runs every 5 minutes to ensure users always hit warm cache.
+// Runs every 15 minutes to ensure users always hit warm cache.
 // Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/5 * * * *" }
 
 import { getStartOfDayForHub } from '../irrops.js';
