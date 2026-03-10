@@ -2,33 +2,35 @@
 // Usage: /api/flight-times?flight=UA2221
 // Returns scheduled, estimated, and actual gate/takeoff/landing times
 
-const CACHE_TTL_MS = 120_000; // 2 minutes
-const cache = new Map();
+import type { VercelRequest, VercelResponse } from './types.js';
 
-function getCached(key) {
+const CACHE_TTL_MS = 120_000; // 2 minutes
+const cache = new Map<string, { data: any; ts: number }>();
+
+function getCached(key: string): any | null {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.ts > CACHE_TTL_MS) { cache.delete(key); return null; }
   return entry.data;
 }
-function setCache(key, data) {
-  if (cache.size > 200) { const oldest = cache.keys().next().value; cache.delete(oldest); }
+function setCache(key: string, data: any): void {
+  if (cache.size > 200) { const oldest = cache.keys().next().value; if (oldest !== undefined) cache.delete(oldest); }
   cache.set(key, { data, ts: Date.now() });
 }
 
 // Rate limiting: 5 req/min per IP
-const rateLimitByIp = new Map();
-function getClientIp(req) {
+const rateLimitByIp = new Map<string, number[]>();
+function getClientIp(req: VercelRequest): string {
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
-  return raw.split(',')[0]?.trim() || req.headers?.['x-real-ip'] || 'unknown';
+  return raw.split(',')[0]?.trim() || (req.headers?.['x-real-ip'] as string) || 'unknown';
 }
 let lastRateLimitCleanup = Date.now();
-function isRateLimited(req) {
+function isRateLimited(req: VercelRequest): boolean {
   const now = Date.now();
   const ip = getClientIp(req);
   if (!rateLimitByIp.has(ip)) rateLimitByIp.set(ip, []);
-  const ipLog = rateLimitByIp.get(ip);
+  const ipLog = rateLimitByIp.get(ip)!;
   while (ipLog.length && ipLog[0] < now - 60_000) ipLog.shift();
   if (ipLog.length >= 5) return true;
   ipLog.push(now);
@@ -43,17 +45,17 @@ function isRateLimited(req) {
   return false;
 }
 
-function corsHeaders(req) {
+function corsHeaders(req: VercelRequest): Record<string, string> {
   const origin = req.headers?.origin || '';
-  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  const allowed = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin as string);
   return {
-    'Access-Control-Allow-Origin': allowed ? origin : 'https://theblueboard.co',
+    'Access-Control-Allow-Origin': allowed ? (origin as string) : 'https://theblueboard.co',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 }
 
-export function normalizeFlightNumber(raw) {
+export function normalizeFlightNumber(raw: string | string[]): string {
   const str = Array.isArray(raw) ? raw[0] : (raw || '');
   let q = String(str).trim().toUpperCase().replace(/\s+/g, '');
   if (q.startsWith('UA') && !q.startsWith('UAL')) q = 'UAL' + q.slice(2);
@@ -61,12 +63,12 @@ export function normalizeFlightNumber(raw) {
   return q;
 }
 
-export function epochToISO(epoch) {
+export function epochToISO(epoch: number | undefined | null): string {
   if (!epoch) return '';
   return new Date(epoch * 1000).toISOString();
 }
 
-async function tryFR24Summary(req, res, flight, cacheKey) {
+async function tryFR24Summary(req: VercelRequest, res: VercelResponse, flight: string, cacheKey: string) {
   if (!process.env.FR24_API_TOKEN) {
     return res.status(404).json({ success: false, error: 'No flight data available' });
   }
@@ -94,10 +96,10 @@ async function tryFR24Summary(req, res, flight, cacheKey) {
       return res.status(404).json({ success: false, error: 'No flight data available' });
     }
     const data = await resp.json();
-    const flights = data?.data || [];
+    const flights = (data as any)?.data || [];
     // Find the most relevant flight — prefer in-air (has takeoff but no landing) over others
-    const f = flights.find(fl => fl.datetime_takeoff && !fl.datetime_landed && !fl.flight_ended)
-      || flights.find(fl => !fl.flight_ended)
+    const f = flights.find((fl: any) => fl.datetime_takeoff && !fl.datetime_landed && !fl.flight_ended)
+      || flights.find((fl: any) => !fl.flight_ended)
       || flights[0];
     if (!f) {
       return res.status(404).json({ success: false, error: 'No flight data available' });
@@ -131,11 +133,11 @@ async function tryFR24Summary(req, res, flight, cacheKey) {
       cached: false,
     };
     // Map ICAO to IATA for origin/dest (strip leading K for US airports, else use ICAO as-is)
-    function icaoToIata(icao) {
+    function icaoToIata(icao: string): string {
       if (!icao) return '';
       if (icao.length === 4 && icao.startsWith('K')) return icao.slice(1);
       // Common international mappings
-      const map = { RJAA: 'NRT', RJTT: 'HND', PGUM: 'GUM', EGLL: 'LHR', LFPG: 'CDG', EDDF: 'FRA', RCKH: 'KHH', VHHH: 'HKG', WSSS: 'SIN', NZAA: 'AKL', YSSY: 'SYD', LEMD: 'MAD', EHAM: 'AMS', OMDB: 'DXB', ZBAA: 'PEK' };
+      const map: Record<string, string> = { RJAA: 'NRT', RJTT: 'HND', PGUM: 'GUM', EGLL: 'LHR', LFPG: 'CDG', EDDF: 'FRA', RCKH: 'KHH', VHHH: 'HKG', WSSS: 'SIN', NZAA: 'AKL', YSSY: 'SYD', LEMD: 'MAD', EHAM: 'AMS', OMDB: 'DXB', ZBAA: 'PEK' };
       return map[icao] || icao;
     }
     if (f.orig_icao) result.origin.iata = icaoToIata(f.orig_icao);
@@ -148,13 +150,13 @@ async function tryFR24Summary(req, res, flight, cacheKey) {
   }
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cors = corsHeaders(req);
   for (const [k, v] of Object.entries(cors)) res.setHeader(k, v);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const rawFlight = req.query.flight;
+  const rawFlight = req.query.flight as string;
   if (!rawFlight) return res.status(400).json({ success: false, error: 'Missing flight parameter' });
 
   const flight = normalizeFlightNumber(rawFlight);
@@ -200,7 +202,7 @@ export default async function handler(req, res) {
       return await tryFR24Summary(req, res, flight, cacheKey);
     }
 
-    let bootstrap;
+    let bootstrap: any;
     try {
       bootstrap = JSON.parse(match[1]);
     } catch (e) {
@@ -209,9 +211,9 @@ export default async function handler(req, res) {
 
     // Find the most relevant flight — scan ALL activity log entries, prefer in-air
     const flights = bootstrap?.flights || {};
-    const candidates = [];
+    const candidates: { flight: any; key: string; priority: number; depTime: number }[] = [];
 
-    for (const [key, val] of Object.entries(flights)) {
+    for (const [key, val] of Object.entries(flights) as [string, any][]) {
       const actLog = val?.activityLog?.flights || [];
       for (const f of actLog) {
         const hasActualDep = !!(f.takeoffTimes?.actual || f.gateDepartureTimes?.actual);
@@ -225,7 +227,6 @@ export default async function handler(req, res) {
     // Sort by priority desc, then by most recent departure
     candidates.sort((a, b) => b.priority - a.priority || b.depTime - a.depTime);
     const bestFlight = candidates[0]?.flight || null;
-    const bestKey = candidates[0]?.key || null;
 
     if (!bestFlight) {
       return res.status(404).json({ success: false, error: 'No active flight found' });

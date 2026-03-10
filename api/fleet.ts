@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 
 const isRateLimited = createRateLimiter('fleet', 60);
@@ -5,7 +6,7 @@ const isRateLimited = createRateLimiter('fleet', 60);
 const SHEET_ID = process.env.FLEET_SHEET_ID || '1ZlYgN_IZmd6CSx_nXnuP0L0PiodapDRx3RmNkIpxXAo';
 const ALLOWED_GIDS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const gid = req.query.gid || '0';
+    const gid = (req.query.gid as string) || '0';
     // Validate gid: numeric only
     if (!/^\d{1,10}$/.test(gid)) {
       return res.status(400).json({ error: 'Invalid gid parameter' });
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=7200');
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     return res.status(200).send(csv);
-  } catch (e) {
+  } catch (e: any) {
     console.error('Fleet API error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });

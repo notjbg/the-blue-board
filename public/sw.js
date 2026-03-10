@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const PAGE_CACHE = `blueboard-pages-${CACHE_VERSION}`;
 const DATA_CACHE = `blueboard-data-${CACHE_VERSION}`;
 const STATIC_CACHE = `blueboard-static-${CACHE_VERSION}`;
@@ -8,7 +8,7 @@ const PAGE_MAX = 20;
 const DATA_MAX = 80;
 const STATIC_MAX = 120;
 
-const APP_SHELL = ['/', '/index.html'];
+const APP_SHELL = ['/', '/index.html', '/css/style.css?v=1', '/js/dashboard.js'];
 
 async function trimCache(cacheName, maxEntries) {
   const cache = await caches.open(cacheName);

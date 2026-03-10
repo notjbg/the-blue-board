@@ -1,4 +1,5 @@
 import { XMLParser } from 'fast-xml-parser';
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 
 const isRateLimited = createRateLimiter('faa', 60);
@@ -10,7 +11,18 @@ const parser = new XMLParser({
   trimValues: true,
 });
 
-export default async function handler(req, res) {
+interface FAADelay {
+  airportCode: string;
+  type: string;
+  reason: string;
+  avgDelay?: string | null;
+  endTime?: string | null;
+  minDelay?: string | null;
+  maxDelay?: string | null;
+  delays: { reason: string; type: string }[];
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -39,15 +51,15 @@ export default async function handler(req, res) {
       return res.status(200).json([]);
     }
 
-    let parsed;
+    let parsed: any;
     try {
       parsed = parser.parse(xml);
-    } catch (parseErr) {
+    } catch (parseErr: any) {
       console.error('FAA XML parse error:', parseErr.message);
       return res.status(200).json([]);
     }
 
-    const delays = [];
+    const delays: FAADelay[] = [];
 
     // Ground Delays — preserve type so client can set groundDelay boolean
     const groundDelays = toArray(
@@ -125,7 +137,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json(delays);
-  } catch (e) {
+  } catch (e: any) {
     console.error('FAA API error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });
@@ -133,7 +145,7 @@ export default async function handler(req, res) {
 }
 
 // Normalize a value to an array (handles undefined, single object, or array)
-export function toArray(val) {
+export function toArray<T>(val: T | T[] | undefined | null): T[] {
   if (!val) return [];
   return Array.isArray(val) ? val : [val];
 }

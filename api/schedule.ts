@@ -1,30 +1,31 @@
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { HUB_TZ } from './irrops.js';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
 // In-memory LRU cache for FR24 schedule data
-const cache = new Map();
+const cache = new Map<string, { data: any; expires: number; time: number }>();
 const MAX_CACHE_SIZE = 200;
 
 // Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
-const lastCompleteCache = new Map();
+const lastCompleteCache = new Map<string, { data: any; time: number }>();
 // Broader fallback cache keyed by hub+direction (survives day-key misses)
-const lastCompleteByHubDir = new Map();
+const lastCompleteByHubDir = new Map<string, { data: any; time: number; sourceKey: string }>();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
 const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
-const HUB_TIMEOUT_MS = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000 };
+const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000 };
 
 // Global concurrency limiter for FR24 outbound requests
 const MAX_CONCURRENT_FR24 = 6;
 let activeFR24 = 0;
-const fr24Queue = [];
+const fr24Queue: (() => void)[] = [];
 
-function acquireFR24Slot() {
+function acquireFR24Slot(): Promise<void> {
   if (activeFR24 < MAX_CONCURRENT_FR24) {
     activeFR24++;
     return Promise.resolve();
@@ -32,22 +33,22 @@ function acquireFR24Slot() {
   return new Promise(resolve => fr24Queue.push(resolve));
 }
 
-function releaseFR24Slot() {
+function releaseFR24Slot(): void {
   activeFR24--;
   if (fr24Queue.length > 0) {
     activeFR24++;
-    fr24Queue.shift()();
+    fr24Queue.shift()!();
   }
 }
 
-function cacheGet(key) {
+function cacheGet(key: string) {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expires) return null;
   return entry;
 }
 
-function cacheGetStale(key) {
+function cacheGetStale(key: string) {
   const entry = cache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expires + STALE_GRACE) {
@@ -57,10 +58,10 @@ function cacheGetStale(key) {
   return entry;
 }
 
-function saveComplete(key, data) {
+function saveComplete(key: string, data: any): void {
   if (data.partial) return;
   if (lastCompleteCache.size >= MAX_COMPLETE_CACHE_SIZE) {
-    lastCompleteCache.delete(lastCompleteCache.keys().next().value);
+    lastCompleteCache.delete(lastCompleteCache.keys().next().value!);
   }
   lastCompleteCache.set(key, { data, time: Date.now() });
 
@@ -69,13 +70,13 @@ function saveComplete(key, data) {
   if (aggMatch) {
     const hdKey = `${aggMatch[1].toUpperCase()}:${aggMatch[2]}`;
     if (lastCompleteByHubDir.size >= MAX_COMPLETE_CACHE_SIZE) {
-      lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value);
+      lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value!);
     }
     lastCompleteByHubDir.set(hdKey, { data, time: Date.now(), sourceKey: key });
   }
 }
 
-function getLastComplete(key) {
+function getLastComplete(key: string) {
   const entry = lastCompleteCache.get(key);
   if (!entry) return null;
   if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
@@ -85,7 +86,7 @@ function getLastComplete(key) {
   return entry;
 }
 
-function getLastCompleteByHubDir(hub, dir) {
+function getLastCompleteByHubDir(hub: string, dir: string) {
   const hdKey = `${hub.toUpperCase()}:${dir}`;
   const entry = lastCompleteByHubDir.get(hdKey);
   if (!entry) return null;
@@ -96,15 +97,15 @@ function getLastCompleteByHubDir(hub, dir) {
   return entry;
 }
 
-function cacheSet(key, data, ttlMs) {
+function cacheSet(key: string, data: any, ttlMs: number): void {
   if (cache.size >= MAX_CACHE_SIZE) {
     const firstKey = cache.keys().next().value;
-    cache.delete(firstKey);
+    if (firstKey !== undefined) cache.delete(firstKey);
   }
   cache.set(key, { data, expires: Date.now() + ttlMs, time: Date.now() });
 }
 
-async function fetchWithTimeout(url, deadlineMs) {
+async function fetchWithTimeout(url: string, deadlineMs?: number): Promise<Response> {
   const remaining = deadlineMs ? Math.max(500, deadlineMs - Date.now()) : 45000;
   const fetchTimeout = Math.min(remaining, 45000);
 
@@ -130,7 +131,7 @@ async function fetchWithTimeout(url, deadlineMs) {
 }
 
 // Resilient page fetch — returns null on failure instead of throwing (matches irrops pattern)
-async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
+async function fetchOnePage(hub: string, dir: string, timestamp: number, page: number, deadlineMs?: number): Promise<any | null> {
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${encodeURIComponent(dir)}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
   const MAX_RETRIES = 2;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -140,12 +141,9 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
       const resp = await fetchWithTimeout(url, deadlineMs);
       if (resp.ok) {
         const data = await resp.json();
-        const airportData = data?.result?.response?.airport;
+        const airportData = (data as any)?.result?.response?.airport;
         const sched = airportData?.pluginData?.schedule?.[dir];
         if (!sched) {
-          // FR24 can return a valid airport payload with no schedule block for
-          // lightly-published future dates. Treat as empty for page 1 only;
-          // for later pages, return null so they get retried (avoids premature pagination halt).
           if (airportData && page === 1) {
             return { page: { current: page, total: 1 }, data: [] };
           }
@@ -153,7 +151,6 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
         }
         return sched;
       }
-      // Retry on transient FR24 errors (including 403 — FR24 uses it for rate limiting)
       if ([403, 429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
         // fall through to retry
       } else if ([403, 429].includes(resp.status)) {
@@ -163,7 +160,7 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
         console.error(`FR24 returned ${resp.status} for ${hub} page ${page}`);
         return null;
       }
-    } catch (e) {
+    } catch (e: any) {
       if (attempt >= MAX_RETRIES || e.name === 'AbortError') {
         return null;
       }
@@ -171,7 +168,6 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
     } finally {
       releaseFR24Slot();
     }
-    // Exponential backoff: 1s, 2s (with jitter) — heavier for rate limits
     const baseDelay = 1000 * Math.pow(2, attempt);
     const jitter = Math.floor(Math.random() * 500);
     await new Promise(r => setTimeout(r, baseDelay + jitter));
@@ -180,36 +176,30 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
 }
 
 // ── Official FR24 API support ──
-// Primary path: authenticated API at fr24api.flightradar24.com
-// Returns all UA flights at a hub in a single request (no pagination)
-
 const FR24_API_BASE = 'https://fr24api.flightradar24.com';
 
-// FR24 API requires YYYY-MM-DDTHH:MM:SS (no milliseconds, no Z suffix)
-function formatForFR24(date) {
+function formatForFR24(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, '');
 }
 
-// Compute end-of-today (23:59:59) in the hub's local timezone, returned as a Date
-function getEndOfTodayForHub(hub) {
+function getEndOfTodayForHub(hub: string): Date {
   const tz = HUB_TZ[hub.toUpperCase()] || 'America/New_York';
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   }).formatToParts(now);
-  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
   const hour = get('hour'), minute = get('minute'), second = get('second');
   const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
   const startOfTodayUnix = Math.floor(now.getTime() / 1000) - secondsSinceMidnight;
-  // End of today = start of today + 86400 - 1 second
   return new Date((startOfTodayUnix + 86400 - 1) * 1000);
 }
 
-function icaoToIata(icao) {
+function icaoToIata(icao: string): string {
   if (!icao) return '';
   if (icao.length === 4 && icao.startsWith('K')) return icao.slice(1);
-  const map = { RJAA:'NRT', RJTT:'HND', PGUM:'GUM', EGLL:'LHR', LFPG:'CDG',
+  const map: Record<string, string> = { RJAA:'NRT', RJTT:'HND', PGUM:'GUM', EGLL:'LHR', LFPG:'CDG',
                 EDDF:'FRA', VHHH:'HKG', WSSS:'SIN', NZAA:'AKL', YSSY:'SYD',
                 LEMD:'MAD', EHAM:'AMS', OMDB:'DXB', ZBAA:'PEK', RCTP:'TPE',
                 RJBB:'KIX', RKSI:'ICN', VTBS:'BKK', WMKK:'KUL', CYYZ:'YYZ',
@@ -222,9 +212,8 @@ function icaoToIata(icao) {
   return map[icao] || icao;
 }
 
-// Convert ICAO flight designator (e.g. "UAL838") to IATA (e.g. "UA838")
-const ICAO_TO_IATA_AIRLINE = { UAL:'UA', AAL:'AA', DAL:'DL', SWA:'WN', JBU:'B6', ASA:'AS', SKW:'OO', RPA:'YX', ENY:'MQ', GJS:'G7', ACA:'AC', BAW:'BA', DLH:'LH', AFR:'AF', KLM:'KL' };
-function icaoFlightToIata(icaoFlight) {
+const ICAO_TO_IATA_AIRLINE: Record<string, string> = { UAL:'UA', AAL:'AA', DAL:'DL', SWA:'WN', JBU:'B6', ASA:'AS', SKW:'OO', RPA:'YX', ENY:'MQ', GJS:'G7', ACA:'AC', BAW:'BA', DLH:'LH', AFR:'AF', KLM:'KL' };
+function icaoFlightToIata(icaoFlight: string): string {
   if (!icaoFlight) return '';
   const match = /^([A-Z]{3})(\d+)$/.exec(icaoFlight);
   if (!match) return icaoFlight;
@@ -232,14 +221,14 @@ function icaoFlightToIata(icaoFlight) {
   return iataAirline ? iataAirline + match[2] : icaoFlight;
 }
 
-function toUnix(val) {
+function toUnix(val: any): number | null {
   if (!val) return null;
   if (typeof val === 'number') return val > 1e12 ? Math.floor(val / 1000) : val;
   const ms = Date.parse(val);
   return isNaN(ms) ? null : Math.floor(ms / 1000);
 }
 
-function mapStatus(f) {
+function mapStatus(f: any) {
   const s = (f.status || '').toLowerCase();
   const ended = !!f.flight_ended;
   const hasTakeoff = !!(f.datetime_takeoff || f.departure?.actual);
@@ -271,7 +260,6 @@ function mapStatus(f) {
     icon = 'yellow';
   }
 
-  // Check for diversion via mismatched destination
   if (f.dest_icao_actual && f.dest_icao && f.dest_icao !== f.dest_icao_actual) {
     diverted = true;
   }
@@ -284,19 +272,15 @@ function mapStatus(f) {
   };
 }
 
-function normalizeSummaryFlight(f) {
-  // Flight number: try IATA first, then convert from ICAO callsign (UAL838 → UA838)
+function normalizeSummaryFlight(f: any) {
   const flightNum = f.flight_iata || f.flight_number?.iata || icaoFlightToIata(f.flight_icao || f.callsign || f.flight_number?.icao || '') || '';
   const callsign = f.callsign || f.flight_icao || f.flight_number?.icao || '';
 
-  // Resolve origin/destination IATA — prioritize ICAO conversion since flat ICAO fields
-  // are reliably present in the light API response (orig_icao, dest_icao)
   const origIata = f.orig_iata || f.origin?.iata || icaoToIata(f.orig_icao || f.origin?.icao || '');
   const destIata = f.dest_iata || f.destination?.iata || icaoToIata(f.dest_icao_actual || f.dest_icao || f.destination?.icao || '');
   const origName = f.origin?.name || f.orig_name || '';
   const destName = f.destination?.name || f.dest_name || '';
 
-  // Resolve timestamps — try nested objects first, then flat fields (light API uses flat)
   const schedDep = toUnix(f.departure?.scheduled || f.scheduled_departure || f.datetime_scheduled_departure);
   const schedArr = toUnix(f.arrival?.scheduled || f.scheduled_arrival || f.datetime_scheduled_arrival);
   const realDep = toUnix(f.departure?.actual || f.actual_departure || f.datetime_takeoff || f.datetime_actual_departure);
@@ -304,7 +288,6 @@ function normalizeSummaryFlight(f) {
   const estDep = toUnix(f.departure?.estimated || f.estimated_departure || f.datetime_estimated_departure);
   const estArr = toUnix(f.arrival?.estimated || f.estimated_arrival || f.datetime_estimated_arrival);
 
-  // Aircraft — try nested object, then flat fields
   const acType = f.aircraft?.type || f.aircraft_type || f.type || '';
   const acReg = f.aircraft?.registration || f.registration || '';
 
@@ -325,11 +308,9 @@ function normalizeSummaryFlight(f) {
   };
 }
 
-// Page size for Official FR24 API pagination (API caps responses at ~20 per page)
 const OFFICIAL_API_PAGE_SIZE = 100;
 
-async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
-  // Capture hub at entry for all logging in this invocation (avoids stale closure issues)
+async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeoutMs?: number) {
   const logHub = String(hub);
   const token = process.env.FR24_API_TOKEN;
   if (!token) {
@@ -341,15 +322,11 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
   const startTime = Date.now();
   const deadline = startTime + timeoutMs;
 
-  // Build date range from the unix timestamp (day boundaries)
   const dayStart = new Date(ts * 1000);
   let dayEnd = new Date((ts + 86400) * 1000);
 
-  // Clamp dayEnd so it never exceeds end-of-today in the hub's local timezone
-  // FR24 rejects requests where the date range extends into tomorrow
   const endOfToday = getEndOfTodayForHub(logHub);
   if (dayStart > endOfToday) {
-    // Requested date is entirely in the future (tomorrow) — skip Official API
     console.log(`Official FR24 API: skipping ${logHub} ${dir} — requested date is tomorrow (ts=${ts})`);
     return null;
   }
@@ -359,8 +336,7 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
   console.log(`Official FR24 API: fetching ${logHub} ${dir} from=${formatForFR24(dayStart)} to=${formatForFR24(dayEnd)}`);
 
-  // Paginate until we have all flights or hit deadline
-  const allRawFlights = [];
+  const allRawFlights: any[] = [];
   let page = 1;
   let totalPages = 1;
   const MAX_OFFICIAL_PAGES = 50;
@@ -400,21 +376,17 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
         console.error(`Official FR24 API returned ${resp.status} for ${logHub} (page ${page}): ${body.slice(0, 200)}`);
-        // Non-retryable error on first page — bail out entirely
         if (page === 1) return null;
-        // On later pages, stop pagination and return what we have
         break;
       }
 
       const data = await resp.json();
-      const flights = data?.data || [];
+      const flights = (data as any)?.data || [];
 
-      // Log full response keys on first page for debugging field mapping
       if (page === 1) {
         console.log(`Official FR24 API [${logHub}] page 1: ${flights.length} flights, keys: ${flights.length > 0 ? Object.keys(flights[0]).join(',') : 'N/A'}`);
         if (flights.length > 0) {
           const s = flights[0];
-          // Log all available field values for mapping diagnostics
           console.log(`Official FR24 API [${logHub}] sample: ${JSON.stringify(s).slice(0, 500)}`);
         }
       } else {
@@ -423,24 +395,20 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
 
       allRawFlights.push(...flights);
 
-      // Detect pagination completion:
-      // If API returns fewer flights than our limit, we've reached the end
       if (flights.length < OFFICIAL_API_PAGE_SIZE) break;
 
       page++;
 
-      // Brief pause between pages to be respectful
       if (page <= MAX_OFFICIAL_PAGES && Date.now() < deadline - 2000) {
         await new Promise(r => setTimeout(r, 200));
       }
-    } catch (e) {
+    } catch (e: any) {
       clearTimeout(timeout);
       if (e.name === 'AbortError') {
         console.error(`Official FR24 API timeout for ${logHub} (page ${page})`);
       } else {
         console.error(`Official FR24 API error for ${logHub} (page ${page}):`, e.message);
       }
-      // On first page failure, bail. On later pages, return what we have.
       if (page === 1) return null;
       break;
     }
@@ -465,7 +433,7 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
         pagesRequested: totalPages,
         pagesSucceeded: totalPages,
         pagesFailed: 0,
-        missingPages: [],
+        missingPages: [] as number[],
         completeness: 1,
         elapsedMs: Date.now() - startTime,
         source: 'official-api'
@@ -473,14 +441,10 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
     };
   }
 
-  // Normalize each flight and filter by direction
-  // Compare against both IATA and ICAO variants of the hub code
   const hubUpper = logHub.toUpperCase();
   const hubIcao = logHub.length === 3 ? ('K' + logHub).toUpperCase() : logHub.toUpperCase();
-  const allUAFlights = [];
+  const allUAFlights: any[] = [];
   for (const f of allRawFlights) {
-    // Check direction using raw API fields BEFORE normalization
-    // Prioritize ICAO fields since they're reliably present in the light API
     const rawOrigIcao = (f.orig_icao || f.origin?.icao || '').toUpperCase();
     const rawDestIcao = (f.dest_icao || f.destination?.icao || '').toUpperCase();
     const rawOrigIata = (f.orig_iata || f.origin?.iata || icaoToIata(rawOrigIcao)).toUpperCase();
@@ -513,7 +477,7 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
       pagesRequested: totalPages,
       pagesSucceeded: totalPages,
       pagesFailed: 0,
-      missingPages: [],
+      missingPages: [] as number[],
       completeness: 1,
       elapsedMs,
       source: 'official-api'
@@ -521,11 +485,10 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
   };
 }
 
-const pendingAggs = new Map();
+const pendingAggs = new Map<string, Promise<any>>();
 
-function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
+function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: string, ttl: number): void {
   if (pendingAggs.has(aggKey)) return;
-  // Capture hub as a local const to prevent any stale closure over the caller's variable
   const refreshHub = String(hub);
   const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000).then(result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
@@ -539,20 +502,18 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   pendingAggs.set(aggKey, promise);
 }
 
-async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
-  // Capture hub as a local const for all logging in this invocation
+async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: number, overallDeadline?: number) {
   const logHub = String(hub);
   const now = Date.now();
   const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[logHub.toUpperCase()] || 45000));
 
-  // Try official FR24 API first (paginated authenticated requests)
+  // Try official FR24 API first
   if (process.env.FR24_API_TOKEN) {
     try {
-      // Cap official API to 40% of remaining time (max 20s), saving 60% for scraping fallback
       const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.4), 20000);
       const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, officialTimeout);
       if (officialResult) return officialResult;
-    } catch (e) {
+    } catch (e: any) {
       console.error(`Official FR24 API failed for ${logHub}, falling back to scraping:`, e.message);
     }
   }
@@ -560,17 +521,17 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
   // Fallback: scrape unauthenticated FR24 endpoint (paginated)
   const deadline = effectiveDeadline;
   const dayEnd = ts + 86400;
-  const allUAFlights = [];
+  const allUAFlights: any[] = [];
   let totalPages = 1;
   let totalFetched = 0;
   let partial = false;
   let pagesScanned = 0;
-  const failedPages = [];       // transient errors (worth retrying)
-  const rateLimitedPages = [];   // 429/403 failures (do NOT retry)
+  const failedPages: number[] = [];
+  const rateLimitedPages: number[] = [];
   const BATCH_SIZE = 4;
   const MAX_PAGES = 50;
 
-  function processPage(sched) {
+  function processPage(sched: any): boolean {
     if (!sched.data || sched.data.length === 0) return false;
     totalFetched += sched.data.length;
     for (const entry of sched.data) {
@@ -586,7 +547,6 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
     return false;
   }
 
-  // Fetch page 1 to discover totalPages
   const startTime = Date.now();
   const firstPage = await fetchOnePage(logHub, dir, ts, 1, deadline);
   if (!firstPage || firstPage._rateLimited) {
@@ -601,13 +561,12 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
   if (!pastDay && totalPages > 1) {
     const pagesToFetch = Math.min(totalPages, MAX_PAGES);
     let pageNum = 2;
-    let currentBatchDelay = BATCH_DELAY;
 
     while (pageNum <= pagesToFetch) {
       if (Date.now() > deadline - 2000) { partial = true; break; }
 
       const batchEnd = Math.min(pageNum + BATCH_SIZE - 1, pagesToFetch);
-      const batchPages = [];
+      const batchPages: number[] = [];
       for (let p = pageNum; p <= batchEnd; p++) batchPages.push(p);
 
       const batchResults = await Promise.allSettled(
@@ -623,7 +582,6 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
           failedPages.push(batchPages[i]);
           continue;
         }
-        // Detect rate-limit sentinel — stop paginating immediately
         if (result.value._rateLimited) {
           rateLimitedPages.push(batchPages[i]);
           hitRateLimit = true;
@@ -633,35 +591,30 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
         if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
         if (processPage(sched)) { batchDone = true; break; }
       }
-      // Stop pagination entirely on rate limit — further pages will just get 429'd too
       if (hitRateLimit) { partial = true; break; }
       if (batchDone) break;
 
       pageNum = batchEnd + 1;
 
       if (pageNum <= pagesToFetch && Date.now() < deadline - 2000) {
-        await new Promise(r => setTimeout(r, currentBatchDelay));
+        await new Promise(r => setTimeout(r, BATCH_DELAY));
       }
     }
   }
 
-  // Mark rate-limited pages as partial (they won't be retried)
   if (rateLimitedPages.length > 0) {
     partial = true;
   }
 
-  // Cooldown before retrying transiently-failed pages — let FR24 rate limits reset
-  // Skip retry phase entirely if we hit rate limits (retrying will just get more 429s)
   if (failedPages.length > 0 && rateLimitedPages.length === 0 && Date.now() < deadline - 5000) {
     const cooldown = Math.min(1500, failedPages.length * 150);
     await new Promise(r => setTimeout(r, cooldown));
   }
 
-  // Retry only transient failures (not rate-limited pages) in mini-batches
   if (failedPages.length > 0 && rateLimitedPages.length === 0 && Date.now() < deadline - 3000) {
     const RETRY_BATCH = 2;
     const RETRY_DELAY = 800;
-    const stillFailed = [];
+    const stillFailed: number[] = [];
 
     for (let i = 0; i < failedPages.length; i += RETRY_BATCH) {
       if (Date.now() > deadline - 2000) {
@@ -698,7 +651,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
   const allFailedPages = [...failedPages, ...rateLimitedPages];
   const elapsedMs = Date.now() - startTime;
   const pagesRequested = Math.min(totalPages, MAX_PAGES);
-  let partialReason = null;
+  let partialReason: string | null = null;
   if (partial) {
     if (rateLimitedPages.length > 0) partialReason = 'rate_limited';
     else if (Date.now() > deadline - 2000) partialReason = 'deadline_exceeded';
@@ -728,7 +681,7 @@ async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
   };
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -743,10 +696,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Compute a single deadline for the entire handler (60s Vercel max minus 3s safety buffer)
     const functionDeadline = Date.now() + 57000;
 
-    const { hub, dir = 'departures', timestamp, page } = req.query;
+    const { hub, dir = 'departures', timestamp, page } = req.query as Record<string, string>;
     if (!hub || !timestamp) {
       return res.status(400).json({ error: 'Missing required params: hub, timestamp' });
     }
@@ -788,17 +740,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...sched, cached: false });
     }
 
-    // Aggregation mode: fetch all pages, filter UA, return combined
+    // Aggregation mode
     const aggKey = `agg:${hub}:${dir}:${ts}`;
 
-    // Fresh cache hit
     const cached = cacheGet(aggKey);
     if (cached) {
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...cached.data, cached: true });
     }
 
-    // Stale-while-revalidate: serve stale data immediately, refresh in background
     const stale = cacheGetStale(aggKey);
     if (stale && !stale.data.partial) {
       triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
@@ -806,7 +756,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
     }
 
-    // Fallback: serve last-known-complete data (exact day or hub+direction level)
     const exactLastComplete = getLastComplete(aggKey);
     const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir);
     if (fallbackComplete) {
@@ -822,7 +771,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Dedup concurrent aggregation requests
     if (pendingAggs.has(aggKey)) {
       const result = await pendingAggs.get(aggKey);
       if (result) {
@@ -831,7 +779,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // fetchAllPages NEVER throws — always returns a result (possibly partial/empty)
     const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline).then(result => {
       cacheSet(aggKey, result, result.partial ? 60000 : ttl);
       saveComplete(aggKey, result);
@@ -841,7 +788,6 @@ export default async function handler(req, res) {
     pendingAggs.set(aggKey, aggPromise);
     try {
       const result = await aggPromise;
-      // If fresh result is partial, prefer last-known-complete data if available
       if (result.partial) {
         const exactLc = getLastComplete(aggKey);
         const lc = exactLc || getLastCompleteByHubDir(hub, dir);

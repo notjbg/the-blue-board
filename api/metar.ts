@@ -1,8 +1,9 @@
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 
 const isRateLimited = createRateLimiter('metar', 60);
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ids = req.query.ids || 'KORD';
+    const ids = (req.query.ids as string) || 'KORD';
     // Validate: comma-separated ICAO codes, max 200 chars
     if (!/^[A-Z0-9,]{1,200}$/i.test(ids)) {
       return res.status(400).json({ error: 'Invalid airport IDs' });
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json(data);
-  } catch (e) {
+  } catch (e: any) {
     console.error('METAR API error:', e);
     if (e.name === 'AbortError') return res.status(504).json({ error: 'Upstream timeout' });
     return res.status(502).json({ error: 'Upstream service unavailable' });

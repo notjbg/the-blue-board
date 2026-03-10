@@ -1,14 +1,18 @@
 // Shared IP-based rate limiter for API endpoints
 // In-memory Map with periodic TTL cleanup
 
-const stores = new Map(); // keyed by endpoint name
+interface MinimalRequest {
+  headers?: Record<string, string | string[] | undefined>;
+}
+
+const stores = new Map<string, Map<string, number[]>>();
 let lastCleanup = Date.now();
 const CLEANUP_INTERVAL = 300_000; // 5 minutes
 
-function getClientIp(req) {
+function getClientIp(req: MinimalRequest): string {
   // Prefer x-real-ip (set by Vercel edge, not spoofable) over x-forwarded-for
   const realIp = req.headers?.['x-real-ip'];
-  if (realIp) return realIp;
+  if (realIp) return Array.isArray(realIp) ? realIp[0] : realIp;
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
   return raw.split(',')[0]?.trim() || 'unknown';
@@ -16,20 +20,20 @@ function getClientIp(req) {
 
 /**
  * Create a rate limiter for an endpoint.
- * @param {string} name - Endpoint name (for separate stores)
- * @param {number} maxPerMinute - Max requests per IP per 60s window
- * @returns {function(req): boolean} - Returns true if rate limited
+ * @param name - Endpoint name (for separate stores)
+ * @param maxPerMinute - Max requests per IP per 60s window
+ * @returns Returns true if rate limited
  */
-export function createRateLimiter(name, maxPerMinute = 60) {
+export function createRateLimiter(name: string, maxPerMinute: number = 60): (req: MinimalRequest) => boolean {
   if (!stores.has(name)) stores.set(name, new Map());
 
-  return function isRateLimited(req) {
+  return function isRateLimited(req: MinimalRequest): boolean {
     const now = Date.now();
-    const store = stores.get(name);
+    const store = stores.get(name)!;
     const ip = getClientIp(req);
 
     if (!store.has(ip)) store.set(ip, []);
-    const log = store.get(ip);
+    const log = store.get(ip)!;
 
     // Evict entries older than 60s
     while (log.length && log[0] < now - 60_000) log.shift();

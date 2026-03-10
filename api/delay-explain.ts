@@ -1,25 +1,38 @@
 import Anthropic from '@anthropic-ai/sdk';
+import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('delay-explain', 20);
 
-let client = null;
-function getClient() {
+let client: Anthropic | null = null;
+function getClient(): Anthropic {
   if (!client) {
     client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
   return client;
 }
 
-const cache = new CacheStore('delay-explain', { maxSize: 200, defaultTTL: 5 * 60 * 1000 });
+const cache = new CacheStore<string>('delay-explain', { maxSize: 200, defaultTTL: 5 * 60 * 1000 });
 
-function getCacheKey(ctx) {
+interface DelayContext {
+  flight: string;
+  route?: string;
+  status?: string;
+  riskLabel?: string;
+  riskScore?: number;
+  factors?: string[];
+  otp?: string;
+  weather?: string;
+  inbound?: string;
+}
+
+function getCacheKey(ctx: DelayContext): string {
   const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
   return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${inboundKey}`;
 }
 
-export default async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -38,7 +51,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ctx = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const ctx: DelayContext = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     if (!ctx || !ctx.flight) {
       return res.status(400).json({ error: 'Missing flight context' });
     }
@@ -70,14 +83,14 @@ export default async function handler(req, res) {
       messages: [{ role: 'user', content: lines.join('\n') }],
     });
 
-    const text = message.content[0]?.text || 'Unable to generate analysis.';
+    const text = message.content[0]?.type === 'text' ? message.content[0].text : 'Unable to generate analysis.';
 
     // Cache the result
     cache.set(key, text);
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json({ explanation: text, cached: false });
-  } catch (e) {
+  } catch (e: any) {
     console.error('Delay explain API error:', e);
     if (e.status === 401) return res.status(503).json({ error: 'Invalid API key' });
     if (e.status === 429) return res.status(429).json({ error: 'AI rate limited — try again shortly' });
