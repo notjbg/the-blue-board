@@ -3235,7 +3235,11 @@ function renderScheduleTable() {
 
     // Delay risk scoring
     const dRisk = computeDelayRiskForScheduleFlight(fl, hub);
-    const riskCell = dRisk ? `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${escapeHtml(ident)}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(status.text)}" data-risk-label="${dRisk.label}" data-risk-score="${dRisk.score}" data-risk-factors="${escapeHtml(dRisk.factors.join('|'))}" data-hub="${escapeHtml(hub)}" style="background:${dRisk.color}20;color:${dRisk.color};cursor:pointer" title="Click for AI analysis">${dRisk.label}</span>` : '';
+    const schedRiskOtp = hubHealthData[hub];
+    const schedRiskWxOrig = weatherOpsByHub[hub];
+    const schedRiskWxDest = weatherOpsByHub[destCode];
+    const schedRiskIrrops = irropsHubData[hub];
+    const riskCell = dRisk ? `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${escapeHtml(ident)}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(status.text)}" data-risk-label="${dRisk.label}" data-risk-score="${dRisk.score}" data-risk-factors="${escapeHtml(dRisk.factors.join('|'))}" data-hub="${escapeHtml(hub)}"${schedRiskOtp !== undefined ? ' data-otp="' + schedRiskOtp + '"' : ''}${schedRiskWxOrig ? ' data-weather="' + escapeHtml(schedRiskWxOrig.level + (schedRiskWxOrig.reasons.length ? ': ' + schedRiskWxOrig.reasons.join(', ') : '')) + '"' : ''}${schedRiskWxDest ? ' data-dest-weather="' + escapeHtml(schedRiskWxDest.level + (schedRiskWxDest.reasons.length ? ': ' + schedRiskWxDest.reasons.join(', ') : '')) + '"' : ''}${schedRiskIrrops ? ' data-irrops="' + escapeHtml(schedRiskIrrops.cancellationRate + '% cancelled, ' + (schedRiskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''} style="background:${dRisk.color}20;color:${dRisk.color};cursor:pointer" title="Click for AI analysis">${dRisk.label}</span>` : '';
 
     return `<tr>
       <td>${escapeHtml(timeStr)}${timeExtra}</td>
@@ -4277,8 +4281,10 @@ function buildMyFlightCard(watched, td) {
   const risk = computeDelayRisk(watched, origCode, destCode, td, liveFlight);
   const riskOtp = hubHealthData[origCode];
   const riskWx = weatherOpsByHub[origCode];
+  const riskWxDest = weatherOpsByHub[destCode];
+  const riskIrrops = irropsHubData[origCode];
   if (risk && (resolvedStatus === 'scheduled' || resolvedStatus === 'delayed' || resolvedStatus === '' || !resolvedStatus)) {
-    riskHtml = `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''} style="background:${risk.color}20;color:${risk.color};cursor:pointer" title="Click for AI analysis">${risk.label} RISK</span>`;
+    riskHtml = `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrrops ? ' data-irrops="' + escapeHtml(riskIrrops.cancellationRate + '% cancelled, ' + (riskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''} style="background:${risk.color}20;color:${risk.color};cursor:pointer" title="Click for AI analysis">${risk.label} RISK</span>`;
   }
 
   // Departure/arrival time data attributes for countdown timer
@@ -4306,7 +4312,7 @@ function buildMyFlightCard(watched, td) {
     <div class="mf-actions">
       ${liveFlight ? `<button data-action="focus-flight" data-icao24="${escapeHtml(liveFlight.icao24)}">View on Map</button>` : ''}
       ${reg ? `<button data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">Aircraft Details</button>` : ''}
-      ${risk ? `<button class="delay-explain-btn" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''}>Explain Delay Risk</button>` : ''}
+      ${risk ? `<button class="delay-explain-btn" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrrops ? ' data-irrops="' + escapeHtml(riskIrrops.cancellationRate + '% cancelled, ' + (riskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''}>Explain Delay Risk</button>` : ''}
       <button data-action="toggle-watch-flight" data-flight="${flightNum}" data-route="${escapeHtml(watched.route)}" data-status="${escapeHtml(watched.status)}" data-stop-prop="1">Unwatch</button>
     </div>
   </div>`;
@@ -4564,7 +4570,8 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
   // ── Final Score & Label ──
   const finalScore = Math.min(score, 100);
   let label, color;
-  if (finalScore >= 50)      { label = 'HIGH'; color = '#ef4444'; }
+  if (finalScore >= 75)      { label = 'V.HIGH'; color = '#dc2626'; }
+  else if (finalScore >= 50) { label = 'HIGH'; color = '#ef4444'; }
   else if (finalScore >= 25) { label = 'MOD'; color = '#eab308'; }
   else                       { label = 'LOW'; color = '#22c55e'; }
 
@@ -4680,7 +4687,8 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
   if (score === 0) return null;
   const finalScore = Math.min(score, 100);
   let label, color;
-  if (finalScore >= 50)      { label = 'HIGH'; color = '#ef4444'; }
+  if (finalScore >= 75)      { label = 'V.HIGH'; color = '#dc2626'; }
+  else if (finalScore >= 50) { label = 'HIGH'; color = '#ef4444'; }
   else if (finalScore >= 25) { label = 'MOD'; color = '#eab308'; }
   else                       { label = 'LOW'; color = '#22c55e'; }
   return { score: finalScore, label, color, factors };
@@ -5104,7 +5112,10 @@ document.addEventListener('click', function(e) {
         hub: el.dataset.hub,
         otp: el.dataset.otp,
         weather: el.dataset.weather,
+        destWeather: el.dataset.destWeather,
         inbound: el.dataset.inbound,
+        irrops: el.dataset.irrops,
+        hubTime: el.dataset.hubTime,
       });
       break;
     }
@@ -5390,7 +5401,14 @@ function showDelayExplanation(ctx) {
     document.body.appendChild(modal);
   }
 
-  const riskColor = ctx.riskLabel === 'HIGH' ? '#ef4444' : ctx.riskLabel === 'MOD' ? '#eab308' : '#22c55e';
+  // Compute hub local time dynamically (current time when user clicks)
+  if (ctx.hub && SCHED_HUB_TZ[ctx.hub]) {
+    try {
+      ctx.hubTime = new Date().toLocaleTimeString('en-US', { timeZone: SCHED_HUB_TZ[ctx.hub], hour: '2-digit', minute: '2-digit', hour12: true }) + ' local';
+    } catch(e) {}
+  }
+
+  const riskColor = ctx.riskLabel === 'V.HIGH' ? '#dc2626' : ctx.riskLabel === 'HIGH' ? '#ef4444' : ctx.riskLabel === 'MOD' ? '#eab308' : '#22c55e';
   const factorsHtml = (ctx.factors || []).map(function(f) {
     return '<div class="delay-explain-factor">\u2022 ' + escapeHtml(f) + '</div>';
   }).join('');
@@ -5437,7 +5455,10 @@ async function fetchDelayExplanation(ctx) {
         hub: ctx.hub,
         otp: ctx.otp,
         weather: ctx.weather,
+        destWeather: ctx.destWeather,
         inbound: ctx.inbound,
+        irrops: ctx.irrops,
+        hubTime: ctx.hubTime,
       }),
     });
 

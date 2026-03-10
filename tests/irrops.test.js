@@ -229,7 +229,8 @@ function makeDelayRiskScore({
 
   const finalScore = Math.min(score, 100);
   let label;
-  if (finalScore >= 50)      label = 'HIGH';
+  if (finalScore >= 75)      label = 'V.HIGH';
+  else if (finalScore >= 50) label = 'HIGH';
   else if (finalScore >= 25) label = 'MOD';
   else                       label = 'LOW';
   return { score: finalScore, label, factors };

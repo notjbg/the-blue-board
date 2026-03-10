@@ -24,12 +24,17 @@ interface DelayContext {
   factors?: string[];
   otp?: string;
   weather?: string;
+  destWeather?: string;
   inbound?: string;
+  hub?: string;
+  irrops?: string;
+  hubTime?: string;
 }
 
 function getCacheKey(ctx: DelayContext): string {
   const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
-  return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${inboundKey}`;
+  const weatherKey = (ctx.weather || '').slice(0, 40) + '|' + (ctx.destWeather || '').slice(0, 40);
+  return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${inboundKey}:${weatherKey}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -73,13 +78,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lines.push(`Contributing factors: ${ctx.factors.join('; ')}`);
     }
     if (ctx.otp) lines.push(`Hub on-time performance: ${ctx.otp}%`);
-    if (ctx.weather) lines.push(`Weather conditions: ${ctx.weather}`);
+    if (ctx.weather) lines.push(`Origin weather: ${ctx.weather}`);
+    if (ctx.destWeather) lines.push(`Destination weather: ${ctx.destWeather}`);
+    if (ctx.irrops) lines.push(`Hub disruption status: ${ctx.irrops}`);
+    if (ctx.hubTime) lines.push(`Current local time at hub: ${ctx.hubTime}`);
     if (ctx.inbound) lines.push(`Aircraft journey: ${ctx.inbound}`);
 
     const message = await getClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 280,
-      system: `You are an expert flight operations analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Analyze the delay risk like a seasoned frequent flyer would. Prioritize inbound aircraft routing patterns and delay propagation over generic observations — if the aircraft has been running late across multiple segments, explain the snowball effect and what it means for this flight. If turnaround time is tight, say so directly with specifics. Give actionable insight in 3-5 sentences. Be specific about this flight's situation, not generic. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
+      model: 'claude-haiku-4-5',
+      max_tokens: 350,
+      system: `You are an expert flight operations analyst for The Blue Board, a third-party United Airlines flight tracker. You are NOT United Airlines — never say "we" or "our" when referring to the airline. Analyze the delay risk like a seasoned frequent flyer would.
+
+Key analysis priorities:
+- Inbound aircraft routing patterns and delay propagation are the strongest predictors. If the aircraft has been running late across multiple segments, explain the snowball effect and what it means for this flight. If turnaround time is tight, say so directly with specifics.
+- Destination weather matters for arrival — if severe weather or IFR/LIFR conditions exist at the destination, note the risk of holds, diversions, or arrival delays.
+- Time-of-day cascade effects: late afternoon and evening flights inherit accumulated network delays. If it's evening at the hub, factor that in.
+- Hub disruption context: if the hub has elevated cancellation rates or widespread delays, explain what that means for this specific flight.
+- For LOW-risk flights, be honest that the outlook is good — don't manufacture concern. A clean score with no flags is worth noting positively.
+
+Give actionable insight in 3-5 sentences. Be specific about this flight's situation, not generic. Write in plain text only — no markdown, no headers, no bold, no bullet points.`,
       messages: [{ role: 'user', content: lines.join('\n') }],
     });
 
