@@ -21,32 +21,39 @@ export default async function handler(req, res) {
 
   const DIRS = ['departures', 'arrivals'];
   for (const hub of HUBS) {
-    const timestamp = getStartOfDayForHub(hub);
-    for (const dir of DIRS) {
-      const key = `${hub}-${dir}`;
-      const url = `${BASE_URL}/api/schedule?hub=${hub}&dir=${dir}&timestamp=${timestamp}`;
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 55000);
-        const resp = await fetch(url, {
-          signal: controller.signal,
-          headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' }
-        });
-        clearTimeout(timeout);
-        if (resp.ok) {
-          const data = await resp.json();
-          results[key] = { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false };
-          warmed++;
-        } else {
-          results[key] = { status: `http_${resp.status}` };
+    const todayTs = getStartOfDayForHub(hub);
+    const tomorrowTs = todayTs + 86400;
+    const timestamps = [
+      { ts: todayTs, label: 'today' },
+      { ts: tomorrowTs, label: 'tomorrow' },
+    ];
+    for (const { ts: timestamp, label } of timestamps) {
+      for (const dir of DIRS) {
+        const key = `${hub}-${dir}-${label}`;
+        const url = `${BASE_URL}/api/schedule?hub=${hub}&dir=${dir}&timestamp=${timestamp}`;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 55000);
+          const resp = await fetch(url, {
+            signal: controller.signal,
+            headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' }
+          });
+          clearTimeout(timeout);
+          if (resp.ok) {
+            const data = await resp.json();
+            results[key] = { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false };
+            warmed++;
+          } else {
+            results[key] = { status: `http_${resp.status}` };
+            failed++;
+          }
+        } catch (e) {
+          results[key] = { status: 'error', message: e.message };
           failed++;
         }
-      } catch (e) {
-        results[key] = { status: 'error', message: e.message };
-        failed++;
+        // 2s pause between requests to avoid overwhelming FR24
+        await new Promise(r => setTimeout(r, 2000));
       }
-      // 2s pause between requests to avoid overwhelming FR24
-      await new Promise(r => setTimeout(r, 2000));
     }
   }
 

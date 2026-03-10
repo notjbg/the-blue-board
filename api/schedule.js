@@ -8,6 +8,8 @@ const MAX_CACHE_SIZE = 200;
 
 // Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
 const lastCompleteCache = new Map();
+// Broader fallback cache keyed by hub+direction (survives day-key misses)
+const lastCompleteByHubDir = new Map();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
 const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
@@ -60,6 +62,16 @@ function saveComplete(key, data) {
     lastCompleteCache.delete(lastCompleteCache.keys().next().value);
   }
   lastCompleteCache.set(key, { data, time: Date.now() });
+
+  // Also populate hub+direction level cache for broader fallback
+  const aggMatch = /^agg:([A-Z]{3,4}):(departures|arrivals):\d+$/i.exec(key);
+  if (aggMatch) {
+    const hdKey = `${aggMatch[1].toUpperCase()}:${aggMatch[2]}`;
+    if (lastCompleteByHubDir.size >= MAX_COMPLETE_CACHE_SIZE) {
+      lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value);
+    }
+    lastCompleteByHubDir.set(hdKey, { data, time: Date.now(), sourceKey: key });
+  }
 }
 
 function getLastComplete(key) {
@@ -67,6 +79,17 @@ function getLastComplete(key) {
   if (!entry) return null;
   if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
     lastCompleteCache.delete(key);
+    return null;
+  }
+  return entry;
+}
+
+function getLastCompleteByHubDir(hub, dir) {
+  const hdKey = `${hub.toUpperCase()}:${dir}`;
+  const entry = lastCompleteByHubDir.get(hdKey);
+  if (!entry) return null;
+  if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
+    lastCompleteByHubDir.delete(hdKey);
     return null;
   }
   return entry;
@@ -116,8 +139,17 @@ async function fetchOnePage(hub, dir, timestamp, page, deadlineMs) {
       const resp = await fetchWithTimeout(url, deadlineMs);
       if (resp.ok) {
         const data = await resp.json();
-        const sched = data?.result?.response?.airport?.pluginData?.schedule?.[dir];
-        if (!sched) return null;
+        const airportData = data?.result?.response?.airport;
+        const sched = airportData?.pluginData?.schedule?.[dir];
+        if (!sched) {
+          // FR24 can return a valid airport payload with no schedule block for
+          // lightly-published future dates. Treat as empty for page 1 only;
+          // for later pages, return null so they get retried (avoids premature pagination halt).
+          if (airportData && page === 1) {
+            return { page: { current: page, total: 1 }, data: [] };
+          }
+          return null;
+        }
         return sched;
       }
       // Retry on transient FR24 errors (including 403 — FR24 uses it for rate limiting)
@@ -313,7 +345,27 @@ async function fetchViaOfficialAPI(hub, dir, ts, timeoutMs) {
     }
     if (!flights.length) {
       console.log(`Official FR24 API returned 0 flights for ${hub} ${dir}`);
-      return null;
+      return {
+        flights: [],
+        total: 0,
+        totalFetched: 0,
+        pagesScanned: 1,
+        totalPages: 1,
+        cached: false,
+        partial: false,
+        hub,
+        dir,
+        meta: {
+          partialReason: null,
+          pagesRequested: 1,
+          pagesSucceeded: 1,
+          pagesFailed: 0,
+          missingPages: [],
+          completeness: 1,
+          elapsedMs: Date.now() - startTime,
+          source: 'official-api'
+        }
+      };
     }
 
     // Normalize each flight and filter by direction
@@ -376,7 +428,7 @@ const pendingAggs = new Map();
 
 function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   if (pendingAggs.has(aggKey)) return;
-  const promise = fetchAllPages(hub, dir, ts).then(result => {
+  const promise = fetchAllPages(hub, dir, ts, undefined, Date.now() + 55000).then(result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
     saveComplete(aggKey, result);
     return result;
@@ -388,20 +440,24 @@ function triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl) {
   pendingAggs.set(aggKey, promise);
 }
 
-async function fetchAllPages(hub, dir, ts, timeoutMs) {
+async function fetchAllPages(hub, dir, ts, timeoutMs, overallDeadline) {
+  const now = Date.now();
+  const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000));
+
   // Try official FR24 API first (single authenticated request, no pagination)
   if (process.env.FR24_API_TOKEN) {
     try {
-      const officialResult = await fetchViaOfficialAPI(hub, dir, ts, timeoutMs);
-      if (officialResult && officialResult.flights.length > 0) return officialResult;
+      // Cap official API to 40% of remaining time (max 20s), saving 60% for scraping fallback
+      const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.4), 20000);
+      const officialResult = await fetchViaOfficialAPI(hub, dir, ts, officialTimeout);
+      if (officialResult) return officialResult;
     } catch (e) {
       console.error(`Official FR24 API failed for ${hub}, falling back to scraping:`, e.message);
     }
   }
 
   // Fallback: scrape unauthenticated FR24 endpoint (paginated)
-  timeoutMs = timeoutMs || HUB_TIMEOUT_MS[hub.toUpperCase()] || 45000;
-  const deadline = Date.now() + timeoutMs;
+  const deadline = effectiveDeadline;
   const dayEnd = ts + 86400;
   const allUAFlights = [];
   let totalPages = 1;
@@ -574,6 +630,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Compute a single deadline for the entire handler (60s Vercel max minus 3s safety buffer)
+    const functionDeadline = Date.now() + 57000;
+
     const { hub, dir = 'departures', timestamp, page } = req.query;
     if (!hub || !timestamp) {
       return res.status(400).json({ error: 'Missing required params: hub, timestamp' });
@@ -634,14 +693,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
     }
 
-    // Fallback: serve last-known-complete data if stale cache is partial or missing
-    const lastComplete = getLastComplete(aggKey);
-    if (lastComplete) {
+    // Fallback: serve last-known-complete data (exact day or hub+direction level)
+    const exactLastComplete = getLastComplete(aggKey);
+    const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir);
+    if (fallbackComplete) {
       triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
-      const dataAge = Math.round((Date.now() - lastComplete.time) / 1000);
+      const dataAge = Math.round((Date.now() - fallbackComplete.time) / 1000);
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-      return res.status(200).json({ ...lastComplete.data, cached: true, stale: true, degraded: true,
-        meta: { ...lastComplete.data.meta, dataAge }
+      return res.status(200).json({ ...fallbackComplete.data, cached: true, stale: true, degraded: true,
+        meta: {
+          ...fallbackComplete.data.meta,
+          dataAge,
+          fallbackScope: exactLastComplete ? 'exact' : 'hub_dir',
+        }
       });
     }
 
@@ -655,7 +719,7 @@ export default async function handler(req, res) {
     }
 
     // fetchAllPages NEVER throws — always returns a result (possibly partial/empty)
-    const aggPromise = fetchAllPages(hub, dir, ts).then(result => {
+    const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline).then(result => {
       cacheSet(aggKey, result, result.partial ? 60000 : ttl);
       saveComplete(aggKey, result);
       return result;
@@ -666,12 +730,17 @@ export default async function handler(req, res) {
       const result = await aggPromise;
       // If fresh result is partial, prefer last-known-complete data if available
       if (result.partial) {
-        const lc = getLastComplete(aggKey);
+        const exactLc = getLastComplete(aggKey);
+        const lc = exactLc || getLastCompleteByHubDir(hub, dir);
         if (lc) {
           const dataAge = Math.round((Date.now() - lc.time) / 1000);
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
           return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
-            meta: { ...lc.data.meta, dataAge }
+            meta: {
+              ...lc.data.meta,
+              dataAge,
+              fallbackScope: exactLc ? 'exact' : 'hub_dir',
+            }
           });
         }
       }
