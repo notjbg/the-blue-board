@@ -4063,8 +4063,17 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
   try {
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
-    if (!resp.ok) throw new Error(`Schedule API ${resp.status}`);
-    const data = await resp.json();
+    let data = null;
+    try {
+      data = await resp.json();
+    } catch (parseErr) {
+      data = null;
+    }
+    if (!resp.ok) {
+      const upstreamMsg = typeof data?.error === 'string' ? data.error : '';
+      const msg = upstreamMsg ? `${upstreamMsg} (${resp.status})` : `Schedule API ${resp.status}`;
+      throw new Error(msg);
+    }
     if (data.error) throw new Error(data.error);
     if (!data.partial) schedCache[cacheKey] = data;
     return data;
@@ -4073,6 +4082,20 @@ async function fetchScheduleAggregated(hub, dir, timestamp) {
     if (e.name === 'AbortError') throw new Error('Schedule request timed out');
     throw e;
   }
+}
+
+function formatScheduleLoadErrorMessage(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  if (msg.includes('timed out') || msg.includes('timeout')) {
+    return 'Schedule data source timed out. Try again in a moment.';
+  }
+  if (msg.includes(' 503') || msg.includes('api 503') || msg.includes('service unavailable')) {
+    return 'Schedule provider is temporarily unavailable (503). Retrying shortly usually works.';
+  }
+  if (msg.includes(' 502') || msg.includes('upstream')) {
+    return 'Schedule provider is temporarily unavailable. Please try again in a moment.';
+  }
+  return 'Error loading schedule data. Please try again in a moment.';
 }
 
 function classifySchedStatus(flight) {
@@ -4200,7 +4223,18 @@ async function loadScheduleData() {
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
     console.error('Schedule load error:', err);
-    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>Error loading schedule: ${escapeHtml(err.message)}<br><span style="font-size:10px">Try again in a moment</span><br><button onclick="loadScheduleData()" style="margin-top:8px;padding:4px 12px;background:var(--ua-blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">↻ Retry</button>`;
+    const friendlyMsg = formatScheduleLoadErrorMessage(err);
+    loadEl.innerHTML = `<div style="font-size:24px;margin-bottom:8px">⚠️</div>${escapeHtml(friendlyMsg)}<br><span style="font-size:10px">Technical details: ${escapeHtml(err?.message || 'unknown error')}</span><br><button onclick="loadScheduleData()" style="margin-top:8px;padding:4px 12px;background:var(--ua-blue);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px">↻ Retry</button>`;
+
+    const hubKey = `${schedCurrentHub}-${schedCurrentDir}-${schedCurrentDay}`;
+    const fallbackFlights = schedRawByHub[hubKey];
+    if (Array.isArray(fallbackFlights) && fallbackFlights.length) {
+      schedAllFlights = fallbackFlights;
+      tableWrap.style.display = 'block';
+      renderScheduleTable();
+      renderScheduleStats();
+      loadEl.innerHTML = `<div style="padding:8px 12px;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:4px;font-size:11px;color:#eab308;margin-bottom:8px">⚠️ ${escapeHtml(friendlyMsg)} Showing last loaded schedule snapshot (${fallbackFlights.length} flights). <button onclick="loadScheduleData()" style="background:none;border:none;color:var(--ua-accent);cursor:pointer;font-family:var(--font-ui);font-size:11px;text-decoration:underline">↻ Retry</button></div>`;
+    }
   } finally {
     schedLoading = false;
     btn.disabled = false;
