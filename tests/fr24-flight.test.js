@@ -3,6 +3,7 @@ import {
   normalizeFlightNumber,
   normalizeLiveResponse,
   normalizeSummaryResponse,
+  getClientIp,
 } from '../api/fr24-flight.js';
 
 describe('normalizeFlightNumber (FR24)', () => {
@@ -180,5 +181,27 @@ describe('normalizeSummaryResponse', () => {
     expect(result.aircraft.type).toBe('A320');
     expect(result.aircraft.reg).toBe('N54321');
     expect(result.flightId).toBe('fallback1');
+  });
+});
+
+
+describe('getClientIp (FR24)', () => {
+  it('prefers x-real-ip over x-forwarded-for', () => {
+    const req = {
+      headers: {
+        'x-real-ip': '100.0.0.1',
+        'x-forwarded-for': '200.0.0.1, 201.0.0.1',
+      },
+    };
+    expect(getClientIp(req)).toBe('100.0.0.1');
+  });
+
+  it('falls back to first x-forwarded-for value when x-real-ip is missing', () => {
+    const req = { headers: { 'x-forwarded-for': '200.0.0.1, 201.0.0.1' } };
+    expect(getClientIp(req)).toBe('200.0.0.1');
+  });
+
+  it('returns unknown when both headers are missing', () => {
+    expect(getClientIp({ headers: {} })).toBe('unknown');
   });
 });

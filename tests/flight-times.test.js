@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeFlightNumber,
   epochToISO,
+  getClientIp,
 } from '../api/flight-times.js';
 
 describe('normalizeFlightNumber (FlightAware)', () => {
@@ -58,5 +59,27 @@ describe('epochToISO', () => {
   it('handles recent timestamps', () => {
     const result = epochToISO(1700000000);
     expect(result).toMatch(/^2023-11-14T/);
+  });
+});
+
+
+describe('getClientIp (FlightAware)', () => {
+  it('prefers x-real-ip over x-forwarded-for', () => {
+    const req = {
+      headers: {
+        'x-real-ip': '100.0.0.1',
+        'x-forwarded-for': '200.0.0.1, 201.0.0.1',
+      },
+    };
+    expect(getClientIp(req)).toBe('100.0.0.1');
+  });
+
+  it('falls back to first x-forwarded-for value when x-real-ip is missing', () => {
+    const req = { headers: { 'x-forwarded-for': '200.0.0.1, 201.0.0.1' } };
+    expect(getClientIp(req)).toBe('200.0.0.1');
+  });
+
+  it('returns unknown when both headers are missing', () => {
+    expect(getClientIp({ headers: {} })).toBe('unknown');
   });
 });

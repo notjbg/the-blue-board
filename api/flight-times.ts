@@ -20,10 +20,12 @@ function setCache(key: string, data: any): void {
 
 // Rate limiting: 5 req/min per IP
 const rateLimitByIp = new Map<string, number[]>();
-function getClientIp(req: VercelRequest): string {
+export function getClientIp(req: VercelRequest): string {
+  const realIp = req.headers?.['x-real-ip'];
+  if (realIp) return Array.isArray(realIp) ? realIp[0] : realIp;
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
-  return raw.split(',')[0]?.trim() || (req.headers?.['x-real-ip'] as string) || 'unknown';
+  return raw.split(',')[0]?.trim() || 'unknown';
 }
 let lastRateLimitCleanup = Date.now();
 function isRateLimited(req: VercelRequest): boolean {
