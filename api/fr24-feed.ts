@@ -5,7 +5,7 @@ import { CacheStore } from './_cache.js';
 const isRateLimited = createRateLimiter('fr24-feed', 30);
 
 const feedCache = new CacheStore('fr24-feed', { maxSize: 1, defaultTTL: 15_000 });
-let feedFetching: Promise<any> | null = null;
+const feedFetching = new Map<string, Promise<any>>();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -28,16 +28,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid airline code' });
     }
 
+    const normalizedAirline = airline.toUpperCase();
+    const cacheKey = `feed:${normalizedAirline}`;
+
     // Return cached if fresh
-    const hit = feedCache.get('feed');
+    const hit = feedCache.get(cacheKey);
     if (hit) {
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(hit);
     }
 
     // Dedup: if already fetching, wait for that
-    if (feedFetching) {
-      const data = await feedFetching;
+    const inFlight = feedFetching.get(cacheKey);
+    if (inFlight) {
+      const data = await inFlight;
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(data);
     }
@@ -45,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const doFetch = async () => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
-      const upstream = await fetch(`https://data-cloud.flightradar24.com/zones/fcgi/feed.js?airline=${encodeURIComponent(airline)}`, {
+      const upstream = await fetch(`https://data-cloud.flightradar24.com/zones/fcgi/feed.js?airline=${encodeURIComponent(normalizedAirline)}`, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'TheBlueBoardDashboard/1.0 (https://theblueboard.co)',
@@ -58,13 +62,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-      feedFetching = doFetch();
-      const data = await feedFetching;
-      feedCache.set('feed', data);
+      const inFlightRequest = doFetch();
+      feedFetching.set(cacheKey, inFlightRequest);
+      const data = await inFlightRequest;
+      feedCache.set(cacheKey, data);
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(data);
     } finally {
-      feedFetching = null;
+      feedFetching.delete(cacheKey);
     }
   } catch (e: any) {
     console.error('FR24 feed error:', e);

@@ -92,16 +92,68 @@ describe('fr24-feed API', () => {
     expect(res.headers['Cache-Control']).toContain('s-maxage=15');
   });
 
-  it('returns cached data on subsequent requests', async () => {
-    // Previous test populated the cache — this request should hit it
-    const res = createRes();
+
+  it('uses airline-specific cache keys to avoid cross-airline contamination', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const airline = new URL(url).searchParams.get('airline');
+      return {
+        ok: true,
+        json: async () => ({ airline, full_count: airline === 'DAL' ? 500 : 120 }),
+      };
+    });
+
+    const resUAL = createRes();
     await handler({
       method: 'GET',
       headers: { origin: 'http://localhost:3000' },
-      query: {},
-    }, res);
+      query: { airline: 'DAL' },
+    }, resUAL);
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.full_count).toBe(500);
+    const resAAL = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'JBU' },
+    }, resAAL);
+
+    const resAALCached = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'JBU' },
+    }, resAALCached);
+
+    expect(resUAL.statusCode).toBe(200);
+    expect(resUAL.body.airline).toBe('DAL');
+    expect(resAAL.statusCode).toBe(200);
+    expect(resAAL.body.airline).toBe('JBU');
+    expect(resAALCached.body.airline).toBe('JBU');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it('returns cached data on subsequent requests', async () => {
+    const mockData = { full_count: 500, version: 4, '2d5c8a': ['data'] };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    const firstRes = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'UAL' },
+    }, firstRes);
+
+    const secondRes = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'UAL' },
+    }, secondRes);
+
+    expect(firstRes.statusCode).toBe(200);
+    expect(secondRes.statusCode).toBe(200);
+    expect(secondRes.body.full_count).toBe(500);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
