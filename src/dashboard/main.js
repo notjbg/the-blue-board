@@ -246,6 +246,24 @@ const TERMINAL_WALK_TIMES = {
   SFO:{default:12},IAD:{default:10},LAX:{'7-8':5,'7-B':15,'8-B':12,default:10},NRT:{default:15},GUM:{default:5}
 };
 const INTL_AIRPORTS = new Set(['NRT','GUM','HND','LHR','FRA','CDG','AMS','ZRH','FCO','MAD','BCN','DUB','IST','TLV','MUC','EDI','BRU','LIS','CPH','ARN','HEL','OSL','SIN','HKG','SYD','PEK','ICN','TPE','BKK','DEL','MEL','AKL','PVG','CAN','BOM','NAN','PPT','KIX','CTU','XIY','CKG','SNN','MAN','GLA']);
+// Known United Airlines terminals at each hub (fallback when API doesn't provide terminal data)
+const UNITED_HUB_TERMINALS = {
+  ORD:{domestic:'1',international:'1'},       // Terminal 1 (B & C); Express uses T2
+  DEN:{domestic:'B',international:'B'},       // Concourse B
+  EWR:{domestic:'C',international:'C'},       // Terminal C (primary)
+  IAH:{domestic:'C',international:'E'},       // Terminal C (domestic), Terminal E (international)
+  SFO:{domestic:'3',international:'G'},       // Terminal 3 (domestic), International Terminal G
+  LAX:{domestic:'7',international:'7'},       // Terminals 7 & 8
+  IAD:{domestic:'C',international:'D'},       // Concourse C (domestic), Concourse D (international)
+  NRT:{domestic:'1',international:'1'},       // Terminal 1
+  GUM:{domestic:'1',international:'1'},       // Single terminal
+};
+function getUnitedTerminal(iata, origIata, destIata) {
+  const hub = UNITED_HUB_TERMINALS[iata];
+  if (!hub) return '';
+  const isIntl = INTL_AIRPORTS.has(origIata) || INTL_AIRPORTS.has(destIata);
+  return isIntl ? hub.international : hub.domestic;
+}
 
 // ═══ UA ROUTE LOOKUP TABLE ═══
 // Static mapping of UA flight numbers to known city pairs (fallback for missing FR24 route data)
@@ -3173,9 +3191,16 @@ function renderScheduleTable() {
     const acShort = acText ? acText.replace(/Boeing |Airbus |Embraer /g, '').substring(0, 20) : '';
     const reg = fl.aircraft?.registration || '—';
 
-    const gate = schedCurrentDir === 'departures'
-      ? (orig?.info?.gate ? orig.info.gate : (orig?.info?.terminal ? `T${orig.info.terminal}` : '—'))
-      : (dest?.info?.gate ? dest.info.gate : (dest?.info?.terminal ? `T${dest.info.terminal}` : '—'));
+    const oIata = orig?.code?.iata || '';
+    const dIata = dest?.code?.iata || '';
+    let gate;
+    if (schedCurrentDir === 'departures') {
+      const t = orig?.info?.terminal || getUnitedTerminal(oIata, oIata, dIata);
+      gate = orig?.info?.gate ? orig.info.gate : (t ? `T${t}` : '—');
+    } else {
+      const t = dest?.info?.terminal || getUnitedTerminal(dIata, oIata, dIata);
+      gate = dest?.info?.gate ? dest.info.gate : (t ? `T${t}` : '—');
+    }
 
     const status = classifySchedStatus(fl);
 
@@ -4355,8 +4380,12 @@ function buildMyFlightCard(watched, td) {
   // Gate info
   let gateHtml = '';
   if (td && td.success !== false) {
-    const oGate = td.origin?.gate ? `T${td.origin.terminal || '?'} Gate ${td.origin.gate}` : (td.origin?.terminal ? `T${td.origin.terminal}` : '—');
-    const dGate = td.destination?.gate ? `T${td.destination.terminal || '?'} Gate ${td.destination.gate}` : (td.destination?.terminal ? `T${td.destination.terminal}` : '—');
+    const oIata = td.origin?.iata || '';
+    const dIata = td.destination?.iata || '';
+    const oTerm = td.origin?.terminal || getUnitedTerminal(oIata, oIata, dIata);
+    const dTerm = td.destination?.terminal || getUnitedTerminal(dIata, oIata, dIata);
+    const oGate = td.origin?.gate ? `T${oTerm || '?'} Gate ${td.origin.gate}` : (oTerm ? `T${oTerm}` : '—');
+    const dGate = td.destination?.gate ? `T${dTerm || '?'} Gate ${td.destination.gate}` : (dTerm ? `T${dTerm}` : '—');
     gateHtml = `<div class="mf-grid">
       <div><span class="mf-label">Origin Gate</span><div class="mf-value">${escapeHtml(oGate)}</div></div>
       <div><span class="mf-label">Dest Gate</span><div class="mf-value">${escapeHtml(dGate)}</div></div>
@@ -4980,8 +5009,8 @@ function computeConnectionRisk(conn) {
   const mctKey = (isDomIn ? 'd' : 'i') + (isDomOut ? 'd' : 'i');
   const mct = MIN_CONNECTION_TIMES[hub]?.[mctKey] || 60;
 
-  const inTerminal = inTd.destination?.terminal || '?';
-  const outTerminal = outTd.origin?.terminal || '?';
+  const inTerminal = inTd.destination?.terminal || getUnitedTerminal(hub, inTd.origin?.iata || '', hub) || '?';
+  const outTerminal = outTd.origin?.terminal || getUnitedTerminal(hub, hub, outTd.destination?.iata || '') || '?';
   const walkKey = [inTerminal, outTerminal].sort().join('-');
   const walkTime = inTerminal === outTerminal ? 5 : (TERMINAL_WALK_TIMES[hub]?.[walkKey] || TERMINAL_WALK_TIMES[hub]?.default || 10);
 
