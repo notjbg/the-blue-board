@@ -104,10 +104,10 @@ function saveComplete(key: string, data: any): void {
   }
   lastCompleteCache.set(key, { data, time: Date.now() });
 
-  // Also populate hub+direction level cache for broader fallback
-  const aggMatch = /^agg:([A-Z]{3,4}):(departures|arrivals):\d+$/i.exec(key);
+  // Also populate hub+direction+day level cache for broader fallback
+  const aggMatch = /^agg:([A-Z]{3,4}):(departures|arrivals):(\d+)$/i.exec(key);
   if (aggMatch) {
-    const hdKey = `${aggMatch[1].toUpperCase()}:${aggMatch[2]}`;
+    const hdKey = `${aggMatch[1].toUpperCase()}:${aggMatch[2]}:${aggMatch[3]}`;
     if (lastCompleteByHubDir.size >= MAX_COMPLETE_CACHE_SIZE) {
       lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value!);
     }
@@ -125,8 +125,8 @@ function getLastComplete(key: string) {
   return entry;
 }
 
-function getLastCompleteByHubDir(hub: string, dir: string) {
-  const hdKey = `${hub.toUpperCase()}:${dir}`;
+function getLastCompleteByHubDir(hub: string, dir: string, ts: number) {
+  const hdKey = `${hub.toUpperCase()}:${dir}:${ts}`;
   const entry = lastCompleteByHubDir.get(hdKey);
   if (!entry) return null;
   if (Date.now() - entry.time > COMPLETE_CACHE_MAX_AGE) {
@@ -566,12 +566,30 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
     allUAFlights.push(normalizeSummaryFlight(f));
   }
 
+  // Quality gate: reject sparse payloads where most flights lack scheduled times
+  const dirTimeKey = dir === 'departures' ? 'departure' : 'arrival';
+  let sparseCount = 0;
+  const qualityFiltered: any[] = [];
+  for (const fl of allUAFlights) {
+    const schedTime = fl.time?.scheduled?.[dirTimeKey];
+    if (schedTime && schedTime > 0) {
+      qualityFiltered.push(fl);
+    } else {
+      sparseCount++;
+    }
+  }
+
+  if (allUAFlights.length > 0 && sparseCount / allUAFlights.length > 0.5) {
+    console.warn(`Official FR24 API: ${sparseCount}/${allUAFlights.length} flights for ${logHub} ${dir} lack scheduled times — rejecting as sparse`);
+    return null; // fall through to scraping fallback
+  }
+
   const elapsedMs = Date.now() - startTime;
-  console.log(`Official FR24 API: ${allRawFlights.length} total flights (${totalPages} pages), ${allUAFlights.length} ${dir} for ${logHub} in ${elapsedMs}ms`);
+  console.log(`Official FR24 API: ${allRawFlights.length} total flights (${totalPages} pages), ${qualityFiltered.length} ${dir} for ${logHub} in ${elapsedMs}ms${sparseCount > 0 ? ` (${sparseCount} sparse filtered)` : ''}`);
 
   return {
-    flights: allUAFlights,
-    total: allUAFlights.length,
+    flights: qualityFiltered,
+    total: qualityFiltered.length,
     totalFetched: allRawFlights.length,
     pagesScanned: totalPages,
     totalPages,
@@ -587,7 +605,8 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
       missingPages: [] as number[],
       completeness: officialPartial ? 0.9 : 1,
       elapsedMs,
-      source: 'official-api'
+      source: 'official-api',
+      sparseFiltered: sparseCount
     }
   };
 }
@@ -864,7 +883,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const exactLastComplete = getLastComplete(aggKey);
-    const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir);
+    const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir, ts);
     if (fallbackComplete) {
       triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
       const dataAge = Math.round((Date.now() - fallbackComplete.time) / 1000);
@@ -897,7 +916,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await aggPromise;
       if (result.partial) {
         const exactLc = getLastComplete(aggKey);
-        const lc = exactLc || getLastCompleteByHubDir(hub, dir);
+        const lc = exactLc || getLastCompleteByHubDir(hub, dir, ts);
         if (lc) {
           const dataAge = Math.round((Date.now() - lc.time) / 1000);
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
