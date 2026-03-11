@@ -3655,14 +3655,9 @@ function updateHubHealth() {
       const status = classifySchedStatus(fl);
       const hasOp = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
       if (!hasOp) return;
-      // Keep schedule/actual pairs aligned by phase (dep with dep, arr with arr).
-      const schedDep = fl.time?.scheduled?.departure;
-      const realDep = fl.time?.real?.departure;
-      const schedArr = fl.time?.scheduled?.arrival;
-      const realArr = fl.time?.real?.arrival;
-      const schedT = (realDep && schedDep) ? schedDep : ((realArr && schedArr) ? schedArr : null);
-      const realT = (realDep && schedDep) ? realDep : ((realArr && schedArr) ? realArr : null);
-      if (!realT || !schedT) return; // skip flights without matched real/scheduled timestamps
+      const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival;
+      const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
+      if (!realT || !schedT) return; // skip flights without real timestamps
       totalsByHub[hub].operated++;
       if (realT <= schedT + 1800) totalsByHub[hub].onTime++;
     });
