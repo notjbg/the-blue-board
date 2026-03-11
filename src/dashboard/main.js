@@ -3165,7 +3165,11 @@ function renderScheduleTable() {
   const rows = sorted.map(fl => {
     const ident = fl.identification?.number?.default || '—';
     const schedTime = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
-    const actualTime = schedCurrentDir === 'departures' ? (fl.time?.real?.departure || fl.time?.estimated?.departure) : (fl.time?.real?.arrival || fl.time?.estimated?.arrival);
+    const flightStatus = classifySchedStatus(fl);
+    const hasOperated = flightStatus.key === 'landed' || flightStatus.key === 'departed' || flightStatus.key === 'enroute';
+    const realTime = schedCurrentDir === 'departures' ? fl.time?.real?.departure : fl.time?.real?.arrival;
+    const estTime = schedCurrentDir === 'departures' ? fl.time?.estimated?.departure : fl.time?.estimated?.arrival;
+    const actualTime = hasOperated ? realTime : (realTime || estTime);
     const timeStr = formatSchedTime(schedTime, hub);
     let timeExtra = '';
     if (actualTime && schedTime && actualTime !== schedTime) {
@@ -3202,7 +3206,7 @@ function renderScheduleTable() {
       gate = dest?.info?.gate ? dest.info.gate : (t ? `T${t}` : '—');
     }
 
-    const status = classifySchedStatus(fl);
+    const status = flightStatus;
 
     // Fleet match + enrichment
     let fleetMatch = '';
@@ -3317,8 +3321,8 @@ function renderScheduleStats(filtered) {
       return;
     }
     const schedT = schedCurrentDir === 'departures' ? fl.time?.scheduled?.departure : fl.time?.scheduled?.arrival;
-    const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
-    const actT = realT || (schedCurrentDir === 'departures' ? fl.time?.estimated?.departure : fl.time?.estimated?.arrival);
+    const realT = schedCurrentDir === 'departures' ? fl.time?.real?.departure : fl.time?.real?.arrival;
+    const actT = realT;
     if (!schedT || !actT) return; // skip flights without usable timestamps
     if (actT > schedT + 1800) depDelayed++;
     else depOnTime++;
