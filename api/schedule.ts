@@ -264,6 +264,10 @@ function icaoFlightToIata(icaoFlight: string): string {
 function toUnix(val: any): number | null {
   if (!val) return null;
   if (typeof val === 'number') return val > 1e12 ? Math.floor(val / 1000) : val;
+  if (typeof val === 'string') {
+    const num = Number(val);
+    if (Number.isFinite(num)) return num > 1e12 ? Math.floor(num / 1000) : Math.floor(num);
+  }
   const ms = Date.parse(val);
   return isNaN(ms) ? null : Math.floor(ms / 1000);
 }
