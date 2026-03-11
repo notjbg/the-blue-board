@@ -790,7 +790,7 @@ function initMap() {
   });
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18, subdomains: 'abcd'
+    maxZoom: 18, subdomains: 'abcd', tileSize: 256, detectRetina: true
   }).addTo(map);
 
   // Clear route on popup close and remove flight URL param
@@ -1613,16 +1613,20 @@ function initTickerAnimation(tickerEl) {
   tickerEl.style.animation = 'none';
   tickerEl.style.transform = '';
 
-  // Wait a frame for layout to settle, then measure
-  requestAnimationFrame(() => {
+  // Wait two frames for layout to settle, then measure (avoids forced reflow)
+  requestAnimationFrame(() => { requestAnimationFrame(() => {
     const items = tickerEl.querySelectorAll('.ticker-item');
     const halfCount = Math.ceil(items.length / 2);
     if (halfCount === 0) return;
 
-    // Measure the width of the first half (original content)
+    // Batch-read all widths first (no interleaved writes = single layout pass)
+    const widths = new Array(halfCount);
+    for (let i = 0; i < halfCount; i++) {
+      widths[i] = items[i].offsetWidth;
+    }
     let contentWidth = 0;
     for (let i = 0; i < halfCount; i++) {
-      contentWidth += items[i].offsetWidth;
+      contentWidth += widths[i];
     }
 
     if (contentWidth < 10) return; // no real content
@@ -1635,6 +1639,8 @@ function initTickerAnimation(tickerEl) {
 
     // JS fallback: detect if CSS animation isn't running after 500ms
     let fallbackTimer = setTimeout(() => {
+      // Use rAF to check computed style without forcing layout during critical path
+      requestAnimationFrame(() => {
       const computedAnim = getComputedStyle(tickerEl).animationName;
       if (computedAnim === 'none' || computedAnim === '') {
         // CSS animation failed — drive with rAF
@@ -1652,8 +1658,9 @@ function initTickerAnimation(tickerEl) {
         }
         _tickerRafId = requestAnimationFrame(tickerStep);
       }
+      });
     }, 500);
-  });
+  }); });
 }
 
 // ═══ FLEET TAB ═══
@@ -2186,7 +2193,7 @@ async function initWeatherTab() {
 
   // Initialize radar map IMMEDIATELY — don't wait for data fetches
   const radarMap = L.map('radar-map', {center:[39,-98],zoom:4,zoomControl:true,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,subdomains:'abcd'}).addTo(radarMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,subdomains:'abcd',tileSize:256,detectRetina:true}).addTo(radarMap);
   L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',{opacity:0.6}).addTo(radarMap);
   document.getElementById('radar-title').textContent = `🌧 NEXRAD Radar — ${new Date().toUTCString().slice(17,25)}Z`;
 
@@ -5275,16 +5282,25 @@ async function initApp() {
     rotator(document.getElementById('global-search-input'), hints);
     rotator(document.getElementById('myflight-search'), mfHints);
   })();
-  // Start fleet data load in parallel — don't block map init
-  const fleetReady = loadFleetData();
+  // Init map immediately — defer fleet data loading to reduce initial network contention
   initMap();
-  await fleetReady; // Ensure fleet data is loaded before fleet tab init
-  initFleetTab();
-  // Handle ?aircraft= deep link (fleet data is ready now)
+  // Fleet data is ~194 KB; load it on idle unless a deep link requires it immediately
   var acDeepLink = new URLSearchParams(location.search).get('aircraft');
-  var onboardingEl = document.getElementById('onboarding-overlay');
-  if (acDeepLink && FLEET_DB.length > 0 && (!onboardingEl || onboardingEl.style.display === 'none')) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
-  showConfigGallery('737-800'); // default
+  const loadFleetAndInit = async () => {
+    await loadFleetData();
+    initFleetTab();
+    var onboardingEl = document.getElementById('onboarding-overlay');
+    if (acDeepLink && FLEET_DB.length > 0 && (!onboardingEl || onboardingEl.style.display === 'none')) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
+    showConfigGallery('737-800');
+  };
+  if (acDeepLink) {
+    // Deep link needs fleet data now
+    await loadFleetAndInit();
+  } else if ('requestIdleCallback' in window) {
+    requestIdleCallback(() => loadFleetAndInit());
+  } else {
+    setTimeout(() => loadFleetAndInit(), 2000);
+  }
   updateTicker();
   // Now that map + fleet data are ready, activate the hash-linked tab's data layer.
   // The hash IIFE only set the visual state; this triggers the actual data loads.
@@ -5319,7 +5335,7 @@ function hideDisclaimer() {
   var btn=document.getElementById('onboarding-dismiss');
   var helpBtn=document.getElementById('onboarding-help');
   function hideOverlay(){var hubSel=document.getElementById('onboarding-home-hub');if(hubSel&&hubSel.value){setHomeAirport(hubSel.value)}overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
-  function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';overlay.offsetHeight;overlay.style.animation='obFadeIn .4s ease forwards'}
+  function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';requestAnimationFrame(function(){requestAnimationFrame(function(){overlay.style.animation='obFadeIn .4s ease forwards'})})}
 
   // ═══ BMAC ENGAGEMENT-BASED PROMPTS ═══
   var bmacDismissedAt = parseInt(localStorage.getItem('bb-bmac-dismissed') || '0');
