@@ -3653,7 +3653,13 @@ let connectionIndex = {};  // { flightNum: { connFlight, hub, minutes, risk } } 
 // Preload weather (METAR) + FAA data on app init — so delay risk engine has data
 // before user opens Weather tab. Also fetches weather for non-hub destinations
 // of watched flights via single METAR batch request.
-async function preloadWeatherAndFAA() {
+let _weatherPreloadPromise = null;
+function preloadWeatherAndFAA() {
+  if (_weatherPreloadPromise) return _weatherPreloadPromise;
+  _weatherPreloadPromise = _doPreloadWeatherAndFAA();
+  return _weatherPreloadPromise;
+}
+async function _doPreloadWeatherAndFAA() {
   if (weatherDataPreloaded) return;
   weatherDataPreloaded = true;
   try {
@@ -3732,7 +3738,8 @@ async function preloadWeatherAndFAA() {
     }
   } catch(e) {
     console.error('Weather/FAA preload error:', e);
-    weatherDataPreloaded = false; // allow retry
+    weatherDataPreloaded = false;
+    _weatherPreloadPromise = null; // allow retry
   }
 }
 
@@ -3820,9 +3827,15 @@ function autoLoadIrrops() {
   fetchIrropsFromAPI();
 }
 
-async function fetchIrropsFromAPI() {
+let _irropsPromise = null;
+function fetchIrropsFromAPI() {
+  if (_irropsPromise) return _irropsPromise;
+  _irropsPromise = _doFetchIrropsFromAPI();
+  return _irropsPromise;
+}
+async function _doFetchIrropsFromAPI() {
   const content = document.getElementById('irrops-content');
-  content.innerHTML = '<div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div>';
+  if (content) content.innerHTML = '<div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div>';
   try {
     const resp = await fetch('/api/irrops');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -3830,7 +3843,8 @@ async function fetchIrropsFromAPI() {
     renderIrropsFromAPI(data);
   } catch (e) {
     console.error('IRROPS API failed, falling back to manual:', e);
-    content.innerHTML = '<div class="irrops-empty">Load schedule data from the Schedule tab to see IRROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irrops-load">📅 Load Schedule Data</button></div>';
+    _irropsPromise = null; // allow retry
+    if (content) content.innerHTML = '<div class="irrops-empty">Load schedule data from the Schedule tab to see IRROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irrops-load">📅 Load Schedule Data</button></div>';
   }
 }
 
@@ -4047,8 +4061,6 @@ let myFlightsCountdownInterval = null;
 let myFlightsTimeData = {};
 
 async function renderMyFlights() {
-  // Ensure weather + FAA data is available for delay risk scoring
-  if (!weatherDataPreloaded) preloadWeatherAndFAA();
   const flights = getWatchedFlights();
   const container = document.getElementById('myflight-cards');
   const empty = document.getElementById('myflight-empty');
@@ -4064,32 +4076,48 @@ async function renderMyFlights() {
   }
   empty.style.display = 'none';
 
-  // Fetch flight-times for each watched flight (parallel, with cache)
-  const timeResults = await Promise.allSettled(
-    flights.map(w => {
-      const cacheKey = 'mf_' + w.flight;
-      const cached = myFlightsTimeData[cacheKey];
-      if (cached && Date.now() - cached.ts < 120000) return Promise.resolve(cached.data);
-      return fetch('/api/flight-times?flight=' + encodeURIComponent(w.flight))
-        .then(r => r.ok ? r.json() : null)
-        .then(d => { if (d) myFlightsTimeData[cacheKey] = { data: d, ts: Date.now() }; return d; })
-        .catch(() => null);
-    })
-  );
+  // Fetch ALL data sources in parallel — weather+FAA, IRROPS+OTP, and per-flight times.
+  // This ensures computeDelayRisk() has real weather, FAA programs, IRROPS, and OTP data
+  // before scoring. Zero extra latency since everything runs concurrently.
+  const flightTimePromises = flights.map(w => {
+    const cacheKey = 'mf_' + w.flight;
+    const cached = myFlightsTimeData[cacheKey];
+    if (cached && Date.now() - cached.ts < 120000) return Promise.resolve(cached.data);
+    return fetch('/api/flight-times?flight=' + encodeURIComponent(w.flight))
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) myFlightsTimeData[cacheKey] = { data: d, ts: Date.now() }; return d; })
+      .catch(() => null);
+  });
 
-  const timeData = timeResults.map(r => r.status === 'fulfilled' ? r.value : null);
+  const allResults = await Promise.allSettled([
+    preloadWeatherAndFAA(),     // → populates weatherOpsByHub, faaDelayIndex
+    fetchIrropsFromAPI(),       // → populates irropsHubData, hubHealthData
+    ...flightTimePromises,      // → per-flight schedule/gate/time data
+  ]);
+
+  // First 2 results are weather+IRROPS (void), rest are flight times
+  const timeData = allResults.slice(2).map(r => r.status === 'fulfilled' ? r.value : null);
 
   container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
   detectAndRenderConnections(flights, timeData);
   fetchStarlinkPredictions();
 
-  // Async: fetch aircraft journey chains for watched flights (non-blocking)
-  flights.forEach((w, i) => {
+  // Fetch aircraft journey chains for watched flights, then re-render cards
+  // with inbound data factored into risk scores (Signal 7)
+  const journeyPromises = flights.map((w, i) => {
     const td2 = timeData[i];
     const reg2 = td2 ? (td2.aircraft || '').replace('-', '') : null;
-    if (!reg2) return;
+    if (!reg2) return Promise.resolve();
     const route2 = (w.route || '').split(/[→\-]/);
-    fetchAircraftJourney(reg2, w.flight, (route2[0] || '').trim(), (route2[1] || '').trim());
+    return fetchAircraftJourney(reg2, w.flight, (route2[0] || '').trim(), (route2[1] || '').trim());
+  });
+  Promise.allSettled(journeyPromises).then(() => {
+    // Re-render cards now that journey data populates aircraftJourneyCache
+    // and allFlights inbound detection works for Signal 7 scoring
+    if (container && document.getElementById('tab-myflight')?.classList.contains('active')) {
+      container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
+      detectAndRenderConnections(flights, timeData);
+    }
   });
 
   // Start countdown ticker
