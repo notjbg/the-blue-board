@@ -3644,10 +3644,97 @@ function updateHubHealth() {
 
 // ═══ IRROPS DASHBOARD ═══
 let faaDelayIndex = {};
-let weatherOpsByHub = {};  // Global METAR-derived ops impact per hub — populated by initWeatherTab()
+let weatherOpsByHub = {};  // Global METAR-derived ops impact per hub — populated by preloadWeatherAndFAA or initWeatherTab
+let weatherDataPreloaded = false;  // Track whether preload has already populated globals
 let irropsHubData = {};    // Global IRROPS cancellation/delay rates per hub — for delay risk engine
 let aircraftJourneyCache = {};  // { reg: { segments, ts } } — aircraft history cache (5min TTL)
 let connectionIndex = {};  // { flightNum: { connFlight, hub, minutes, risk } } — connection context for AI
+
+// Preload weather (METAR) + FAA data on app init — so delay risk engine has data
+// before user opens Weather tab. Also fetches weather for non-hub destinations
+// of watched flights via single METAR batch request.
+async function preloadWeatherAndFAA() {
+  if (weatherDataPreloaded) return;
+  weatherDataPreloaded = true;
+  try {
+    const hubStations = {EWR:'KEWR',IAH:'KIAH',ORD:'KORD',DEN:'KDEN',SFO:'KSFO',LAX:'KLAX',IAD:'KIAD',NRT:'RJAA',GUM:'PGUM'};
+    const hubs = Object.keys(hubStations);
+    const stationToHub = {};
+    for (const [hub, station] of Object.entries(hubStations)) stationToHub[station] = hub;
+
+    // Collect non-hub destinations from watched flights for destination weather
+    const watchedDests = new Set();
+    try {
+      const watchedRaw = localStorage.getItem('watchedFlights');
+      if (watchedRaw) {
+        const wf = JSON.parse(watchedRaw);
+        wf.forEach(w => {
+          const dest = (w.route || '').split('\u2192')[1]?.trim() || (w.route || '').split('→')[1]?.trim();
+          if (dest && dest.length === 3 && !hubStations[dest]) watchedDests.add(dest);
+        });
+      }
+    } catch(e) {}
+
+    // Map non-hub IATA to ICAO for METAR API (US airports = K + IATA)
+    const extraStations = {};
+    watchedDests.forEach(iata => {
+      // US domestic: prepend K. International would need a lookup table,
+      // but most United destinations are US domestic
+      const icao = iata.length === 3 ? 'K' + iata : iata;
+      extraStations[iata] = icao;
+      stationToHub[icao] = iata;
+    });
+
+    const allStations = [...Object.values(hubStations), ...Object.values(extraStations)].join(',');
+    const [metarData, faaData] = await Promise.all([
+      fetch('/api/metar?ids=' + allStations).then(r => r.json()).catch(() => []),
+      fetch('/api/faa').then(r => r.json()).catch(() => []),
+    ]);
+
+    // Parse METAR and populate weatherOpsByHub (for hubs AND non-hub destinations)
+    const metarByHub = {};
+    if (Array.isArray(metarData)) metarData.forEach(m => {
+      const key = stationToHub[m.icaoId || m.stationId] || stationToHub[m.id];
+      if (key) metarByHub[key] = m;
+    });
+    [...hubs, ...watchedDests].forEach(apt => {
+      const data = metarByHub[apt];
+      if (!data) return;
+      const raw = data.rawOb || '';
+      const apiCat = data.fltCat || data.fltcat || 'UNK';
+      const localCat = computeFlightCategory(raw);
+      const catRank = {LIFR:0,IFR:1,MVFR:2,VFR:3,UNK:3};
+      const cat = localCat && (catRank[localCat] ?? 3) < (catRank[apiCat] ?? 3) ? localCat : apiCat;
+      const ops = computeOpsImpact(raw, cat);
+      // Only set if not already populated (don't overwrite Weather tab's data)
+      if (!weatherOpsByHub[apt]) {
+        weatherOpsByHub[apt] = { level: ops.level, reasons: ops.reasons, fltCat: cat,
+          hasThunderstorms: ops.hasThunderstorms, hasFreezingPrecip: ops.hasFreezingPrecip,
+          hasSnow: ops.hasSnow, hasFog: ops.hasFog, gustKt: ops.gustKt || 0, tempC: ops.tempC };
+      }
+    });
+
+    // Parse FAA data (covers ALL airports with active delays, not just hubs)
+    if (Object.keys(faaDelayIndex).length === 0 && Array.isArray(faaData)) {
+      const faaIndex = {};
+      faaData.forEach(d => {
+        const code = d.airportCode || d.airport;
+        if (!code) return;
+        if (!faaIndex[code]) faaIndex[code] = { delays: [] };
+        faaIndex[code].delays.push(...(d.delays || []));
+        if (d.type === 'ground_stop') faaIndex[code].groundStop = true;
+        else if (d.type === 'ground_delay') { faaIndex[code].groundDelay = true; faaIndex[code].avgDelay = d.avgDelay; }
+        else if (d.type === 'departure_delay') { faaIndex[code].departureDelay = true; faaIndex[code].minDelay = d.minDelay; faaIndex[code].maxDelay = d.maxDelay; }
+        else if (d.type === 'arrival_delay') { faaIndex[code].arrivalDelay = true; }
+        else if (d.type === 'closure') faaIndex[code].closure = true;
+      });
+      faaDelayIndex = faaIndex;
+    }
+  } catch(e) {
+    console.error('Weather/FAA preload error:', e);
+    weatherDataPreloaded = false; // allow retry
+  }
+}
 
 function updateIrrops() {
   const content = document.getElementById('irrops-content');
@@ -3960,6 +4047,8 @@ let myFlightsCountdownInterval = null;
 let myFlightsTimeData = {};
 
 async function renderMyFlights() {
+  // Ensure weather + FAA data is available for delay risk scoring
+  if (!weatherDataPreloaded) preloadWeatherAndFAA();
   const flights = getWatchedFlights();
   const container = document.getElementById('myflight-cards');
   const empty = document.getElementById('myflight-empty');
@@ -5416,7 +5505,7 @@ async function initApp() {
   if (activeTab && activeTab !== 'tab-live') switchToTab(activeTab, false);
   // Defer IRROPS + schedule preload to idle — they're only needed for Weather/Schedule tabs
   // Background preload: fetch top 3 hubs on idle so Schedule tab is fast without hammering mobile
-  const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); };
+  const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); preloadWeatherAndFAA(); };
   if ('requestIdleCallback' in window) requestIdleCallback(idlePreload); else setTimeout(idlePreload, 5000);
 }
 
