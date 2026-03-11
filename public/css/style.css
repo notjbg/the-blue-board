@@ -250,10 +250,14 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #tab-weather{padding:0;flex:1;min-height:0;overflow-y:auto}
 .wx-hero{position:relative}
 .wx-hero h3{position:absolute;top:10px;left:14px;z-index:500;font-size:13px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
-#radar-map{height:500px;width:100%}
+#radar-map{height:420px;width:100%}
 .wx-legend{display:flex;align-items:center;justify-content:center;gap:18px;padding:8px 16px;background:var(--ua-panel);border-bottom:1px solid var(--ua-border);font-size:10px}
 .wx-legend-item{display:flex;align-items:center;gap:5px}
 .wx-legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.wx-scroll-hint{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;color:var(--ua-accent);font-size:11px;font-weight:500;letter-spacing:.5px;transition:opacity .5s}
+.wx-section-header{text-transform:uppercase;letter-spacing:.8px}
+.scroll-hint-arrow{animation:bounce 1.5s ease-in-out infinite;font-size:14px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
 .hub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:16px}
 .hub-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;overflow:hidden;transition:border-color .2s}
 .hub-card:hover{border-color:var(--ua-accent)}
@@ -403,7 +407,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   .special-aircraft-grid{grid-template-columns:1fr}
   .special-aircraft-item{padding:10px 12px}
   /* Weather tab mobile */
-  #radar-map{height:300px}
+  #radar-map{height:260px}
   .hub-cards{grid-template-columns:1fr;padding:10px}
   /* Analytics mobile */
   .metric-row{flex-wrap:wrap;gap:0}

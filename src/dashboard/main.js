@@ -2243,6 +2243,14 @@ async function initWeatherTab() {
       radarHubMarkers[hub] = L.circleMarker([h.lat,h.lon],{radius:8,color:'#334155',fillColor:'#334155',fillOpacity:0.8,weight:2})
         .bindTooltip(`<b>${hub}</b>`,{permanent:true,direction:'top',className:'hub-tooltip',offset:[0,-8]})
         .addTo(radarMap);
+      radarHubMarkers[hub].on('click', () => {
+        const card = document.querySelector(`.hub-card[data-hub="${hub}"]`);
+        if (card) {
+          card.scrollIntoView({behavior:'smooth',block:'start'});
+          card.style.borderColor = 'var(--ua-accent)';
+          setTimeout(() => card.style.borderColor = '', 1500);
+        }
+      });
     }
   });
 
@@ -2320,7 +2328,7 @@ async function initWeatherTab() {
     const explainer = data ? explainMETAR(raw, hub, cat) : '';
     const faaExplainer = faa ? explainFAAStatus(hub, faa.delays||[], faa) : '';
 
-    cardsHtml += `<div class="hub-card" style="border-top:3px solid ${borderColor}">
+    cardsHtml += `<div class="hub-card" data-hub="${hub}" style="border-top:3px solid ${borderColor}">
       <div class="hub-card-top"><span class="hub-card-code">${hub}</span><span class="cat-badge" style="background:${catColor};color:#000">${cat}</span></div>
       <div class="hub-card-name">${HUB_NAMES[hub]||hub}</div>
       <div class="hub-metrics">
@@ -2348,6 +2356,15 @@ async function initWeatherTab() {
     cardsHtml = '<div class="error-state" style="grid-column:1/-1"><div class="error-icon">🌦</div><div style="color:var(--ua-text)">Weather data unavailable</div><div style="color:var(--ua-muted);font-size:11px">Could not load METAR observations</div><button class="retry-btn" data-action="weather-retry">↻ Retry</button></div>';
   }
   document.getElementById('hub-cards').innerHTML = cardsHtml;
+
+  // Auto-hide scroll hint once hub cards are visible
+  const wxHint = document.getElementById('wx-scroll-hint');
+  if (wxHint) {
+    const observer = new IntersectionObserver(([entry]) => {
+      wxHint.style.opacity = entry.isIntersecting ? '0' : '1';
+    }, {root: document.getElementById('tab-weather'), threshold: 0.1});
+    observer.observe(document.getElementById('hub-cards'));
+  }
 }
 
 // ═══ ANALYTICS TAB ═══
