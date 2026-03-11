@@ -825,11 +825,27 @@ function initMap() {
   // Hub markers
   drawHubs();
   refreshFlights();
-  refreshTimer = setInterval(() => {
-    countdown--;
-    document.getElementById('countdown').textContent = 'Next refresh: ' + countdown + 's';
-    if (countdown <= 0) { refreshFlights(); countdown = 30; }
-  }, 1000);
+  function startRefreshTimer() {
+    if (refreshTimer) clearInterval(refreshTimer);
+    countdown = 30;
+    refreshTimer = setInterval(() => {
+      countdown--;
+      document.getElementById('countdown').textContent = 'Next refresh: ' + countdown + 's';
+      if (countdown <= 0) { refreshFlights(); countdown = 30; }
+    }, 1000);
+  }
+  startRefreshTimer();
+
+  // Pause polling when tab is hidden to save API credits
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+      document.getElementById('countdown').textContent = 'Paused (tab hidden)';
+    } else {
+      refreshFlights();
+      startRefreshTimer();
+    }
+  });
 }
 
 function drawHubs() {
@@ -2823,6 +2839,11 @@ function updateSchedDayLabels() {
 }
 
 async function preloadScheduleData() {
+  // Skip if we already preloaded recently (survives soft navigations / refreshes)
+  const PRELOAD_TTL = 10 * 60 * 1000; // 10 minutes
+  const lastPreload = parseInt(sessionStorage.getItem('bb_sched_preload_ts') || '0', 10);
+  if (Date.now() - lastPreload < PRELOAD_TTL) return;
+
   // Fetch hubs sequentially to avoid overwhelming FR24 with concurrent aggregations
   const preloadHubs = ['ORD','DEN','EWR'];
   const timestamp = getSchedDayTimestamp(0); // today
@@ -2838,6 +2859,7 @@ async function preloadScheduleData() {
     } catch (e) { /* preload is best-effort */ }
   }
   if (loaded > 0) {
+    sessionStorage.setItem('bb_sched_preload_ts', String(Date.now()));
     updateHubHealth();
     updateIrrops();
   }

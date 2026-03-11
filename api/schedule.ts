@@ -789,7 +789,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isOld = (now - ts) > 86400;
     const ttl = isOld ? 600000 : 900000;
     const cdnMaxAge = isOld ? 3600 : 900;
-    const swr = 300;
+    const swr = 600;
 
     // Single page mode (backward compat)
     if (page !== undefined) {
