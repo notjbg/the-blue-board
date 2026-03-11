@@ -4242,10 +4242,17 @@ async function fetchAircraftJourney(reg, myFlight, origCode, destCode) {
 function buildMyFlightCard(watched, td) {
   const flightNum = escapeHtml(watched.flight);
   const routeParts = (watched.route || '').split(/[→\-]/);
-  const origCode = (routeParts[0] || '').trim();
-  const destCode = (routeParts[1] || '').trim();
+  // Resolve origin/destination: prefer stored route, fall back to timeData API response
+  const origCode = (routeParts[0] || '').trim() || (td?.origin?.iata) || '';
+  const destCode = (routeParts[1] || '').trim() || (td?.destination?.iata) || '';
   const origCity = IATA_CITIES[origCode] || origCode;
   const destCity = IATA_CITIES[destCode] || destCode;
+
+  // Backfill watched.route if it was empty/missing (manual search or deep link)
+  if (origCode && destCode && (!watched.route || watched.route.includes('?'))) {
+    watched.route = origCode + '→' + destCode;
+    saveWatchedFlights(getWatchedFlights().map(w => w.flight === watched.flight ? { ...w, route: watched.route } : w));
+  }
 
   // Resolve live flight early — needed for status detection and equipment
   const liveFlight = allFlights.find(f => f.flightIATA === watched.flight || f.callsign === 'UAL' + watched.flight.replace(/\D/g,''));
