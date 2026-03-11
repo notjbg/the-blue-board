@@ -23,11 +23,12 @@ async function warmOne(hub: string, dir: string, timestamp: number, label: strin
       headers: { 'User-Agent': 'BlueBoard-CronWarmer/1.0' }
     });
     clearTimeout(timeout);
+    const cdnStatus = resp.headers.get('x-vercel-cache') || 'unknown';
     if (resp.ok) {
       const data = await resp.json() as any;
-      return { key, result: { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false } };
+      return { key, result: { status: 'ok', flights: data.total || 0, partial: data.partial || false, cached: data.cached || false, cdn: cdnStatus } };
     }
-    return { key, result: { status: `http_${resp.status}` } };
+    return { key, result: { status: `http_${resp.status}`, cdn: cdnStatus } };
   } catch (e: any) {
     return { key, result: { status: 'error', message: e.message } };
   }
@@ -44,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let failed = 0;
 
   // Warm today first for ALL hubs (most important), then tomorrow.
-  // For each hub, fetch departures & arrivals in parallel to cut time in half.
+  // Only warm departures — arrivals are less viewed and load on-demand.
   const TIMESTAMPS = (hub: string) => {
     const todayTs = getStartOfDayForHub(hub);
     return [
@@ -53,17 +54,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ];
   };
 
-  // Phase 1: warm today for all hubs (departures + arrivals in parallel per hub)
+  // Phase 1: warm today departures for all hubs
   for (const hub of HUBS) {
     const todayTs = TIMESTAMPS(hub)[0];
-    const batch = await Promise.all([
-      warmOne(hub, 'departures', todayTs.ts, todayTs.label),
-      warmOne(hub, 'arrivals', todayTs.ts, todayTs.label),
-    ]);
-    for (const { key, result } of batch) {
-      results[key] = result;
-      if (result.status === 'ok') warmed++; else failed++;
-    }
+    const { key, result } = await warmOne(hub, 'departures', todayTs.ts, todayTs.label);
+    results[key] = result;
+    if (result.status === 'ok') warmed++; else failed++;
     // Brief pause between hubs to avoid overwhelming FR24
     await new Promise(r => setTimeout(r, 1000));
   }
@@ -84,17 +80,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     failed++;
   }
 
-  // Phase 2: warm tomorrow for all hubs (if time permits — cron has 300s max)
+  // Phase 2: warm tomorrow departures for all hubs (if time permits — cron has 300s max)
   for (const hub of HUBS) {
     const tomorrowTs = TIMESTAMPS(hub)[1];
-    const batch = await Promise.all([
-      warmOne(hub, 'departures', tomorrowTs.ts, tomorrowTs.label),
-      warmOne(hub, 'arrivals', tomorrowTs.ts, tomorrowTs.label),
-    ]);
-    for (const { key, result } of batch) {
-      results[key] = result;
-      if (result.status === 'ok') warmed++; else failed++;
-    }
+    const { key, result } = await warmOne(hub, 'departures', tomorrowTs.ts, tomorrowTs.label);
+    results[key] = result;
+    if (result.status === 'ok') warmed++; else failed++;
     await new Promise(r => setTimeout(r, 1000));
   }
 
