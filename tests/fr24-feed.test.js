@@ -92,6 +92,45 @@ describe('fr24-feed API', () => {
     expect(res.headers['Cache-Control']).toContain('s-maxage=15');
   });
 
+
+  it('isolates cache entries by airline', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const airline = new URL(url).searchParams.get('airline');
+      return {
+        ok: true,
+        json: async () => ({ airline, full_count: airline === 'DAL' ? 10 : 20 }),
+      };
+    });
+
+    const dalFirst = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'dal' },
+    }, dalFirst);
+
+    const aalFirst = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'AAL' },
+    }, aalFirst);
+
+    const dalSecond = createRes();
+    await handler({
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { airline: 'DAL' },
+    }, dalSecond);
+
+    expect(dalFirst.statusCode).toBe(200);
+    expect(aalFirst.statusCode).toBe(200);
+    expect(dalSecond.statusCode).toBe(200);
+    expect(dalFirst.body).toEqual({ airline: 'DAL', full_count: 10 });
+    expect(aalFirst.body).toEqual({ airline: 'AAL', full_count: 20 });
+    expect(dalSecond.body).toEqual({ airline: 'DAL', full_count: 10 });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
   it('returns cached data on subsequent requests', async () => {
     // Previous test populated the cache — this request should hit it
     const res = createRes();

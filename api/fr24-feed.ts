@@ -4,8 +4,8 @@ import { CacheStore } from './_cache.js';
 
 const isRateLimited = createRateLimiter('fr24-feed', 30);
 
-const feedCache = new CacheStore('fr24-feed', { maxSize: 1, defaultTTL: 15_000 });
-let feedFetching: Promise<any> | null = null;
+const feedCache = new CacheStore('fr24-feed', { maxSize: 50, defaultTTL: 15_000 });
+const feedFetching = new Map<string, Promise<any>>();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -22,22 +22,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const airline = (req.query.airline as string) || 'UAL';
+    const airlineRaw = ((req.query.airline as string) || 'UAL').trim();
     // Validate airline: 2-4 letter ICAO code
-    if (!/^[A-Z0-9]{2,4}$/i.test(airline)) {
+    if (!/^[A-Z0-9]{2,4}$/i.test(airlineRaw)) {
       return res.status(400).json({ error: 'Invalid airline code' });
     }
+    const airline = airlineRaw.toUpperCase();
+    const cacheKey = `feed:${airline}`;
 
     // Return cached if fresh
-    const hit = feedCache.get('feed');
+    const hit = feedCache.get(cacheKey);
     if (hit) {
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(hit);
     }
 
     // Dedup: if already fetching, wait for that
-    if (feedFetching) {
-      const data = await feedFetching;
+    const inflight = feedFetching.get(cacheKey);
+    if (inflight) {
+      const data = await inflight;
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(data);
     }
@@ -58,13 +61,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-      feedFetching = doFetch();
-      const data = await feedFetching;
-      feedCache.set('feed', data);
+      const inflightRequest = doFetch();
+      feedFetching.set(cacheKey, inflightRequest);
+      const data = await inflightRequest;
+      feedCache.set(cacheKey, data);
       res.setHeader('Cache-Control', 's-maxage=15, stale-while-revalidate=30');
       return res.status(200).json(data);
     } finally {
-      feedFetching = null;
+      feedFetching.delete(cacheKey);
     }
   } catch (e: any) {
     console.error('FR24 feed error:', e);
