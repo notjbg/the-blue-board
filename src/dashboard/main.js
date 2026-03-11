@@ -3640,30 +3640,43 @@ function updateHubHealth() {
   const bar = document.getElementById('hub-health-bar');
   const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
   let hasData = false;
+  const totalsByHub = {};
+  hubs.forEach(hub => { totalsByHub[hub] = { onTime: 0, operated: 0 }; });
 
-  // Gather OTP from all loaded schedule data
+  // Gather OTP from all loaded schedule data.
+  // Multiple keys can exist per hub (arrivals/departures + day), so aggregate
+  // instead of letting whichever key is iterated last overwrite the hub value.
   for (const key of Object.keys(schedRawByHub)) {
     const flights = schedRawByHub[key];
     if (!flights || !flights.length) continue;
     const hub = key.split('-')[0];
-    let onTime = 0, operated = 0;
+    if (!totalsByHub[hub]) continue;
     flights.forEach(fl => {
       const status = classifySchedStatus(fl);
       const hasOp = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
       if (!hasOp) return;
-      const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival;
-      const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
-      if (!realT || !schedT) return; // skip flights without real timestamps
-      operated++;
-      if (realT <= schedT + 1800) onTime++;
+      // Keep schedule/actual pairs aligned by phase (dep with dep, arr with arr).
+      const schedDep = fl.time?.scheduled?.departure;
+      const realDep = fl.time?.real?.departure;
+      const schedArr = fl.time?.scheduled?.arrival;
+      const realArr = fl.time?.real?.arrival;
+      const schedT = (realDep && schedDep) ? schedDep : ((realArr && schedArr) ? schedArr : null);
+      const realT = (realDep && schedDep) ? realDep : ((realArr && schedArr) ? realArr : null);
+      if (!realT || !schedT) return; // skip flights without matched real/scheduled timestamps
+      totalsByHub[hub].operated++;
+      if (realT <= schedT + 1800) totalsByHub[hub].onTime++;
     });
+  }
+
+  hubs.forEach(hub => {
+    const { onTime, operated } = totalsByHub[hub];
     if (operated >= 5) {
       hubHealthData[hub] = Math.round((onTime / operated) * 100);
       hasData = true;
     } else {
       delete hubHealthData[hub]; // clear stale data when sample too small
     }
-  }
+  });
 
   if (!hasData) {
     bar.innerHTML = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
@@ -3942,11 +3955,12 @@ function renderIrropsFromAPI(data) {
       if (!m || !m.total) {
         html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
       } else {
-        // OTP = on-time flights / operated flights (within 30 min of schedule)
-        const operated = m.operated || (m.total - m.cancellations);
-        // High cancellation rate: show red even if too few operated flights
-        const cancelRate = m.total > 10 ? (m.cancellations || 0) / m.total : 0;
-        if ((!operated || operated < 5) && cancelRate >= 0.5) {
+        // OTP requires observed operated flights from the API; do not infer from totals.
+        const operated = Number(m.operated || 0);
+        const onTime = Number(m.onTime || 0);
+        // High cancellation rate: show red even when we don't yet have enough operated flights.
+        const cancelRate = m.total > 10 ? Number(m.cancellations || 0) / m.total : 0;
+        if (operated < 5 && cancelRate >= 0.5) {
           // Mostly/fully cancelled hub — show as critical
           const cancelPct = Math.round(cancelRate * 100);
           hubHealthData[hub] = 0;
@@ -3954,13 +3968,12 @@ function renderIrropsFromAPI(data) {
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
         }
-        if (!operated || operated < 5) {
+        if (operated < 5) {
           delete hubHealthData[hub]; // clear stale data when sample too small
           html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
         }
-        const onTime = m.onTime !== undefined ? m.onTime : Math.max(0, operated - m.delayed30);
         const pct = Math.round((onTime / operated) * 100);
         const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
         const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
