@@ -36,10 +36,12 @@ const globalLog: number[] = [];
 const MAX_PER_IP = 10;
 const MAX_GLOBAL = 60;
 let lastCleanup = Date.now();
-function getClientIp(req: VercelRequest): string {
+export function getClientIp(req: VercelRequest): string {
+  const realIp = req.headers?.['x-real-ip'];
+  if (realIp) return Array.isArray(realIp) ? realIp[0] : realIp;
   const xff = req.headers?.['x-forwarded-for'];
   const raw = Array.isArray(xff) ? xff[0] : (typeof xff === 'string' ? xff : '');
-  return raw.split(',')[0]?.trim() || (req.headers?.['x-real-ip'] as string) || 'unknown';
+  return raw.split(',')[0]?.trim() || 'unknown';
 }
 function isRateLimited(req: VercelRequest): boolean {
   const now = Date.now();
