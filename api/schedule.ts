@@ -14,7 +14,7 @@ const lastCompleteCache = new Map<string, { data: any; time: number }>();
 const lastCompleteByHubDir = new Map<string, { data: any; time: number; sourceKey: string }>();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
-const BATCH_DELAY = 500; // 500ms pause between parallel batches (was 300)
+const BATCH_DELAY = 250; // 250ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
@@ -179,7 +179,8 @@ async function fetchOnePage(hub: string, dir: string, timestamp: number, page: n
 const FR24_API_BASE = 'https://fr24api.flightradar24.com';
 
 function formatForFR24(date: Date): string {
-  return date.toISOString().replace(/\.\d{3}Z$/, '');
+  // FR24 API expects YYYY-MM-DDTHH:MM:SSZ format (with trailing Z, no milliseconds)
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 function getEndOfTodayForHub(hub: string): Date {
@@ -308,7 +309,7 @@ function normalizeSummaryFlight(f: any) {
   };
 }
 
-const OFFICIAL_API_PAGE_SIZE = 20; // FR24 API caps at ~20 per page regardless of limit param
+const OFFICIAL_API_PAGE_SIZE = 10000; // FR24 API allows up to 20,000 per request; use 10k to get most hubs in a single page
 
 async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeoutMs?: number) {
   const logHub = String(hub);
@@ -334,21 +335,24 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
     dayEnd = endOfToday;
   }
 
-  console.log(`Official FR24 API: fetching ${logHub} ${dir} from=${formatForFR24(dayStart)} to=${formatForFR24(dayEnd)}`);
+  console.log(`Official FR24 API: fetching ${logHub} ${dir} (filter=${dir === 'departures' ? 'outbound' : 'inbound'}:${logHub}) from=${formatForFR24(dayStart)} to=${formatForFR24(dayEnd)} limit=${OFFICIAL_API_PAGE_SIZE}`);
 
   const allRawFlights: any[] = [];
   let page = 1;
   let totalPages = 1;
+  let retried1 = false;
   const MAX_OFFICIAL_PAGES = 50;
 
   while (page <= MAX_OFFICIAL_PAGES) {
-    if (Date.now() > deadline - 2000) {
+    if (Date.now() > deadline - 1000) {
       console.log(`Official FR24 API: deadline approaching for ${logHub}, stopping at page ${page}`);
       break;
     }
 
+    // Use direction-aware airport filter: "outbound:ORD" for departures, "inbound:ORD" for arrivals
+    const airportFilter = dir === 'departures' ? `outbound:${logHub}` : `inbound:${logHub}`;
     const params = new URLSearchParams({
-      airports: logHub,
+      airports: airportFilter,
       operating_as: 'UAL',
       flight_datetime_from: formatForFR24(dayStart),
       flight_datetime_to: formatForFR24(dayEnd),
@@ -376,7 +380,16 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
         console.error(`Official FR24 API returned ${resp.status} for ${logHub} (page ${page}): ${body.slice(0, 200)}`);
-        if (page === 1) return null;
+        if (page === 1) {
+          // Retry page 1 once after a brief pause before giving up
+          if (Date.now() < deadline - 5000 && !retried1) {
+            retried1 = true;
+            console.log(`Official FR24 API: retrying page 1 for ${logHub} after ${resp.status}`);
+            await new Promise(r => setTimeout(r, 1500));
+            continue;
+          }
+          return null;
+        }
         break;
       }
 
@@ -399,8 +412,8 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
 
       page++;
 
-      if (page <= MAX_OFFICIAL_PAGES && Date.now() < deadline - 2000) {
-        await new Promise(r => setTimeout(r, 200));
+      if (page <= MAX_OFFICIAL_PAGES && Date.now() < deadline - 1000) {
+        await new Promise(r => setTimeout(r, 50));
       }
     } catch (e: any) {
       clearTimeout(timeout);
@@ -409,12 +422,21 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
       } else {
         console.error(`Official FR24 API error for ${logHub} (page ${page}):`, e.message);
       }
-      if (page === 1) return null;
+      if (page === 1) {
+        if (Date.now() < deadline - 5000 && !retried1) {
+          retried1 = true;
+          console.log(`Official FR24 API: retrying page 1 for ${logHub} after error`);
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        return null;
+      }
       break;
     }
   }
 
   totalPages = page;
+  const officialPartial = page > 1 && Date.now() > deadline - 1000;
 
   if (!allRawFlights.length) {
     console.log(`Official FR24 API returned 0 flights for ${logHub} ${dir}`);
@@ -469,16 +491,16 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
     pagesScanned: totalPages,
     totalPages,
     cached: false,
-    partial: false,
+    partial: officialPartial,
     hub: logHub,
     dir,
     meta: {
-      partialReason: null,
+      partialReason: officialPartial ? 'deadline_exceeded' : null,
       pagesRequested: totalPages,
       pagesSucceeded: totalPages,
       pagesFailed: 0,
       missingPages: [] as number[],
-      completeness: 1,
+      completeness: officialPartial ? 0.9 : 1,
       elapsedMs,
       source: 'official-api'
     }
@@ -510,7 +532,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   // Try official FR24 API first
   if (process.env.FR24_API_TOKEN) {
     try {
-      const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.4), 20000);
+      const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.7), 45000);
       const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, officialTimeout);
       if (officialResult) return officialResult;
     } catch (e: any) {
@@ -528,7 +550,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   let pagesScanned = 0;
   const failedPages: number[] = [];
   const rateLimitedPages: number[] = [];
-  const BATCH_SIZE = 4;
+  const BATCH_SIZE = 6;
   const MAX_PAGES = 50;
 
   function processPage(sched: any): boolean {
