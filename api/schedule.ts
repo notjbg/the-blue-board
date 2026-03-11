@@ -365,6 +365,18 @@ function normalizeSummaryFlight(f: any) {
 
 const OFFICIAL_API_PAGE_SIZE = 10000; // FR24 API allows up to 20,000 per request; use 10k to get most hubs in a single page
 
+function parseRetryAfterMs(headerValue: string | null): number {
+  if (!headerValue) return 0;
+  const numeric = Number.parseInt(headerValue, 10);
+  if (Number.isFinite(numeric) && numeric > 0) return numeric * 1000;
+
+  const retryAt = Date.parse(headerValue);
+  if (Number.isFinite(retryAt)) {
+    return Math.max(0, retryAt - Date.now());
+  }
+  return 0;
+}
+
 async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeoutMs?: number) {
   const logHub = String(hub);
   const token = process.env.FR24_API_TOKEN;
@@ -395,6 +407,9 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
   let page = 1;
   let totalPages = 1;
   let retried1 = false;
+  let officialPartial = false;
+  let partialReason: string | null = null;
+  let pagesFailed = 0;
   const MAX_OFFICIAL_PAGES = 50;
 
   while (page <= MAX_OFFICIAL_PAGES) {
@@ -434,6 +449,13 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
       if (!resp.ok) {
         const body = await resp.text().catch(() => '');
         console.error(`Official FR24 API returned ${resp.status} for ${logHub} (page ${page}): ${body.slice(0, 200)}`);
+
+        if ([429, 503].includes(resp.status) && Date.now() < deadline - 2500) {
+          const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
+          const waitMs = Math.max(1200, Math.min(retryAfterMs || 4000, 8000));
+          await new Promise(r => setTimeout(r, waitMs));
+        }
+
         if (page === 1) {
           // Retry page 1 once after a brief pause before giving up
           if (Date.now() < deadline - 5000 && !retried1) {
@@ -444,6 +466,9 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
           }
           return null;
         }
+        pagesFailed++;
+        officialPartial = true;
+        partialReason = 'upstream_http_error';
         break;
       }
 
@@ -485,12 +510,18 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
         }
         return null;
       }
+      pagesFailed++;
+      officialPartial = true;
+      partialReason = e.name === 'AbortError' ? 'upstream_timeout' : 'upstream_fetch_error';
       break;
     }
   }
 
   totalPages = page;
-  const officialPartial = page > 1 && Date.now() > deadline - 1000;
+  if (page > 1 && Date.now() > deadline - 1000) {
+    officialPartial = true;
+    partialReason = partialReason || 'deadline_exceeded';
+  }
 
   if (!allRawFlights.length) {
     console.log(`Official FR24 API returned 0 flights for ${logHub} ${dir}`);
@@ -505,12 +536,12 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
       hub: logHub,
       dir,
       meta: {
-        partialReason: null,
+        partialReason,
         pagesRequested: totalPages,
-        pagesSucceeded: totalPages,
-        pagesFailed: 0,
+        pagesSucceeded: Math.max(0, totalPages - pagesFailed),
+        pagesFailed,
         missingPages: [] as number[],
-        completeness: 1,
+        completeness: officialPartial ? 0.9 : 1,
         elapsedMs: Date.now() - startTime,
         source: 'official-api'
       }
@@ -549,10 +580,10 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
     hub: logHub,
     dir,
     meta: {
-      partialReason: officialPartial ? 'deadline_exceeded' : null,
+      partialReason,
       pagesRequested: totalPages,
-      pagesSucceeded: totalPages,
-      pagesFailed: 0,
+      pagesSucceeded: Math.max(0, totalPages - pagesFailed),
+      pagesFailed,
       missingPages: [] as number[],
       completeness: officialPartial ? 0.9 : 1,
       elapsedMs,
