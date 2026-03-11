@@ -141,6 +141,38 @@ describe('computeMetrics', () => {
     expect(result.worstDelays[7].delay).toBe(40);
   });
 
+  it('does not count flights with only estimated departure as on-time', () => {
+    const t = 1700000000;
+    const flights = [
+      makeFlight('ORD', { schedDep: t, realDep: null, estDep: t, status: 'departed' }),
+      makeFlight('ORD', { schedDep: t, realDep: null, estDep: t + 100, status: 'en-route' }),
+    ];
+    const result = computeMetrics({ ORD: flights });
+    expect(result.hubMetrics.ORD.operated).toBe(0);
+    expect(result.hubMetrics.ORD.onTime).toBe(0);
+  });
+
+  it('skips flights with missing scheduled departure', () => {
+    const t = 1700000000;
+    const flights = [
+      makeFlight('ORD', { schedDep: null, realDep: t, status: 'landed' }),
+    ];
+    const result = computeMetrics({ ORD: flights });
+    expect(result.hubMetrics.ORD.operated).toBe(0);
+    expect(result.hubMetrics.ORD.onTime).toBe(0);
+  });
+
+  it('global metrics ignore flights with only estimated departure', () => {
+    const t = 1700000000;
+    const flights = [
+      makeFlight('ORD', { schedDep: t, realDep: null, estDep: t + 7200, status: 'departed' }),
+    ];
+    const result = computeMetrics({ ORD: flights });
+    expect(result.delayed30).toBe(0);
+    expect(result.delayed60).toBe(0);
+    expect(result.worstDelays).toEqual([]);
+  });
+
   it('includes generatedAt ISO timestamp', () => {
     const result = computeMetrics({});
     expect(result.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);

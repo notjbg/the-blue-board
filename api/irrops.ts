@@ -72,21 +72,18 @@ export function computeMetrics(flightsByHub: Record<string, any[]>) {
 
       const hasOperated = status === 'departed' || status === 'en-route' || status === 'landed' || status === 'diverted';
       const realDep = fl.time?.real?.departure;
-      const estDep = fl.time?.estimated?.departure;
-      if (!hasOperated && !realDep) continue;
+      if (!hasOperated || !realDep) continue;
 
-      const actDep = realDep || (hasOperated ? estDep : null);
-      if (!actDep) continue;
+      const schedT = fl.time?.scheduled?.departure;
+      if (!schedT) continue;
 
       hubMetrics[hub].operated++;
-      const schedT = fl.time?.scheduled?.departure || 0;
-      if (schedT && actDep > schedT) {
-        const delayMin = Math.round((actDep - schedT) / 60);
+      if (realDep <= schedT + 1800) {
+        hubMetrics[hub].onTime++;
+      } else {
+        const delayMin = Math.round((realDep - schedT) / 60);
         if (delayMin > 30) hubMetrics[hub].delayed30++;
         if (delayMin > 60) hubMetrics[hub].delayed60++;
-        if (delayMin <= 30) hubMetrics[hub].onTime++;
-      } else {
-        hubMetrics[hub].onTime++;
       }
     }
   }
@@ -100,7 +97,7 @@ export function computeMetrics(flightsByHub: Record<string, any[]>) {
     if (status === 'diverted') diversions++;
 
     const schedT = fl.time?.scheduled?.departure || 0;
-    const actT = fl.time?.real?.departure || fl.time?.estimated?.departure || 0;
+    const actT = fl.time?.real?.departure || 0;
     if (schedT && actT && actT > schedT) {
       const delayMin = Math.round((actT - schedT) / 60);
       if (delayMin > 30) delayed30++;
