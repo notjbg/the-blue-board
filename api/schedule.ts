@@ -20,6 +20,45 @@ const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
 const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000, LAX: 55000, DEN: 55000, IAD: 55000, NRT: 55000, GUM: 55000 };
 
+// Known United Airlines terminal assignments at each hub (used when API doesn't provide terminal data)
+const UNITED_HUB_TERMINALS: Record<string, { domestic: string; international: string }> = {
+  ORD: { domestic: '1', international: '1' },       // Terminal 1 (Concourses B & C); Express uses T2
+  DEN: { domestic: 'B', international: 'B' },       // Concourse B
+  EWR: { domestic: 'C', international: 'C' },       // Terminal C (primary); some flights use Terminal A
+  IAH: { domestic: 'C', international: 'E' },       // Terminal C (domestic), Terminal E (international)
+  SFO: { domestic: '3', international: 'G' },       // Terminal 3 (domestic), International Terminal G
+  LAX: { domestic: '7', international: '7' },       // Terminals 7 & 8
+  IAD: { domestic: 'C', international: 'D' },       // Concourse C (domestic), Concourse D (international)
+  NRT: { domestic: '1', international: '1' },       // Terminal 1
+  GUM: { domestic: '1', international: '1' },       // Single terminal
+};
+
+// US airport IATA codes (3-letter codes starting from common US airports)
+// Used to determine if a route is domestic or international for terminal assignment
+const US_AIRPORTS = new Set([
+  // United hubs
+  'ORD','DEN','EWR','IAH','SFO','LAX','IAD','GUM',
+  // Major US airports
+  'ATL','JFK','LGA','DFW','CLT','MIA','FLL','TPA','MCO','SEA','MSP','DTW','PHL','BOS',
+  'DCA','BWI','SAN','PHX','SLC','AUS','SAT','HOU','DAL','MDW','OAK','SJC','SMF','PDX',
+  'MCI','MSY','STL','IND','CLE','CVG','CMH','PIT','RDU','BNA','MKE','OMA','RSW',
+  // Hawaii (treated as domestic for terminal purposes)
+  'HNL','OGG','LIH','KOA',
+]);
+
+function isInternationalRoute(origIata: string, destIata: string): boolean {
+  if (!origIata || !destIata) return false;
+  const origUS = US_AIRPORTS.has(origIata.toUpperCase());
+  const destUS = US_AIRPORTS.has(destIata.toUpperCase());
+  return !(origUS && destUS);
+}
+
+function getHubTerminal(iata: string, isIntl: boolean): string {
+  const hub = UNITED_HUB_TERMINALS[iata.toUpperCase()];
+  if (!hub) return '';
+  return isIntl ? hub.international : hub.domestic;
+}
+
 // Global concurrency limiter for FR24 outbound requests
 const MAX_CONCURRENT_FR24 = 6;
 let activeFR24 = 0;
@@ -292,6 +331,17 @@ function normalizeSummaryFlight(f: any) {
   const acType = f.aircraft?.type || f.aircraft_type || f.type || '';
   const acReg = f.aircraft?.registration || f.registration || '';
 
+  // Extract gate/terminal from API response if available (try multiple field name conventions)
+  const origGate = f.origin?.gate || f.orig_gate || f.departure_gate || '';
+  const origTerminal = f.origin?.terminal || f.orig_terminal || f.departure_terminal || '';
+  const destGate = f.destination?.gate || f.dest_gate || f.arrival_gate || '';
+  const destTerminal = f.destination?.terminal || f.dest_terminal || f.arrival_terminal || '';
+
+  // Fall back to known United hub terminal if API didn't provide terminal data
+  const isIntl = isInternationalRoute(origIata, destIata);
+  const fallbackOrigTerminal = origTerminal || getHubTerminal(origIata, isIntl);
+  const fallbackDestTerminal = destTerminal || getHubTerminal(destIata, isIntl);
+
   return {
     identification: { number: { default: flightNum }, callsign },
     airline: { code: { iata: 'UA' } },
@@ -302,8 +352,8 @@ function normalizeSummaryFlight(f: any) {
       estimated: { departure: estDep, arrival: estArr }
     },
     airport: {
-      origin: { code: { iata: origIata }, name: origName, info: { gate: '', terminal: '' } },
-      destination: { code: { iata: destIata }, name: destName, info: { gate: '', terminal: '' } }
+      origin: { code: { iata: origIata }, name: origName, info: { gate: origGate, terminal: fallbackOrigTerminal } },
+      destination: { code: { iata: destIata }, name: destName, info: { gate: destGate, terminal: fallbackDestTerminal } }
     },
     aircraft: { model: { code: acType, text: '' }, registration: acReg }
   };
