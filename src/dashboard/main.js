@@ -2800,27 +2800,28 @@ function initScheduleTab() {
 }
 
 function getSchedDayTimestamp(dayOffset) {
-  // Use the selected hub's timezone for day boundaries (not browser local time)
+  // Use formatToParts for reliable hub-local time extraction (same approach as server-side getStartOfDayForHub)
   const tz = SCHED_HUB_TZ[schedCurrentHub] || 'America/Chicago';
   const now = new Date();
-  // Get current date string in the hub's timezone
-  const hubDateStr = now.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
-  const [y, m, d] = hubDateStr.split('-').map(Number);
-  // Build midnight in hub timezone by finding the UTC offset
-  const target = new Date(Date.UTC(y, m - 1, d + dayOffset, 12, 0, 0)); // noon UTC as seed
-  const hubNoon = new Date(target.toLocaleString('en-US', { timeZone: tz }));
-  const utcNoon = new Date(target.toLocaleString('en-US', { timeZone: 'UTC' }));
-  const offsetMs = utcNoon - hubNoon;
-  const midnight = new Date(Date.UTC(y, m - 1, d + dayOffset, 0, 0, 0) + offsetMs);
-  return Math.floor(midnight.getTime() / 1000);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const hour = get('hour'), minute = get('minute'), second = get('second');
+  const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
+  const startOfToday = Math.floor(now.getTime() / 1000) - secondsSinceMidnight;
+  return startOfToday + (dayOffset * 86400);
 }
 
 function getSchedDayLabel(dayOffset) {
   const tz = SCHED_HUB_TZ[schedCurrentHub] || 'America/Chicago';
   const now = new Date();
-  const hubDateStr = now.toLocaleDateString('en-CA', { timeZone: tz });
-  const [y, m, d] = hubDateStr.split('-').map(Number);
-  const target = new Date(y, m - 1, d + dayOffset);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+  }).formatToParts(now);
+  const get = (type) => parseInt(parts.find(p => p.type === type)?.value || '0');
+  const target = new Date(get('year'), get('month') - 1, get('day') + dayOffset);
   return target.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
