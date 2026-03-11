@@ -3640,13 +3640,17 @@ function updateHubHealth() {
   const bar = document.getElementById('hub-health-bar');
   const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
   let hasData = false;
+  const totalsByHub = {};
+  hubs.forEach(hub => { totalsByHub[hub] = { onTime: 0, operated: 0 }; });
 
-  // Gather OTP from all loaded schedule data
+  // Gather OTP from all loaded schedule data.
+  // Multiple keys can exist per hub (arrivals/departures + day), so aggregate
+  // instead of letting whichever key is iterated last overwrite the hub value.
   for (const key of Object.keys(schedRawByHub)) {
     const flights = schedRawByHub[key];
     if (!flights || !flights.length) continue;
     const hub = key.split('-')[0];
-    let onTime = 0, operated = 0;
+    if (!totalsByHub[hub]) continue;
     flights.forEach(fl => {
       const status = classifySchedStatus(fl);
       const hasOp = status.key === 'departed' || status.key === 'enroute' || status.key === 'landed';
@@ -3654,16 +3658,20 @@ function updateHubHealth() {
       const schedT = fl.time?.scheduled?.departure || fl.time?.scheduled?.arrival;
       const realT = fl.time?.real?.departure || fl.time?.real?.arrival;
       if (!realT || !schedT) return; // skip flights without real timestamps
-      operated++;
-      if (realT <= schedT + 1800) onTime++;
+      totalsByHub[hub].operated++;
+      if (realT <= schedT + 1800) totalsByHub[hub].onTime++;
     });
+  }
+
+  hubs.forEach(hub => {
+    const { onTime, operated } = totalsByHub[hub];
     if (operated >= 5) {
       hubHealthData[hub] = Math.round((onTime / operated) * 100);
       hasData = true;
     } else {
       delete hubHealthData[hub]; // clear stale data when sample too small
     }
-  }
+  });
 
   if (!hasData) {
     bar.innerHTML = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
