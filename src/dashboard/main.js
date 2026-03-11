@@ -5296,9 +5296,13 @@ async function initApp() {
   if ('requestIdleCallback' in window) requestIdleCallback(idlePreload); else setTimeout(idlePreload, 5000);
 }
 
-// Wait for deferred Leaflet to load before initializing
-if (typeof L !== 'undefined') { initApp(); }
-else { document.addEventListener('DOMContentLoaded', () => initApp()); }
+// Both Leaflet and dashboard are deferred — Leaflet loads first (script order preserved).
+// Wait for DOM ready in case DOMContentLoaded hasn't fired yet.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => initApp());
+} else {
+  initApp();
+}
 
 // ═══ DISCLAIMER MODAL ═══
 function showDisclaimer() {
