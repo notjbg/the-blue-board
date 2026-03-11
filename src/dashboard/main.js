@@ -3950,11 +3950,12 @@ function renderIrropsFromAPI(data) {
       if (!m || !m.total) {
         html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
       } else {
-        // OTP = on-time flights / operated flights (within 30 min of schedule)
-        const operated = m.operated || (m.total - m.cancellations);
-        // High cancellation rate: show red even if too few operated flights
-        const cancelRate = m.total > 10 ? (m.cancellations || 0) / m.total : 0;
-        if ((!operated || operated < 5) && cancelRate >= 0.5) {
+        // OTP requires observed operated flights from the API; do not infer from totals.
+        const operated = Number(m.operated || 0);
+        const onTime = Number(m.onTime || 0);
+        // High cancellation rate: show red even when we don't yet have enough operated flights.
+        const cancelRate = m.total > 10 ? Number(m.cancellations || 0) / m.total : 0;
+        if (operated < 5 && cancelRate >= 0.5) {
           // Mostly/fully cancelled hub — show as critical
           const cancelPct = Math.round(cancelRate * 100);
           hubHealthData[hub] = 0;
@@ -3962,13 +3963,12 @@ function renderIrropsFromAPI(data) {
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
         }
-        if (!operated || operated < 5) {
+        if (operated < 5) {
           delete hubHealthData[hub]; // clear stale data when sample too small
           html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
           if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
           return;
         }
-        const onTime = m.onTime !== undefined ? m.onTime : Math.max(0, operated - m.delayed30);
         const pct = Math.round((onTime / operated) * 100);
         const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
         const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
