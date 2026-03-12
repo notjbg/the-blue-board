@@ -177,6 +177,14 @@ describe('computeMetrics', () => {
     const result = computeMetrics({});
     expect(result.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
+
+  it('does not include hubFlights in response', () => {
+    const t = 1700000000;
+    const result = computeMetrics({
+      ORD: [makeFlight('ORD', { schedDep: t, realDep: t, status: 'landed' })],
+    });
+    expect(result).not.toHaveProperty('hubFlights');
+  });
 });
 
 // ═══ DELAY RISK ENGINE v3 TESTS ═══

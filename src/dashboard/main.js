@@ -3943,22 +3943,6 @@ async function _doFetchIrropsFromAPI() {
 }
 
 function renderIrropsFromAPI(data) {
-  // Hydrate schedule cache from IRROPS hub flights (avoids 7 separate schedule calls)
-  if (data.hubFlights) {
-    const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
-    hubs.forEach(hub => {
-      const flights = data.hubFlights[hub];
-      if (!flights || !flights.length) return;
-      const hubKey = `${hub}-departures-0`;
-      if (!schedRawByHub[hubKey]) {
-        schedRawByHub[hubKey] = flights;
-        // NOTE: Do NOT populate schedCache here — irrops only fetches 5 pages
-        // per hub, which misses international flights on later pages. Let the
-        // schedule API do a full fetch when the user opens the Schedule tab.
-      }
-    });
-  }
-
   // Store IRROPS hub data globally for delay risk engine
   if (data.hubMetrics) {
     for (const [hub, m] of Object.entries(data.hubMetrics)) {
