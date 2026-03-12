@@ -5612,7 +5612,14 @@ async function initApp() {
 }
 
 // ═══ FR24 CREDIT USAGE WIDGET ═══
+// Admin-only: visit theblueboard.co?admin to enable, ?admin=off to disable
 function initCreditWidget() {
+  var params = new URLSearchParams(location.search);
+  if (params.has('admin')) {
+    if (params.get('admin') === 'off') { localStorage.removeItem('bb_admin'); return; }
+    localStorage.setItem('bb_admin', '1');
+  }
+  if (!localStorage.getItem('bb_admin')) return;
   function render(data) {
     var existing = document.getElementById('fr24-credit-widget');
     if (existing) existing.remove();

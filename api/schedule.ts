@@ -14,7 +14,7 @@ const lastCompleteCache = new Map<string, { data: any; time: number }>();
 const lastCompleteByHubDir = new Map<string, { data: any; time: number; sourceKey: string }>();
 const MAX_COMPLETE_CACHE_SIZE = 50;
 const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
-const BATCH_DELAY = 250; // 250ms pause between parallel batches
+const BATCH_DELAY = 500; // 500ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
@@ -683,7 +683,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   let pagesScanned = 0;
   const failedPages: number[] = [];
   const rateLimitedPages: number[] = [];
-  const BATCH_SIZE = 6;
+  const BATCH_SIZE = 3;
   const MAX_PAGES = 50;
 
   function processPage(sched: any): boolean {
@@ -761,7 +761,11 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
         if (!sched.data || sched.data.length === 0) { batchDone = true; break; }
         if (processPage(sched)) { batchDone = true; break; }
       }
-      if (hitRateLimit) { partial = true; break; }
+      if (hitRateLimit && batchDone) break;
+      if (hitRateLimit) {
+        // Don't abort entire loop — pause and continue with remaining pages
+        await new Promise(r => setTimeout(r, 2000));
+      }
       if (batchDone) break;
 
       pageNum = batchEnd + 1;
