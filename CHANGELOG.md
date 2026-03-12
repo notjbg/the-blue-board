@@ -4,6 +4,16 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.5] - 2026-03-12
+
+### Fixed
+- Reduced frequent partial schedule data — lowered batch size (6→3) and increased delays to avoid FR24 rate limiting
+- Rate-limited pages no longer abort the entire fetch loop — pauses 2s and continues with remaining pages
+- Increased cron warmer inter-hub delay (1s→3s) to reduce FR24 burst pressure
+
+### Changed
+- Credit usage widget is now admin-only — visit `?admin` to enable, `?admin=off` to disable
+
 ## [1.3.4] - 2026-03-12
 
 ### Changed
