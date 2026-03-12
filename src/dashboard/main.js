@@ -3668,10 +3668,45 @@ function getEquipChangeForFlight(flightNum) {
 // ═══ HUB HEALTH ═══
 let hubHealthData = {};
 
-function updateHubHealth() {
+// Single renderer for the hub health bar — reads from hubHealthData (shared state).
+// Both IRROPS and schedule paths write to hubHealthData, then call this.
+function renderHubHealthBar() {
   const bar = document.getElementById('hub-health-bar');
   const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
-  let hasData = false;
+  if (!Object.keys(hubHealthData).length) {
+    bar.innerHTML = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
+    return;
+  }
+  const homeHub = getHomeAirport();
+  let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span>';
+  hubs.forEach((hub, i) => {
+    const isHome = hub === homeHub;
+    const homeStyle = isHome ? ';border:1px solid var(--ua-accent);border-radius:3px;padding:2px 6px' : '';
+    const pct = hubHealthData[hub];
+    if (pct === undefined) {
+      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
+    } else {
+      const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+      const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
+      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
+    }
+    if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
+  });
+  const pcts = hubs.map(h => hubHealthData[h]).filter(p => p !== undefined);
+  if (pcts.length) {
+    const avg = Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length);
+    const avgLabel = avg > 70 ? 'Smooth Ops' : avg >= 50 ? 'Some Delays' : 'Rough Day';
+    const avgColor = avg > 70 ? '#22c55e' : avg >= 50 ? '#f59e0b' : '#ef4444';
+    html += `<span class="hh-sep">│</span><span class="hh-avg" style="color:${avgColor};font-size:9px;font-weight:700">${avgLabel}</span>`;
+  }
+  bar.innerHTML = html;
+}
+
+// Update hubHealthData from schedule data, then re-render.
+// Only SETS data for hubs with sufficient operated flights — never deletes
+// IRROPS-derived data for hubs without schedule data.
+function updateHubHealth() {
+  const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
   const totalsByHub = {};
   hubs.forEach(hub => { totalsByHub[hub] = { onTime: 0, operated: 0 }; });
 
@@ -3699,41 +3734,11 @@ function updateHubHealth() {
     const { onTime, operated } = totalsByHub[hub];
     if (operated >= 5) {
       hubHealthData[hub] = Math.round((onTime / operated) * 100);
-      hasData = true;
-    } else {
-      delete hubHealthData[hub]; // clear stale data when sample too small
     }
+    // Don't delete hubHealthData[hub] — IRROPS may have set it
   });
 
-  if (!hasData) {
-    bar.innerHTML = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span><span style="color:var(--ua-muted)">Load schedule data for hub health</span>';
-    return;
-  }
-
-  const homeHub = getHomeAirport();
-  let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span>';
-  hubs.forEach((hub, i) => {
-    const isHome = hub === homeHub;
-    const homeStyle = isHome ? ';border:1px solid var(--ua-accent);border-radius:3px;padding:2px 6px' : '';
-    const pct = hubHealthData[hub];
-    if (pct === undefined) {
-      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
-    } else {
-      const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
-      const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-      html += `<span class="hh-hub" style="${homeStyle}"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${isHome ? '🏠 ' : ''}${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
-    }
-    if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
-  });
-  // Network average label
-  const pcts2 = hubs.map(h => hubHealthData[h]).filter(p => p !== undefined);
-  if (pcts2.length) {
-    const avg = Math.round(pcts2.reduce((a,b)=>a+b,0) / pcts2.length);
-    const avgLabel = avg > 70 ? 'Smooth Ops' : avg >= 50 ? 'Some Delays' : 'Rough Day';
-    const avgColor = avg > 70 ? '#22c55e' : avg >= 50 ? '#f59e0b' : '#ef4444';
-    html += `<span class="hh-sep">│</span><span class="hh-avg" style="color:${avgColor};font-size:9px;font-weight:700">${avgLabel}</span>`;
-  }
-  bar.innerHTML = html;
+  renderHubHealthBar();
 }
 
 // ═══ IRROPS DASHBOARD ═══
@@ -3956,52 +3961,21 @@ function renderIrropsFromAPI(data) {
     }
   }
 
-  // Use hub metrics from IRROPS API to populate hub health bar immediately
+  // Populate hubHealthData from IRROPS hubMetrics, then render the shared bar.
   if (data.hubMetrics) {
-    const bar = document.getElementById('hub-health-bar');
-    const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
-    let html = '<span class="hh-label">Hub Health</span><span class="hh-explainer">ON-TIME %</span><span class="hh-info">?<span class="hh-tooltip">% of operated flights departing within 30 min of schedule. 🟢 &gt;70% · 🟡 50–70% · 🔴 &lt;50%</span></span>';
-    hubs.forEach((hub, i) => {
-      const m = data.hubMetrics[hub];
-      if (!m || !m.total) {
-        html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
-      } else {
-        // OTP requires observed operated flights from the API; do not infer from totals.
-        const operated = Number(m.operated || 0);
-        const onTime = Number(m.onTime || 0);
-        // High cancellation rate: show red even when we don't yet have enough operated flights.
-        const cancelRate = m.total > 10 ? Number(m.cancellations || 0) / m.total : 0;
-        if (operated < 5 && cancelRate >= 0.5) {
-          // Mostly/fully cancelled hub — show as critical
-          const cancelPct = Math.round(cancelRate * 100);
-          hubHealthData[hub] = 0;
-          html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> 🔴 <span class="hh-pct" style="color:#ef4444">${cancelPct}% CX</span></span>`;
-          if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
-          return;
-        }
-        if (operated < 5) {
-          delete hubHealthData[hub]; // clear stale data when sample too small
-          html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> <span style="color:var(--ua-muted)">⚪ —</span></span>`;
-          if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
-          return;
-        }
-        const pct = Math.round((onTime / operated) * 100);
-        const emoji = pct > 70 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
-        const color = pct > 70 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#ef4444';
-        hubHealthData[hub] = pct;
-        html += `<span class="hh-hub"><a href="/hubs/${hub.toLowerCase()}" class="hh-code" style="color:inherit;text-decoration:none" title="${hub} Hub Guide">${hub}</a> ${emoji} <span class="hh-pct" style="color:${color}">${pct}%</span></span>`;
+    for (const [hub, m] of Object.entries(data.hubMetrics)) {
+      if (!m || !m.total) continue;
+      const operated = Number(m.operated || 0);
+      const onTime = Number(m.onTime || 0);
+      const cancelRate = m.total > 10 ? Number(m.cancellations || 0) / m.total : 0;
+      if (operated < 5 && cancelRate >= 0.5) {
+        hubHealthData[hub] = 0; // mostly cancelled — show as critical
+      } else if (operated >= 5) {
+        hubHealthData[hub] = Math.round((onTime / operated) * 100);
       }
-      if (i < hubs.length - 1) html += '<span class="hh-sep">│</span>';
-    });
-    // Network average label
-    const pcts = hubs.map(h => hubHealthData[h]).filter(p => p !== undefined);
-    if (pcts.length) {
-      const avg = Math.round(pcts.reduce((a,b)=>a+b,0) / pcts.length);
-      const avgLabel = avg > 70 ? 'Smooth Ops' : avg >= 50 ? 'Some Delays' : 'Rough Day';
-      const avgColor = avg > 70 ? '#22c55e' : avg >= 50 ? '#f59e0b' : '#ef4444';
-      html += `<span class="hh-sep">│</span><span class="hh-avg" style="color:${avgColor};font-size:9px;font-weight:700">${avgLabel}</span>`;
+      // operated < 5 and low cancel rate: leave hub alone (no data yet)
     }
-    bar.innerHTML = html;
+    renderHubHealthBar();
   }
 
   const content = document.getElementById('irrops-content');
