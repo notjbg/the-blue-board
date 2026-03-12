@@ -44,20 +44,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let warmed = 0;
   let failed = 0;
 
-  // Warm today first for ALL hubs (most important), then tomorrow.
-  // Only warm departures — arrivals are less viewed and load on-demand.
-  const TIMESTAMPS = (hub: string) => {
-    const todayTs = getStartOfDayForHub(hub);
-    return [
-      { ts: todayTs, label: 'today' },
-      { ts: todayTs + 86400, label: 'tomorrow' },
-    ];
-  };
-
-  // Phase 1: warm today departures for all hubs
+  // Warm today departures for all hubs. Arrivals are less viewed and load on-demand.
+  // Tomorrow's data also loads on-demand — warming it here would exceed Vercel's 300s cron limit.
   for (const hub of HUBS) {
-    const todayTs = TIMESTAMPS(hub)[0];
-    const { key, result } = await warmOne(hub, 'departures', todayTs.ts, todayTs.label);
+    const todayTs = getStartOfDayForHub(hub);
+    const { key, result } = await warmOne(hub, 'departures', todayTs, 'today');
     results[key] = result;
     if (result.status === 'ok') warmed++; else failed++;
     // Pause between hubs to avoid FR24 rate limiting
@@ -80,14 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     failed++;
   }
 
-  // Phase 2: warm tomorrow departures for all hubs (if time permits — cron has 300s max)
-  for (const hub of HUBS) {
-    const tomorrowTs = TIMESTAMPS(hub)[1];
-    const { key, result } = await warmOne(hub, 'departures', tomorrowTs.ts, tomorrowTs.label);
-    results[key] = result;
-    if (result.status === 'ok') warmed++; else failed++;
-    await new Promise(r => setTimeout(r, 12000));
-  }
+  // Tomorrow's data loads on-demand when users navigate to it.
+  // Warming it here would push cron runtime past Vercel's 300s limit.
 
   console.log(`Cron warm-schedules: ${warmed} warmed, ${failed} failed`, results);
   return res.status(200).json({ warmed, failed, results, timestamp: new Date().toISOString() });

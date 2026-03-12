@@ -176,6 +176,7 @@ async function fetchOnePage(hub: string, dir: string, timestamp: number, page: n
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     if (deadlineMs && Date.now() > deadlineMs - 500) return null;
     await acquireFR24Slot();
+    let slotReleased = false;
     try {
       const resp = await fetchWithTimeout(url, deadlineMs);
       if (resp.ok) {
@@ -191,7 +192,16 @@ async function fetchOnePage(hub: string, dir: string, timestamp: number, page: n
         return sched;
       }
       if ([403, 429, 502, 503].includes(resp.status) && attempt < MAX_RETRIES) {
-        // fall through to retry
+        // Honor Retry-After header if present (capped at 30s)
+        const retryAfter = resp.headers?.get?.('retry-after');
+        const retryDelaySec = retryAfter ? parseInt(retryAfter, 10) : NaN;
+        if (!isNaN(retryDelaySec) && retryDelaySec > 0 && retryDelaySec <= 30) {
+          releaseFR24Slot();
+          slotReleased = true;
+          await new Promise(r => setTimeout(r, retryDelaySec * 1000));
+          continue;
+        }
+        // fall through to retry with default backoff
       } else if ([403, 429].includes(resp.status)) {
         console.error(`FR24 rate limited ${resp.status} for ${hub} page ${page}`);
         return { _rateLimited: true };
@@ -205,7 +215,7 @@ async function fetchOnePage(hub: string, dir: string, timestamp: number, page: n
       }
       // fall through to retry
     } finally {
-      releaseFR24Slot();
+      if (!slotReleased) releaseFR24Slot();
     }
     const baseDelay = 1000 * Math.pow(2, attempt);
     const jitter = Math.floor(Math.random() * 500);
@@ -651,6 +661,24 @@ export function resetFallbackBreaker(): void {
   fallbackLog.length = 0;
 }
 
+async function tryOfficialFallback(
+  logHub: string, dir: string, ts: number, effectiveDeadline: number
+): Promise<any | null> {
+  if (!process.env.FR24_API_TOKEN || !shouldAttemptOfficialFallback()) return null;
+  recordFallback();
+  try {
+    const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
+    const result = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
+    if (result && result.total > 0) {
+      result.meta = { ...result.meta, fallbackFrom: 'scraping' };
+      return result;
+    }
+  } catch (e: any) {
+    console.error(`Official API fallback failed for ${logHub}:`, e.message);
+  }
+  return null;
+}
+
 async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: number, overallDeadline?: number) {
   const logHub = String(hub);
   const now = Date.now();
@@ -706,19 +734,10 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   const firstPage = await fetchOnePage(logHub, dir, ts, 1, deadline);
   if (!firstPage || firstPage._rateLimited) {
     // Scraping failed on first page — try official API fallback if in scrape-first mode
-    if (srcPriority === 'scrape' && process.env.FR24_API_TOKEN && shouldAttemptOfficialFallback()) {
+    if (srcPriority === 'scrape') {
       console.log(`Scraping failed on first page for ${logHub} ${dir}, trying official API fallback`);
-      recordFallback();
-      try {
-        const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
-        const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
-        if (officialResult && officialResult.total > 0) {
-          officialResult.meta = { ...officialResult.meta, fallbackFrom: 'scraping' };
-          return officialResult;
-        }
-      } catch (e: any) {
-        console.error(`Official API fallback also failed for ${logHub}:`, e.message);
-      }
+      const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
+      if (fallback) return fallback;
     }
     return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub: logHub, dir,
       meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime, source: 'scraping' as const }
@@ -856,20 +875,10 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   };
 
   // Scrape-first fallback: if scraping failed completely, try official API (with circuit breaker)
-  if (srcPriority === 'scrape' && scrapeResult.total === 0 && scrapeResult.partial
-      && process.env.FR24_API_TOKEN && shouldAttemptOfficialFallback()) {
+  if (srcPriority === 'scrape' && scrapeResult.total === 0 && scrapeResult.partial) {
     console.log(`Scraping returned 0 flights for ${logHub} ${dir}, trying official API fallback`);
-    recordFallback();
-    try {
-      const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
-      const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
-      if (officialResult && officialResult.total > 0) {
-        officialResult.meta = { ...officialResult.meta, fallbackFrom: 'scraping' };
-        return officialResult;
-      }
-    } catch (e: any) {
-      console.error(`Official API fallback also failed for ${logHub}:`, e.message);
-    }
+    const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
+    if (fallback) return fallback;
   }
 
   return scrapeResult;
