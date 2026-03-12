@@ -61,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     results[key] = result;
     if (result.status === 'ok') warmed++; else failed++;
     // Pause between hubs to avoid FR24 rate limiting
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 12000));
   }
 
   // Phase 1.5: warm Starlink data cache (single fast request)
@@ -86,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { key, result } = await warmOne(hub, 'departures', tomorrowTs.ts, tomorrowTs.label);
     results[key] = result;
     if (result.status === 'ok') warmed++; else failed++;
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(r => setTimeout(r, 12000));
   }
 
   console.log(`Cron warm-schedules: ${warmed} warmed, ${failed} failed`, results);
