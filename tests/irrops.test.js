@@ -185,6 +185,23 @@ describe('computeMetrics', () => {
     });
     expect(result).not.toHaveProperty('hubFlights');
   });
+
+  it('hubMetrics includes operated and onTime counts for hub health', () => {
+    const t = 1700000000;
+    const result = computeMetrics({
+      ORD: [
+        makeFlight('ORD', { schedDep: t, realDep: t, status: 'landed' }),
+        makeFlight('ORD', { schedDep: t, realDep: t + 2000, status: 'landed' }), // 33min late
+      ],
+      DEN: [
+        makeFlight('DEN', { schedDep: t, realDep: t + 300, status: 'departed' }),
+      ],
+    });
+    expect(result.hubMetrics.ORD).toHaveProperty('operated', 2);
+    expect(result.hubMetrics.ORD).toHaveProperty('onTime', 1);
+    expect(result.hubMetrics.DEN).toHaveProperty('operated', 1);
+    expect(result.hubMetrics.DEN).toHaveProperty('onTime', 1);
+  });
 });
 
 // ═══ DELAY RISK ENGINE v3 TESTS ═══
