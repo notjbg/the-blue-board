@@ -4,6 +4,12 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-03-12
+
+### Fixed
+- Hub health bar now shows all 9 hubs — previously only ORD displayed because schedule preload overwrote IRROPS-derived data for hubs without loaded schedule data
+- Consolidated two competing hub health renderers into a single `renderHubHealthBar()` function, eliminating a race condition between IRROPS and schedule data paths
+
 ## [1.3.2] - 2026-03-12
 
 ### Changed
