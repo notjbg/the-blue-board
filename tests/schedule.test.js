@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import handler from '../api/schedule.js';
+import handler, { shouldAttemptOfficialFallback, recordFallback, resetFallbackBreaker } from '../api/schedule.js';
 
 function createRes() {
   return {
@@ -27,6 +27,8 @@ describe('schedule API', () => {
 
   afterEach(() => {
     delete process.env.FR24_API_TOKEN;
+    delete process.env.SCHEDULE_SOURCE_PRIORITY;
+    resetFallbackBreaker();
   });
 
   it('treats missing schedule block on page 1 as empty data instead of upstream failure', async () => {
@@ -62,6 +64,7 @@ describe('schedule API', () => {
 
   it('returns valid empty result when official API returns 0 flights', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'official';
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
@@ -88,6 +91,7 @@ describe('schedule API', () => {
 
   it('parses numeric-string timestamps from official API so schedule times are populated', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'official';
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
@@ -125,6 +129,7 @@ describe('schedule API', () => {
 
   it('marks response partial when official API fails after first page', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'official';
 
     const firstPageFlights = Array.from({ length: 10000 }, (_, i) => ({
       flight_icao: `UAL${2000 + i}`,
@@ -171,6 +176,7 @@ describe('schedule API', () => {
 
   it('rejects sparse official API data and falls back to scraping', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'official';
 
     // Official API returns flights with no scheduled times (sparse)
     const sparseFlights = Array.from({ length: 10 }, (_, i) => ({
@@ -242,6 +248,7 @@ describe('schedule API', () => {
 
   it('filters individual sparse flights but keeps good ones from official API', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'official';
 
     const mixedFlights = [
       // Good flights with scheduled times
@@ -284,5 +291,242 @@ describe('schedule API', () => {
     expect(res.body.meta.source).toBe('official-api');
     expect(res.body.total).toBe(8); // only good flights
     expect(res.body.meta.sparseFiltered).toBe(2);
+  });
+
+  // ═══ NEW: Scrape-first routing tests ═══
+
+  it('scrape-first: scraping succeeds, official API never called', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+    // Default SCHEDULE_SOURCE_PRIORITY is 'scrape'
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        throw new Error('Official API should not be called');
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: 1, total: 1 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'UA' } },
+                          identification: { number: { default: 'UA100' } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'ORD' } },
+                            destination: { code: { iata: 'LAX' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 21600;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'ORD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.meta.source).toBe('scraping');
+    // Verify no calls went to the official API
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).not.toContain('fr24api.flightradar24.com');
+    }
+  });
+
+  it('scrape-first: scraping fails, falls back to official API', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{
+              flight_icao: 'UAL200',
+              flight_iata: 'UA200',
+              status: 'scheduled',
+              orig_iata: 'LAX',
+              dest_iata: 'SFO',
+              scheduled_departure: 1741653600,
+              scheduled_arrival: 1741660800,
+            }]
+          }),
+        };
+      }
+      // Scraping returns 403
+      return { ok: false, status: 403, text: async () => 'Forbidden', headers: { get: () => null } };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 25200;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'LAX', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.meta.source).toBe('official-api');
+    expect(res.body.meta.fallbackFrom).toBe('scraping');
+  });
+
+  it('circuit breaker trips after repeated fallbacks', () => {
+    // Record 5 fallbacks — breaker should trip
+    for (let i = 0; i < 5; i++) recordFallback();
+    expect(shouldAttemptOfficialFallback()).toBe(false);
+
+    // Reset and verify breaker is open again
+    resetFallbackBreaker();
+    expect(shouldAttemptOfficialFallback()).toBe(true);
+  });
+
+  it('scrape-first: empty schedule (not partial) does not trigger fallback', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        throw new Error('Official API should not be called');
+      }
+      // Scraping returns valid but empty schedule (no UA flights)
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: 1, total: 1 },
+                      data: []
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 28800;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'DEN', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(0);
+    expect(res.body.partial).toBe(false);
+    // Official API should never have been called
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).not.toContain('fr24api.flightradar24.com');
+    }
+  });
+
+  it('scrape-only mode: official API never called even on failure', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+    process.env.SCHEDULE_SOURCE_PRIORITY = 'scrape-only';
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        throw new Error('Official API should not be called in scrape-only mode');
+      }
+      // Scraping fails
+      return { ok: false, status: 500, text: async () => 'Error', headers: { get: () => null } };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 32400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'IAD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.partial).toBe(true);
+    // Official API should never have been called
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).not.toContain('fr24api.flightradar24.com');
+    }
+  });
+
+  it('meta.source is scraping on default successful scrape', async () => {
+    // No FR24_API_TOKEN — simplest case
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: {
+          response: {
+            airport: {
+              pluginData: {
+                schedule: {
+                  departures: {
+                    page: { current: 1, total: 1 },
+                    data: [{
+                      flight: {
+                        airline: { code: { iata: 'UA' } },
+                        identification: { number: { default: 'UA300' } },
+                        time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                        airport: {
+                          origin: { code: { iata: 'SFO' } },
+                          destination: { code: { iata: 'ORD' } }
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 36000;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'SFO', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.meta.source).toBe('scraping');
   });
 });

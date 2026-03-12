@@ -628,13 +628,42 @@ function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: 
   pendingAggs.set(aggKey, promise);
 }
 
+// ── Circuit breaker: stop falling back to official API during sustained scraping outages ──
+const fallbackLog: number[] = [];
+const FALLBACK_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_FALLBACKS_PER_WINDOW = 5;
+
+export function shouldAttemptOfficialFallback(): boolean {
+  const now = Date.now();
+  while (fallbackLog.length && fallbackLog[0] < now - FALLBACK_WINDOW_MS) fallbackLog.shift();
+  if (fallbackLog.length >= MAX_FALLBACKS_PER_WINDOW) {
+    console.warn(`Circuit breaker tripped: ${fallbackLog.length} official API fallbacks in 15min, skipping`);
+    return false;
+  }
+  return true;
+}
+
+export function recordFallback(): void {
+  fallbackLog.push(Date.now());
+}
+
+export function resetFallbackBreaker(): void {
+  fallbackLog.length = 0;
+}
+
 async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: number, overallDeadline?: number) {
   const logHub = String(hub);
   const now = Date.now();
   const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[logHub.toUpperCase()] || 45000));
 
-  // Try official FR24 API first
-  if (process.env.FR24_API_TOKEN) {
+  // ── Source routing decision tree ──
+  const srcPriority = (process.env.SCHEDULE_SOURCE_PRIORITY || 'scrape').toLowerCase();
+
+  if (!['scrape', 'official', 'scrape-only'].includes(srcPriority)) {
+    console.warn(`Unrecognized SCHEDULE_SOURCE_PRIORITY: '${srcPriority}', using scrape-only`);
+  }
+
+  if (srcPriority === 'official' && process.env.FR24_API_TOKEN) {
     try {
       const officialTimeout = Math.min(Math.floor((effectiveDeadline - Date.now()) * 0.7), 45000);
       const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, officialTimeout);
@@ -644,7 +673,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
     }
   }
 
-  // Fallback: scrape unauthenticated FR24 endpoint (paginated)
+  // Primary path: scrape unauthenticated FR24 endpoint (paginated)
   const deadline = effectiveDeadline;
   const dayEnd = ts + 86400;
   const allUAFlights: any[] = [];
@@ -676,8 +705,23 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   const startTime = Date.now();
   const firstPage = await fetchOnePage(logHub, dir, ts, 1, deadline);
   if (!firstPage || firstPage._rateLimited) {
+    // Scraping failed on first page — try official API fallback if in scrape-first mode
+    if (srcPriority === 'scrape' && process.env.FR24_API_TOKEN && shouldAttemptOfficialFallback()) {
+      console.log(`Scraping failed on first page for ${logHub} ${dir}, trying official API fallback`);
+      recordFallback();
+      try {
+        const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
+        const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
+        if (officialResult && officialResult.total > 0) {
+          officialResult.meta = { ...officialResult.meta, fallbackFrom: 'scraping' };
+          return officialResult;
+        }
+      } catch (e: any) {
+        console.error(`Official API fallback also failed for ${logHub}:`, e.message);
+      }
+    }
     return { flights: [], total: 0, totalFetched: 0, pagesScanned: 0, totalPages: 1, cached: false, partial: true, hub: logHub, dir,
-      meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime }
+      meta: { partialReason: 'first_page_failed', pagesRequested: 1, pagesSucceeded: 0, pagesFailed: 1, missingPages: [1], completeness: 0, elapsedMs: Date.now() - startTime, source: 'scraping' as const }
     };
   }
   totalPages = firstPage.page?.total || 1;
@@ -785,7 +829,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
     else partialReason = 'unknown';
   }
 
-  return {
+  const scrapeResult = {
     flights: allUAFlights,
     total: allUAFlights.length,
     totalFetched,
@@ -802,9 +846,29 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
       pagesFailed: allFailedPages.length,
       missingPages: allFailedPages,
       completeness: pagesRequested > 0 ? Math.round(((pagesScanned - allFailedPages.length) / pagesRequested) * 100) / 100 : 1,
-      elapsedMs
+      elapsedMs,
+      source: 'scraping' as const
     }
   };
+
+  // Scrape-first fallback: if scraping failed completely, try official API (with circuit breaker)
+  if (srcPriority === 'scrape' && scrapeResult.total === 0 && scrapeResult.partial
+      && process.env.FR24_API_TOKEN && shouldAttemptOfficialFallback()) {
+    console.log(`Scraping returned 0 flights for ${logHub} ${dir}, trying official API fallback`);
+    recordFallback();
+    try {
+      const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
+      const officialResult = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
+      if (officialResult && officialResult.total > 0) {
+        officialResult.meta = { ...officialResult.meta, fallbackFrom: 'scraping' };
+        return officialResult;
+      }
+    } catch (e: any) {
+      console.error(`Official API fallback also failed for ${logHub}:`, e.message);
+    }
+  }
+
+  return scrapeResult;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
