@@ -596,6 +596,14 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
 .shimmer-loader *{visibility:hidden}
 .irrops-empty,.popup-times-loading{background:linear-gradient(90deg,var(--ua-panel) 25%,rgba(30,41,59,.6) 50%,var(--ua-panel) 75%);background-size:200% 100%;animation:shimmerSlide 1.5s ease-in-out infinite;border-radius:4px}
 
+/* ═══ FR24 CREDIT USAGE WIDGET ═══ */
+#fr24-credit-widget{position:fixed;bottom:8px;right:8px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--ua-muted);z-index:900;min-width:200px;opacity:.85;transition:opacity .2s}
+#fr24-credit-widget:hover{opacity:1}
+.credit-widget-label{margin-bottom:4px}
+.credit-widget-bar-bg{height:6px;background:var(--ua-border);border-radius:3px;overflow:hidden}
+.credit-widget-bar{height:100%;border-radius:3px;transition:width .5s ease}
+@media(max-width:768px){#fr24-credit-widget{display:none}}
+
 /* ═══ MOBILE SCROLL FADE MASKS ═══ */
 @media(max-width:768px){
   #stats-bar{-webkit-mask-image:linear-gradient(to right,transparent,#000 16px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,transparent,#000 16px,#000 calc(100% - 24px),transparent)}

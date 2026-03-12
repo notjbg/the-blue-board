@@ -5608,6 +5608,47 @@ async function initApp() {
   // Background preload: fetch top 3 hubs on idle so Schedule tab is fast without hammering mobile
   const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); preloadWeatherAndFAA(); };
   if ('requestIdleCallback' in window) requestIdleCallback(idlePreload); else setTimeout(idlePreload, 5000);
+  initCreditWidget();
+}
+
+// ═══ FR24 CREDIT USAGE WIDGET ═══
+function initCreditWidget() {
+  function render(data) {
+    var existing = document.getElementById('fr24-credit-widget');
+    if (existing) existing.remove();
+    if (!data || !data.data) return;
+    var rows = data.data;
+    var totalCredits = 0;
+    for (var i = 0; i < rows.length; i++) totalCredits += (rows[i].credits || 0);
+    var limit = 60000; // Explorer tier
+    var remaining = Math.max(0, limit - totalCredits);
+    var pct = Math.round((remaining / limit) * 100);
+    var color = pct > 50 ? 'var(--ua-green)' : pct > 20 ? 'var(--ua-yellow)' : 'var(--ua-red)';
+
+    var w = document.createElement('div');
+    w.id = 'fr24-credit-widget';
+
+    var label = document.createElement('div');
+    label.className = 'credit-widget-label';
+    label.textContent = 'FR24 API: ' + remaining.toLocaleString() + ' / ' + limit.toLocaleString() + ' credits remaining';
+    w.appendChild(label);
+
+    var barBg = document.createElement('div');
+    barBg.className = 'credit-widget-bar-bg';
+    var bar = document.createElement('div');
+    bar.className = 'credit-widget-bar';
+    bar.style.width = pct + '%';
+    bar.style.background = color;
+    barBg.appendChild(bar);
+    w.appendChild(barBg);
+
+    document.body.appendChild(w);
+  }
+  function load() {
+    fetch('/api/fr24-usage').then(function(r) { return r.json(); }).then(render).catch(function() {});
+  }
+  load();
+  setInterval(load, 5 * 60 * 1000);
 }
 
 // Both Leaflet and dashboard are deferred — Leaflet loads first (script order preserved).
