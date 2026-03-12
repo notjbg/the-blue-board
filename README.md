@@ -203,7 +203,7 @@ All flight data is provided for informational purposes only and may be delayed, 
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+[FSL-1.1-MIT](https://fsl.software/) — see [LICENSE](LICENSE) for details.
 
 ---
 
