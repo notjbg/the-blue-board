@@ -5387,6 +5387,11 @@ document.addEventListener('click', function(e) {
       localStorage.setItem('bb-bmac-dismissed', Date.now());
       break;
     }
+    case 'close-waitlist': {
+      const wlModal = document.getElementById('waitlist-modal');
+      if (wlModal) wlModal.style.display = 'none';
+      break;
+    }
     case 'close-fr24-modal': {
       const modal = document.getElementById('fr24-modal');
       if (modal) modal.style.display = 'none';
@@ -5683,45 +5688,219 @@ function hideDisclaimer() {
   function hideOverlay(){var hubSel=document.getElementById('onboarding-home-hub');if(hubSel&&hubSel.value){setHomeAirport(hubSel.value)}overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
   function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';requestAnimationFrame(function(){requestAnimationFrame(function(){overlay.style.animation='obFadeIn .4s ease forwards'})})}
 
-  // ═══ BMAC ENGAGEMENT-BASED PROMPTS ═══
-  var bmacDismissedAt = parseInt(localStorage.getItem('bb-bmac-dismissed') || '0');
-  var bmacDismissed = bmacDismissedAt && (Date.now() - bmacDismissedAt < 7 * 24 * 60 * 60 * 1000); // resets after 7 days
-  var bmacInteractions = 0;
-  var bmacShownThisSession = false;
+  // ═══ WAITLIST / ENGAGEMENT MODAL ═══
+  var waitlistShownThisSession = false;
+  var waitlistSubmitted = false;
+  try { waitlistSubmitted = localStorage.getItem('bb_waitlist_submitted') === 'true'; } catch(e) {}
+  var engagementInteractions = 0;
 
-  function showBmacToast(message, duration) {
-    if (bmacShownThisSession || bmacDismissed) return;
-    if (document.getElementById('bmac-toast')) return;
-    bmacShownThisSession = true;
-    var t = document.createElement('div'); t.id = 'bmac-toast';
-    t.style.cssText = 'position:fixed;bottom:16px;right:16px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:14px 16px;z-index:9999;font-size:12px;color:var(--ua-text);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:340px;line-height:1.5;animation:fadeIn .3s ease';
-    t.innerHTML = message + ' <button data-action="close-bmac" aria-label="Dismiss" style="background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:16px;position:absolute;top:6px;right:8px">✕</button>';
-    document.body.appendChild(t);
-    setTimeout(function(){ if(t.parentElement) { t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ if(t.parentElement) t.remove() }, 300); } }, duration || 12000);
+  function closeWaitlistModal() {
+    var modal = document.getElementById('waitlist-modal');
+    if (modal) modal.style.display = 'none';
+    waitlistShownThisSession = true;
+  }
+
+  function showWaitlistModal() {
+    if (waitlistShownThisSession) return;
+    if (waitlistSubmitted) return;
+    if (document.getElementById('waitlist-modal')) {
+      document.getElementById('waitlist-modal').style.display = 'flex';
+      waitlistShownThisSession = true;
+      return;
+    }
+    waitlistShownThisSession = true;
+
+    // Build modal entirely with DOM methods (no innerHTML — XSS hardening)
+    var backdrop = document.createElement('div');
+    backdrop.id = 'waitlist-modal';
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:10001;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);padding:16px';
+    backdrop.addEventListener('click', function(e) { if (e.target === backdrop) closeWaitlistModal(); });
+
+    var card = document.createElement('div');
+    card.style.cssText = 'background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:12px;max-width:480px;width:100%;color:var(--ua-text);font-family:var(--font-ui);position:relative;overflow:hidden;max-height:90vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.6)';
+
+    // Close button
+    var closeBtn = document.createElement('button');
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.style.cssText = 'position:absolute;top:12px;right:16px;background:none;border:none;color:var(--ua-muted);cursor:pointer;font-size:20px;z-index:1;padding:4px';
+    closeBtn.textContent = '\u2715';
+    closeBtn.addEventListener('click', closeWaitlistModal);
+    card.appendChild(closeBtn);
+
+    // Content wrapper
+    var content = document.createElement('div');
+    content.style.cssText = 'padding:32px 28px 24px';
+
+    // Heading
+    var heading = document.createElement('div');
+    heading.style.cssText = 'font-size:22px;font-weight:700;color:var(--ua-text);margin-bottom:8px';
+    heading.textContent = '\u2708 Enjoying The Blue Board?';
+    content.appendChild(heading);
+
+    // Subtext
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size:14px;color:var(--ua-muted);margin-bottom:24px;line-height:1.5';
+    sub.textContent = 'Big updates are coming \u2014 Pro features, smarter alerts, and more.';
+    content.appendChild(sub);
+
+    // Form container (will be replaced on success)
+    var formWrap = document.createElement('div');
+    formWrap.id = 'waitlist-form-wrap';
+
+    // Email input
+    var emailInput = document.createElement('input');
+    emailInput.type = 'email';
+    emailInput.placeholder = 'Email';
+    emailInput.setAttribute('autocomplete', 'email');
+    emailInput.setAttribute('aria-label', 'Email address');
+    emailInput.style.cssText = 'width:100%;padding:12px 14px;background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:8px;color:var(--ua-text);font-size:14px;font-family:var(--font-ui);outline:none;box-sizing:border-box;margin-bottom:12px;transition:border-color .2s';
+    emailInput.addEventListener('focus', function() { emailInput.style.borderColor = 'var(--ua-blue)'; });
+    emailInput.addEventListener('blur', function() { emailInput.style.borderColor = 'var(--ua-border)'; });
+    formWrap.appendChild(emailInput);
+
+    // Feature request textarea
+    var featureInput = document.createElement('textarea');
+    featureInput.placeholder = 'Any features you\'d love to see? (optional)';
+    featureInput.setAttribute('aria-label', 'Feature request');
+    featureInput.rows = 3;
+    featureInput.style.cssText = 'width:100%;padding:12px 14px;background:var(--ua-dark);border:1px solid var(--ua-border);border-radius:8px;color:var(--ua-text);font-size:14px;font-family:var(--font-ui);outline:none;box-sizing:border-box;margin-bottom:16px;resize:vertical;min-height:60px;transition:border-color .2s';
+    featureInput.addEventListener('focus', function() { featureInput.style.borderColor = 'var(--ua-blue)'; });
+    featureInput.addEventListener('blur', function() { featureInput.style.borderColor = 'var(--ua-border)'; });
+    formWrap.appendChild(featureInput);
+
+    // Error message
+    var errorMsg = document.createElement('div');
+    errorMsg.style.cssText = 'color:var(--ua-red);font-size:12px;margin-bottom:8px;display:none';
+    formWrap.appendChild(errorMsg);
+
+    // Submit button
+    var submitBtn = document.createElement('button');
+    submitBtn.textContent = 'Stay in the Loop';
+    submitBtn.style.cssText = 'width:100%;padding:14px;background:#005DAA;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;font-family:var(--font-ui);cursor:pointer;transition:background .2s';
+    submitBtn.addEventListener('mouseenter', function() { submitBtn.style.background = '#004a8a'; });
+    submitBtn.addEventListener('mouseleave', function() { submitBtn.style.background = '#005DAA'; });
+
+    submitBtn.addEventListener('click', function() {
+      var email = emailInput.value.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errorMsg.textContent = 'Please enter a valid email address.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+      errorMsg.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting\u2026';
+      submitBtn.style.opacity = '0.7';
+
+      fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          source: 'popup',
+          featureRequest: featureInput.value.trim() || undefined
+        })
+      }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success || data.error === 'duplicate') {
+          // Show success state — replace form contents
+          try { localStorage.setItem('bb_waitlist_submitted', 'true'); } catch(e) {}
+          waitlistSubmitted = true;
+          while (formWrap.firstChild) formWrap.removeChild(formWrap.firstChild);
+          var success = document.createElement('div');
+          success.style.cssText = 'text-align:center;padding:20px 0';
+          var successIcon = document.createElement('div');
+          successIcon.style.cssText = 'font-size:32px;margin-bottom:8px';
+          successIcon.textContent = '\u2708\uFE0F';
+          success.appendChild(successIcon);
+          var successText = document.createElement('div');
+          successText.style.cssText = 'font-size:16px;font-weight:600;color:var(--ua-green)';
+          successText.textContent = 'You\'re on the list! \u2708';
+          success.appendChild(successText);
+          var successSub = document.createElement('div');
+          successSub.style.cssText = 'font-size:12px;color:var(--ua-muted);margin-top:8px';
+          successSub.textContent = 'We\'ll keep you posted on launch updates.';
+          success.appendChild(successSub);
+          formWrap.appendChild(success);
+        } else {
+          errorMsg.textContent = data.error || 'Something went wrong. Please try again.';
+          errorMsg.style.display = 'block';
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Stay in the Loop';
+          submitBtn.style.opacity = '1';
+        }
+      }).catch(function() {
+        errorMsg.textContent = 'Network error. Please try again.';
+        errorMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Stay in the Loop';
+        submitBtn.style.opacity = '1';
+      });
+    });
+    formWrap.appendChild(submitBtn);
+    content.appendChild(formWrap);
+
+    // Trust badges
+    var badges = document.createElement('div');
+    badges.style.cssText = 'margin-top:20px;font-size:12px;color:var(--ua-muted);line-height:1.8';
+    var badge1 = document.createElement('div');
+    badge1.textContent = '\u2713 22,000+ flyers have used The Blue Board';
+    badges.appendChild(badge1);
+    var badge2 = document.createElement('div');
+    badge2.textContent = '\u2713 No spam, just launch updates';
+    badges.appendChild(badge2);
+    content.appendChild(badges);
+
+    // Coffee link (secondary)
+    var coffeeWrap = document.createElement('div');
+    coffeeWrap.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid var(--ua-border);font-size:12px;color:var(--ua-muted);line-height:1.5';
+    var coffeeIcon = document.createTextNode('\u2615 Like what you see? Help cover the server costs \u2192 ');
+    coffeeWrap.appendChild(coffeeIcon);
+    var coffeeLink = document.createElement('a');
+    coffeeLink.href = 'https://buymeacoffee.com/notjbg';
+    coffeeLink.target = '_blank';
+    coffeeLink.rel = 'noopener noreferrer';
+    coffeeLink.style.cssText = 'color:var(--ua-accent);text-decoration:none;font-weight:600';
+    coffeeLink.textContent = 'Buy a coffee';
+    coffeeWrap.appendChild(coffeeLink);
+    content.appendChild(coffeeWrap);
+
+    card.appendChild(content);
+    backdrop.appendChild(card);
+    document.body.appendChild(backdrop);
+
+    // Escape key handler
+    document.addEventListener('keydown', function waitlistEsc(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('waitlist-modal');
+        if (modal && modal.style.display !== 'none') closeWaitlistModal();
+      }
+    });
+
+    // Focus email input
+    setTimeout(function() { emailInput.focus(); }, 100);
   }
 
   // Trigger 1: After 5 minutes of active use
   setTimeout(function() {
-    if (!bmacShownThisSession && !bmacDismissed) {
-      showBmacToast('Built by a United flyer, not a corporation. If Blue Board saved you a headache today, consider <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">supporting our site ☕</a>');
+    if (!waitlistShownThisSession && !waitlistSubmitted) {
+      showWaitlistModal();
     }
   }, 5 * 60 * 1000);
 
   // Trigger 2: After 10+ meaningful interactions (tab switches, searches, flight clicks)
   document.addEventListener('click', function() {
-    bmacInteractions++;
-    if (bmacInteractions === 10 && !bmacShownThisSession && !bmacDismissed) {
-      showBmacToast('You\'re really digging in! 🛫 This dashboard is free, ad-free, and built with love. <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">☕ Support the project</a>');
+    engagementInteractions++;
+    if (engagementInteractions === 10 && !waitlistShownThisSession && !waitlistSubmitted) {
+      showWaitlistModal();
     }
   });
 
   // Trigger 3: Flight watch landing payoff (called from checkWatchedFlightChanges)
-  window.showBmacLandingToast = function(flight) {
-    if (bmacDismissed) return;
-    // Delay slightly so the watch notification shows first
+  window.showBmacLandingToast = function() {
+    if (waitlistSubmitted) return;
     setTimeout(function() {
-      bmacShownThisSession = false; // Allow this special one even if another showed
-      showBmacToast('Your flight ' + escapeHtml(flight) + ' landed! 🎉 If Blue Board helped ease the wait — <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none;font-weight:700">☕ buy me a coffee</a>', 15000);
+      waitlistShownThisSession = false;
+      showWaitlistModal();
     }, 3000);
   };
 

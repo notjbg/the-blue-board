@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
+    "@supabase/supabase-js": "^2.49.1",
     "astro": "^5.0.0",
     "fast-xml-parser": "^5.4.2"
   },
