@@ -529,4 +529,132 @@ describe('schedule API', () => {
     expect(res.body.total).toBe(1);
     expect(res.body.meta.source).toBe('scraping');
   });
+
+  it('scrape-first: rate-limited mid-loop pauses and continues fetching', { timeout: 15000 }, async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+
+    let pagesFetched = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        throw new Error('Official API should not be called');
+      }
+      const pageMatch = urlStr.match(/page=(\d+)/);
+      const page = pageMatch ? parseInt(pageMatch[1]) : 1;
+      pagesFetched.push(page);
+
+      // Page 2 returns 429 (rate limited)
+      if (page === 2) {
+        return { ok: false, status: 429, text: async () => 'Too Many Requests', headers: { get: () => null } };
+      }
+      // All other pages succeed with UA flights
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: page, total: 3 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'UA' } },
+                          identification: { number: { default: `UA${page}00` } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'DEN' } },
+                            destination: { code: { iata: 'SFO' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 39600;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'DEN', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    // Page 3 should still have been fetched despite page 2 being rate-limited
+    expect(pagesFetched).toContain(3);
+    // Should have flights from pages 1 and 3 (page 2 was rate-limited)
+    expect(res.body.total).toBeGreaterThanOrEqual(2);
+    expect(res.body.meta.source).toBe('scraping');
+  });
+
+  it('scrape-first: breaker tripped at end of scrape returns partial without fallback', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+    // Trip the breaker
+    for (let i = 0; i < 5; i++) recordFallback();
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        throw new Error('Official API should not be called when breaker is tripped');
+      }
+      // Scraping returns valid response but no UA flights (partial scenario)
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: 1, total: 2 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'DL' } }, // Delta, not United
+                          identification: { number: { default: 'DL100' } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'IAD' } },
+                            destination: { code: { iata: 'ATL' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 43200;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'IAD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(0);
+    expect(res.body.meta.source).toBe('scraping');
+    // Official API should not have been called (breaker tripped)
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).not.toContain('fr24api.flightradar24.com');
+    }
+  });
 });

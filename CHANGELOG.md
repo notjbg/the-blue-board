@@ -4,6 +4,21 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-03-12
+
+### Changed
+- Extracted `tryOfficialFallback()` helper to DRY up two fallback call sites in schedule routing
+- Removed cron Phase 2 (tomorrow warming) — stays within Vercel 300s limit; tomorrow data loads on-demand
+- Increased cron inter-hub delay (3s→12s) to avoid FR24 rate limiting across consecutive hubs
+
+### Fixed
+- Retry-After header now honored in FR24 scraping — releases concurrency slot during wait to avoid starvation
+- Fixed potential double-release of FR24 concurrency slot when Retry-After triggers `continue` through `finally` block
+
+### Added
+- 2 new schedule tests: rate-limited mid-loop continuation, breaker-tripped partial result
+- `fr24-usage.test.js` — 7 tests covering CORS, preflight, proxy, and caching for credit monitoring endpoint
+
 ## [1.3.5] - 2026-03-12
 
 ### Fixed
