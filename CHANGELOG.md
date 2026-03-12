@@ -4,6 +4,16 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-03-12
+
+### Fixed
+- Onboarding overlay no longer blocks tab interaction — tabs are clickable while the welcome modal is visible
+- Alerts ticker no longer shows "0 mainline aircraft" before fleet data loads
+- Offline banner no longer flashes briefly on page load for connected users
+
+### Changed
+- Search "no results" message now distinguishes flight numbers ("not currently airborne") from tail numbers ("not found in live feed")
+
 ## [1.3] - 2026-03-10
 
 ### Added
