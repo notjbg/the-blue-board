@@ -1607,8 +1607,11 @@ function updateTicker() {
 
   if (allFlights.length > 0) {
     items.push({ text: `${airborne} United flights airborne`, cls: 'info' });
-    items.push({ text: `Fleet: ${FLEET_DB.length} mainline aircraft`, cls: 'info' });
-    items.push({ text: `${STARLINK_TAILS.size} Starlink-equipped aircraft (incl. United Express)`, cls: 'info' });
+    // Show fleet counts only after fleet data has loaded — avoids misleading "0 aircraft" on initial render
+    if (FLEET_DB.length > 0) {
+      items.push({ text: `Fleet: ${FLEET_DB.length} mainline aircraft`, cls: 'info' });
+      items.push({ text: `${STARLINK_TAILS.size} Starlink-equipped aircraft (incl. United Express)`, cls: 'info' });
+    }
   }
 
   // Check for emergency squawks
@@ -3397,6 +3400,8 @@ function renderScheduleStats(filtered) {
 }
 
 // ═══ OFFLINE DETECTION ═══
+// Only show offline banner on actual 'offline' event — never proactively on load
+// (navigator.onLine can be unreliable during service worker registration, causing a false flash)
 function updateOnlineStatus() {
   const banner = document.getElementById('offline-banner');
   if (!navigator.onLine) {
@@ -3407,7 +3412,6 @@ function updateOnlineStatus() {
 }
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus();
 
 // ═══ GLOBAL SEARCH ═══
 document.getElementById('global-search-input').addEventListener('input', debounce(function() {
@@ -3449,7 +3453,17 @@ document.getElementById('global-search-input').addEventListener('input', debounc
   const fr24Option = looksLikeFlight ? `<div class="search-result" style="border-top:1px solid var(--ua-border);color:var(--ua-accent);font-size:10px" data-action="lookup-fr24" data-query="${escapeHtml(normalizedQ)}" data-close-global="1">🔍 Look up ${escapeHtml(normalizedQ.startsWith('UA') || normalizedQ.startsWith('UAL') ? normalizedQ : 'UA' + normalizedQ)} via FlightRadar24...</div>` : '';
 
   if (matches.length === 0) {
-    results.innerHTML = '<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px">No results for "' + escapeHtml(q) + '"</div>' + fr24Option;
+    // Contextual "no results" message based on query format — all user input passed through escapeHtml()
+    const tailPattern = /^N\d{3,5}[A-Z]{0,2}$/i;
+    let noResultMsg;
+    if (looksLikeFlight) {
+      noResultMsg = escapeHtml(normalizedQ.startsWith('UA') || normalizedQ.startsWith('UAL') ? normalizedQ : 'UA' + normalizedQ) + ' is not currently airborne';
+    } else if (tailPattern.test(normalizedQ)) {
+      noResultMsg = escapeHtml(normalizedQ) + ' not found in live feed';
+    } else {
+      noResultMsg = 'No results for "' + escapeHtml(q) + '"';
+    }
+    results.innerHTML = '<div style="padding:10px 12px;color:var(--ua-muted);font-size:10px">' + noResultMsg + '</div>' + fr24Option;
   } else {
     results.innerHTML = matches.slice(0, 20).map(m => {
       if (m.type === 'live') return `<div class="search-result" data-action="focus-flight" data-icao24="${escapeHtml(m.icao24)}" data-close-global="1">${escapeHtml(m.label)}</div>`;
@@ -5613,6 +5627,7 @@ async function initApp() {
   var acDeepLink = new URLSearchParams(location.search).get('aircraft');
   const loadFleetAndInit = async () => {
     await loadFleetData();
+    updateTicker(); // Re-render ticker now that fleet data is available (avoids 30s gap with missing fleet counts)
     initFleetTab();
     var onboardingEl = document.getElementById('onboarding-overlay');
     if (acDeepLink && FLEET_DB.length > 0 && (!onboardingEl || onboardingEl.style.display === 'none')) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
