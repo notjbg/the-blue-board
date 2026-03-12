@@ -4,6 +4,17 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-03-12
+
+### Changed
+- Strip `hubFlights` from IRROPS API response — reduces payload from ~4.6MB to ~100KB (schedule tab fetches its own data)
+
+### Fixed
+- Weather tab layout gap when hub cards are loading — added min-height to `.hub-cards` container
+
+### Added
+- CI/CD test workflow — `npm test` runs automatically on pushes to main and pull requests
+
 ## [1.3.1] - 2026-03-12
 
 ### Fixed
