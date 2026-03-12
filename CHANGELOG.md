@@ -4,6 +4,18 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-03-12
+
+### Changed
+- Inverted FR24 schedule routing — scraping is now primary, official API is fallback-of-last-resort (projected ~96-99% credit savings)
+- Added `SCHEDULE_SOURCE_PRIORITY` env var for one-click rollback (`scrape` default, `official`, `scrape-only`)
+
+### Added
+- Circuit breaker on official API fallback — trips after 5 fallbacks in 15 minutes to prevent credit burn during sustained scraping outages
+- `/api/fr24-usage` endpoint — proxies FR24 credit consumption data with 5-minute cache
+- FR24 credit usage widget in dashboard footer — shows remaining credits with color-coded progress bar (green/yellow/red)
+- 6 new schedule tests covering scrape-first routing, fallback, circuit breaker, and scrape-only mode
+
 ## [1.3.3] - 2026-03-12
 
 ### Fixed
