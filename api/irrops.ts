@@ -127,7 +127,6 @@ export function computeMetrics(flightsByHub: Record<string, any[]>) {
     diversions,
     worstDelays: worstDelays.slice(0, 8),
     hubMetrics,
-    hubFlights: flightsByHub,
     generatedAt: new Date().toISOString()
   };
 }

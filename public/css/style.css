@@ -258,7 +258,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .wx-section-header{text-transform:uppercase;letter-spacing:.8px}
 .scroll-hint-arrow{animation:bounce 1.5s ease-in-out infinite;font-size:14px}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
-.hub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:16px}
+.hub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:16px;min-height:200px}
 .hub-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;overflow:hidden;transition:border-color .2s}
 .hub-card:hover{border-color:var(--ua-accent)}
 .hub-card-top{padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between}
