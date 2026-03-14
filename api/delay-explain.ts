@@ -27,7 +27,7 @@ interface DelayContext {
   destWeather?: string;
   inbound?: string;
   hub?: string;
-  irrops?: string;
+  irops?: string;
   hubTime?: string;
   connection?: string;
 }
@@ -81,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (ctx.otp) lines.push(`Hub on-time performance: ${ctx.otp}%`);
     if (ctx.weather) lines.push(`Origin weather: ${ctx.weather}`);
     if (ctx.destWeather) lines.push(`Destination weather: ${ctx.destWeather}`);
-    if (ctx.irrops) lines.push(`Hub disruption status: ${ctx.irrops}`);
+    if (ctx.irops) lines.push(`Hub disruption status: ${ctx.irops}`);
     if (ctx.hubTime) lines.push(`Current local time at hub: ${ctx.hubTime}`);
     if (ctx.connection) lines.push(`Passenger connection: ${ctx.connection}`);
     if (ctx.inbound) lines.push(`Aircraft journey: ${ctx.inbound}`);
@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 CRITICAL RULE: You may ONLY discuss data that is explicitly provided in the user message below. Do NOT invent, assume, or speculate about information that is not present. Specifically:
 - If no "Aircraft journey" line is provided, do NOT discuss inbound aircraft, turnaround times, rotations, or crew legality.
 - If no "Origin weather" or "Destination weather" line is provided, do NOT discuss weather conditions, de-icing, thunderstorms, or visibility.
-- If no "Hub disruption status" line is provided, do NOT discuss cancellation rates or IRROPS.
+- If no "Hub disruption status" line is provided, do NOT discuss cancellation rates or IROPS.
 - If no "Hub on-time performance" line is provided, do NOT cite OTP percentages.
 - If no "Passenger connection" line is provided, do NOT discuss connections.
 Never fabricate operational details. If the data is sparse, give a shorter analysis based only on what you can see.

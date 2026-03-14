@@ -535,21 +535,21 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .fleet-enrich-detail.show{display:block}
 .fleet-enrich-inline{font-size:9px;color:var(--ua-muted);margin-top:1px}
 
-/* IRROPS Monitor */
-#irrops-section{padding:16px;border-bottom:1px solid var(--ua-border)}
-#irrops-section h3{font-size:13px;color:#f59e0b;margin-bottom:12px}
-.irrops-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
-.irrops-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:10px;text-align:center}
-.irrops-card .iv{font-size:22px;font-weight:700}
-.irrops-card .il{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.irrops-score{display:inline-block;padding:4px 12px;border-radius:4px;font-size:16px;font-weight:700;margin-bottom:10px}
-.irrops-score.low{background:rgba(34,197,94,.15);color:#22c55e}
-.irrops-score.med{background:rgba(245,158,11,.15);color:#f59e0b}
-.irrops-score.high{background:rgba(239,68,68,.15);color:#ef4444}
-.irrops-worst{margin-top:10px}
-.irrops-worst h4{font-size:10px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.irrops-worst-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,.3);font-size:10px}
-.irrops-empty{text-align:center;padding:30px;color:var(--ua-muted);font-size:11px}
+/* IROPS Monitor */
+#irops-section{padding:16px;border-bottom:1px solid var(--ua-border)}
+#irops-section h3{font-size:13px;color:#f59e0b;margin-bottom:12px}
+.irops-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.irops-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:10px;text-align:center}
+.irops-card .iv{font-size:22px;font-weight:700}
+.irops-card .il{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.irops-score{display:inline-block;padding:4px 12px;border-radius:4px;font-size:16px;font-weight:700;margin-bottom:10px}
+.irops-score.low{background:rgba(34,197,94,.15);color:#22c55e}
+.irops-score.med{background:rgba(245,158,11,.15);color:#f59e0b}
+.irops-score.high{background:rgba(239,68,68,.15);color:#ef4444}
+.irops-worst{margin-top:10px}
+.irops-worst h4{font-size:10px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.irops-worst-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(30,41,59,.3);font-size:10px}
+.irops-empty{text-align:center;padding:30px;color:var(--ua-muted);font-size:11px}
 
 /* FAA Delay Context */
 .faa-delay-context{font-size:9px;color:#f59e0b;font-style:italic;margin-top:2px;opacity:.85}
@@ -584,8 +584,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #watch-notification .wn-dismiss{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-family:var(--font-ui);font-size:10px}
 
 /* ═══ HYBRID TYPOGRAPHY: Mono for data elements ═══ */
-table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irrops-card .iv,.irrops-score,.hh-hub,.fleet-chip .count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
-.onboarding-subtitle,.onboarding-desc,.onboarding-footer,.source-desc,.hub-explainer,.wx-explainer,.error-state,.empty-state,.hub-card-name,.stat-label,.metric-label,.big-number-label,.irrops-card .il,.hub-metric-label,.popup-field-label,.popup-route-est,.source-name,.source-link{font-family:var(--font-ui)}
+table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irops-card .iv,.irops-score,.hh-hub,.fleet-chip .count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
+.onboarding-subtitle,.onboarding-desc,.onboarding-footer,.source-desc,.hub-explainer,.wx-explainer,.error-state,.empty-state,.hub-card-name,.stat-label,.metric-label,.big-number-label,.irops-card .il,.hub-metric-label,.popup-field-label,.popup-route-est,.source-name,.source-link{font-family:var(--font-ui)}
 
 /* ═══ MICRO-INTERACTIONS: :active press feedback ═══ */
 .tab-btn:active,.ctrl-btn:active,.refresh-btn:active,.retry-btn:active,.sched-day-btn:active,.sched-load-more:active,#onboarding-dismiss:active,#onboarding-help:active,.watch-btn:active,.share-btn:active,#watch-header-btn:active,#mobile-bottom-nav button:active,.fleet-chip:active,.hub-nav a:active,.show-all-btn:active{transform:scale(.97)}
@@ -594,7 +594,7 @@ table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.
 @keyframes shimmerSlide{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .shimmer-loader{background:linear-gradient(90deg,var(--ua-panel) 25%,rgba(30,41,59,.6) 50%,var(--ua-panel) 75%);background-size:200% 100%;animation:shimmerSlide 1.5s ease-in-out infinite;border-radius:4px;color:transparent!important}
 .shimmer-loader *{visibility:hidden}
-.irrops-empty,.popup-times-loading{background:linear-gradient(90deg,var(--ua-panel) 25%,rgba(30,41,59,.6) 50%,var(--ua-panel) 75%);background-size:200% 100%;animation:shimmerSlide 1.5s ease-in-out infinite;border-radius:4px}
+.irops-empty,.popup-times-loading{background:linear-gradient(90deg,var(--ua-panel) 25%,rgba(30,41,59,.6) 50%,var(--ua-panel) 75%);background-size:200% 100%;animation:shimmerSlide 1.5s ease-in-out infinite;border-radius:4px}
 
 /* ═══ FR24 CREDIT USAGE WIDGET ═══ */
 #fr24-credit-widget{position:fixed;bottom:8px;right:8px;background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:8px 12px;font-family:var(--font-mono);font-size:11px;color:var(--ua-muted);z-index:900;min-width:200px;opacity:.85;transition:opacity .2s}

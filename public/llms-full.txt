@@ -26,7 +26,7 @@ The site is designed as a dark-themed operations dashboard, inspired by airline 
 ### Main Dashboard (https://theblueboard.co)
 The primary interface with 6 tabs:
 
-1. **Live Ops**: Interactive map showing all 600+ airborne United flights. Click any flight for details (flight number, aircraft type, route, altitude, speed, delay status). Hub health bar at top shows on-time % at all 9 hubs. IRROPS ticker shows real-time disruption alerts.
+1. **Live Ops**: Interactive map showing all 600+ airborne United flights. Click any flight for details (flight number, aircraft type, route, altitude, speed, delay status). Hub health bar at top shows on-time % at all 9 hubs. IROPS ticker shows real-time disruption alerts.
 
 2. **Schedule**: Departure and arrival schedules at any United hub. Shows flight number, destination/origin, scheduled time, actual time, delay status, aircraft type, and equipment swap alerts. Filterable by hub.
 
@@ -74,7 +74,7 @@ Each hub page includes: live flight count, hub overview, delay patterns and seas
 - Real-time on-time percentage for all 9 hubs displayed in a health bar
 - Color-coded: green (>70% on-time), yellow (50-70%), red (<50%)
 - Based on schedule comparison — flights departing within 30 minutes of schedule count as "on-time"
-- IRROPS ticker scrolls real-time disruption alerts (delays, cancellations, ground stops)
+- IROPS ticker scrolls real-time disruption alerts (delays, cancellations, ground stops)
 
 ### Starlink WiFi Tracker
 - Tracks 258+ United Airlines aircraft equipped with SpaceX Starlink satellite internet
@@ -123,7 +123,7 @@ Terms frequently used on The Blue Board:
 - **GS (Global Services)**: United's invitation-only top-tier elite status.
 - **MileagePlus**: United Airlines' frequent flyer loyalty program.
 - **PQP**: Premier Qualifying Points, the metric for earning United elite status.
-- **IRROPS**: Irregular Operations — disruptions to normal flight schedules (delays, cancellations, diversions).
+- **IROPS**: Irregular Operations — disruptions to normal flight schedules (delays, cancellations, diversions).
 - **GDP**: Ground Delay Program — FAA-issued program that delays flights destined for a congested airport.
 - **Ground Stop**: FAA-issued halt to all departures to a specific airport, typically due to severe weather or capacity.
 - **NAS**: National Airspace System — the FAA-managed air traffic system.

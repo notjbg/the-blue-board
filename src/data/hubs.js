@@ -78,13 +78,13 @@ ord: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at ORD in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=ord" style="margin:0">🗺️ Live ORD Map</a>
       <a class="cta" href="/?tab=schedule&hub=ord" style="margin:0">📋 ORD Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=ord" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=ord" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -220,13 +220,13 @@ den: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at DEN in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=den" style="margin:0">🗺️ Live DEN Map</a>
       <a class="cta" href="/?tab=schedule&hub=den" style="margin:0">📋 DEN Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=den" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=den" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -361,13 +361,13 @@ iah: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at IAH in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=iah" style="margin:0">🗺️ Live IAH Map</a>
       <a class="cta" href="/?tab=schedule&hub=iah" style="margin:0">📋 IAH Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=iah" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=iah" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -502,13 +502,13 @@ ewr: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at EWR in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=ewr" style="margin:0">🗺️ Live EWR Map</a>
       <a class="cta" href="/?tab=schedule&hub=ewr" style="margin:0">📋 EWR Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=ewr" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=ewr" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -643,13 +643,13 @@ sfo: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at SFO in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=sfo" style="margin:0">🗺️ Live SFO Map</a>
       <a class="cta" href="/?tab=schedule&hub=sfo" style="margin:0">📋 SFO Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=sfo" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=sfo" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -784,13 +784,13 @@ iad: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at IAD in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=iad" style="margin:0">🗺️ Live IAD Map</a>
       <a class="cta" href="/?tab=schedule&hub=iad" style="margin:0">📋 IAD Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=iad" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=iad" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
@@ -925,13 +925,13 @@ lax: {
   <!-- Dive Deep -->
   <div class="section">
     <h2>Dive Deep at The Blue Board</h2>
-    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IRROPS monitoring, updated in real-time.</p>
+    <p><strong>The Blue Board</strong> is the only real-time operations dashboard built specifically for United Airlines passengers. Live flight tracking, AI-powered delay risk predictions, inbound aircraft tracking, Starlink WiFi status, and IROPS monitoring, updated in real-time.</p>
     <p>This page gives you the overview — but the real action is on the dashboard. Track every United flight at LAX in real time, set up flight watch alerts, check equipment swaps, and monitor weather radar overlaid on the live map.</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
       <a class="cta" href="/?hub=lax" style="margin:0">🗺️ Live LAX Map</a>
       <a class="cta" href="/?tab=schedule&hub=lax" style="margin:0">📋 LAX Schedules</a>
       <a class="cta" href="/?tab=fleet&filter=starlink" style="margin:0">📡 Starlink Fleet</a>
-      <a class="cta" href="/?tab=irrops&hub=lax" style="margin:0">⚠️ IRROPS Monitor</a>
+      <a class="cta" href="/?tab=irops&hub=lax" style="margin:0">⚠️ IROPS Monitor</a>
     </div>
   </div>
 
