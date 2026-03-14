@@ -51,11 +51,13 @@ async function loadFleetData() {
       const liveRes = await fetch('/api/starlink-data');
       if (liveRes.ok) {
         const liveData = await liveRes.json();
-        STARLINK_DB = liveData.aircraft || [];
-        STARLINK_FLIGHTS_BY_TAIL = liveData.flightsByTail || {};
-        STARLINK_FLEET_STATS = liveData.fleetStats || null;
-        STARLINK_LAST_UPDATED = liveData.lastUpdated || null;
-        starlinkLoaded = true;
+        if (Array.isArray(liveData.aircraft) && liveData.aircraft.length > 0) {
+          STARLINK_DB = liveData.aircraft;
+          STARLINK_FLIGHTS_BY_TAIL = liveData.flightsByTail || {};
+          STARLINK_FLEET_STATS = liveData.fleetStats || null;
+          STARLINK_LAST_UPDATED = liveData.lastUpdated || null;
+          starlinkLoaded = true;
+        }
       }
     } catch (e) {
       console.warn('Live Starlink API unavailable, falling back to static file');
