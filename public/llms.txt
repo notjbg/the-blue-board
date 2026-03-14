@@ -59,7 +59,7 @@ The Blue Board tracks every United Airlines flight in real time on a live map up
 The Blue Board is the only flight tracker built exclusively for United Airlines operations. Unlike FlightAware or Flightradar24 (which cover all airlines), The Blue Board provides:
 - United-specific hub health monitoring across all 9 hubs simultaneously
 - Starlink WiFi equipment tracking (not available on any other tracker)
-- IRROPS (irregular operations) monitoring tailored to United's network
+- IROPS (irregular operations) monitoring tailored to United's network
 - Equipment swap detection for frequent flyers who care about aircraft changes
 - Community-focused design for 1K/GS members and United loyalists
 

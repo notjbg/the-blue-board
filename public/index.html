@@ -18,7 +18,7 @@
   When adding/removing a hub, update ALL of these locations:
     public/index.html  — AIRPORTS (hub:true), SCHED_HUB_TZ, hubCodes arrays,
                          hub health bar HTML, SEO metadata
-    api/irrops.js      — HUBS array
+    api/irops.js      — HUBS array
     public/sitemap.xml — hub page entries
     public/hubs/       — individual hub HTML pages + cross-nav
   ═══════════════════════════════════════════════════════════════
@@ -478,10 +478,10 @@
     <span class="scroll-hint-arrow">↓</span>
   </div>
   <div class="hub-cards" id="hub-cards"></div>
-  <!-- IRROPS Monitor -->
-  <div id="irrops-section">
-    <h3>⚠️ IRROPS Monitor</h3>
-    <div id="irrops-content" aria-live="polite"><div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div></div>
+  <!-- IROPS Monitor -->
+  <div id="irops-section">
+    <h3>⚠️ IROPS Monitor</h3>
+    <div id="irops-content" aria-live="polite"><div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div></div>
   </div>
 </div>
 
@@ -746,7 +746,7 @@ if ('serviceWorker' in navigator) {
       "name": "Are there delays at United Airlines hubs today?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "The Blue Board monitors delays, cancellations, and ground stops at all 9 United hubs (Chicago O'Hare, Denver, Houston, Newark, San Francisco, Dulles, Los Angeles, Tokyo Narita, and Guam) in real time. The hub health bar shows on-time performance, and the IRROPS monitor breaks down disruption types at each hub."
+        "text": "The Blue Board monitors delays, cancellations, and ground stops at all 9 United hubs (Chicago O'Hare, Denver, Houston, Newark, San Francisco, Dulles, Los Angeles, Tokyo Narita, and Guam) in real time. The hub health bar shows on-time performance, and the IROPS monitor breaks down disruption types at each hub."
       }
     },
     {

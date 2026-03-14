@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeMetrics, getStartOfDayForHub } from '../api/irrops.js';
+import { computeMetrics, getStartOfDayForHub } from '../api/irops.js';
 
 // Helper to build a flight object matching FR24's schedule structure
 function makeFlight(hub, {
@@ -216,8 +216,8 @@ function makeDelayRiskScore({
   wxDestLevel = 'normal', wxDestCat = 'VFR', wxDestThunderstorms = false,
   otp = undefined, hubHour = 10, origHub = 'ORD', destHub = 'LAX',
   hasInboundAirborne = false, timeToDepMin = 999,
-  irropsCancel = 0, irropsDelayed60 = 0,
-  destIrropsCancel = 0, destIrropsDelayed60 = 0,
+  iropsCancel = 0, iropsDelayed60 = 0,
+  destIropsCancel = 0, destIropsDelayed60 = 0,
 } = {}) {
   let score = 0;
   const factors = [];
@@ -297,16 +297,16 @@ function makeDelayRiskScore({
   const profiles = { EWR: 8, ORD: 5, SFO: 5, IAH: 3, DEN: 3, LAX: 2, IAD: 2, NRT: 1, GUM: 1 };
   score += profiles[origHub] || 0;
 
-  // Signal 9: IRROPS network stress at origin (0-15)
-  if (irropsCancel >= 15)     score += 15;
-  else if (irropsCancel >= 8) score += 10;
-  else if (irropsCancel >= 3) score += 4;
-  if (irropsDelayed60 >= 20)  score += 5;
+  // Signal 9: IROPS network stress at origin (0-15)
+  if (iropsCancel >= 15)     score += 15;
+  else if (iropsCancel >= 8) score += 10;
+  else if (iropsCancel >= 3) score += 4;
+  if (iropsDelayed60 >= 20)  score += 5;
 
-  // Signal 10: Destination IRROPS (0-10)
-  if (destIrropsCancel >= 15)     score += 8;
-  else if (destIrropsCancel >= 8) score += 5;
-  if (destIrropsDelayed60 >= 20)  score += 3;
+  // Signal 10: Destination IROPS (0-10)
+  if (destIropsCancel >= 15)     score += 8;
+  else if (destIropsCancel >= 8) score += 5;
+  if (destIropsDelayed60 >= 20)  score += 3;
 
   // Compound multiplier
   let severeCount = 0;
@@ -314,7 +314,7 @@ function makeDelayRiskScore({
   if (faaDest.groundStop || faaDest.closure) severeCount++;
   if (wxOrigLevel === 'severe') severeCount++;
   if (wxDestLevel === 'severe') severeCount++;
-  if (irropsCancel >= 15) severeCount++;
+  if (iropsCancel >= 15) severeCount++;
   if (severeCount >= 3) score += Math.min(severeCount * 5, 15);
 
   const finalScore = Math.min(score, 100);
@@ -422,22 +422,22 @@ describe('computeDelayRisk v3 algorithm', () => {
     expect(ts.score).toBeGreaterThan(caution.score);
   });
 
-  it('IRROPS cancellation rate >= 15% adds 15 points', () => {
+  it('IROPS cancellation rate >= 15% adds 15 points', () => {
     const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
-    const irrops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, irropsCancel: 20 });
-    expect(irrops.score - base.score).toBe(15);
+    const irops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, iropsCancel: 20 });
+    expect(irops.score - base.score).toBe(15);
   });
 
-  it('IRROPS cancellation rate 8-14% adds 10 points', () => {
+  it('IROPS cancellation rate 8-14% adds 10 points', () => {
     const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
-    const irrops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, irropsCancel: 10 });
-    expect(irrops.score - base.score).toBe(10);
+    const irops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, iropsCancel: 10 });
+    expect(irops.score - base.score).toBe(10);
   });
 
-  it('IRROPS high delayed60 rate adds 5 points', () => {
+  it('IROPS high delayed60 rate adds 5 points', () => {
     const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
-    const irrops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, irropsDelayed60: 25 });
-    expect(irrops.score - base.score).toBe(5);
+    const irops = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, iropsDelayed60: 25 });
+    expect(irops.score - base.score).toBe(5);
   });
 
   it('destination thunderstorms add 5 points', () => {
@@ -451,12 +451,12 @@ describe('computeDelayRisk v3 algorithm', () => {
       delayMin: 130, faaOrig: { groundStop: true }, wxOrigLevel: 'severe',
       wxOrigThunderstorms: true, wxOrigCat: 'LIFR', otp: 30, hubHour: 20,
       hasInboundAirborne: true, timeToDepMin: 20, origHub: 'EWR',
-      irropsCancel: 20,
+      iropsCancel: 20,
     });
     expect(r.score).toBe(100);
   });
 
-  // ── New signals: hub-specific IFR, de-icing, dest IRROPS, compound ──
+  // ── New signals: hub-specific IFR, de-icing, dest IROPS, compound ──
 
   it('SFO LIFR gets 15 points (higher than default 10)', () => {
     const sfo = makeDelayRiskScore({ wxOrigCat: 'LIFR', origHub: 'SFO', hubHour: 8 });
@@ -485,23 +485,23 @@ describe('computeDelayRisk v3 algorithm', () => {
     expect(extreme.score - base.score).toBe(12); // 8 + 4
   });
 
-  it('destination IRROPS cancellations >= 15% adds 8 points', () => {
+  it('destination IROPS cancellations >= 15% adds 8 points', () => {
     const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
-    const destStress = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIrropsCancel: 20 });
+    const destStress = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIropsCancel: 20 });
     expect(destStress.score - base.score).toBe(8);
   });
 
-  it('destination IRROPS delayed60 >= 20% adds 3 points', () => {
+  it('destination IROPS delayed60 >= 20% adds 3 points', () => {
     const base = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8 });
-    const destDel = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIrropsDelayed60: 25 });
+    const destDel = makeDelayRiskScore({ origHub: 'GUM', hubHour: 8, destIropsDelayed60: 25 });
     expect(destDel.score - base.score).toBe(3);
   });
 
   it('compound multiplier triggers at 3+ severe signals', () => {
     // ground stop + severe weather + 15% cancellations = 3 severe signals → +15 compound
     const noCompound = makeDelayRiskScore({ faaOrig: { groundStop: true }, wxOrigLevel: 'severe', origHub: 'GUM', hubHour: 8 });
-    const compound = makeDelayRiskScore({ faaOrig: { groundStop: true }, wxOrigLevel: 'severe', irropsCancel: 20, origHub: 'GUM', hubHour: 8 });
-    // compound adds 15 (irrops) + 15 (compound bonus for 3 signals)
+    const compound = makeDelayRiskScore({ faaOrig: { groundStop: true }, wxOrigLevel: 'severe', iropsCancel: 20, origHub: 'GUM', hubHour: 8 });
+    // compound adds 15 (irops) + 15 (compound bonus for 3 signals)
     expect(compound.score - noCompound.score).toBe(30);
   });
 

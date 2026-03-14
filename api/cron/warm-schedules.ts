@@ -3,7 +3,7 @@
 // Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
 
 import type { VercelRequest, VercelResponse } from '../types.js';
-import { getStartOfDayForHub } from '../irrops.js';
+import { getStartOfDayForHub } from '../irops.js';
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL

@@ -1,4 +1,4 @@
-// Server-side IRROPS aggregation — fetches schedule data for all UA hubs
+// Server-side IROPS aggregation — fetches schedule data for all UA hubs
 // via the internal /api/schedule endpoint (which benefits from cron cache warming),
 // computes disruption metrics, caches for 15 minutes.
 
@@ -6,11 +6,11 @@ import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { CacheStore } from './_cache.js';
 
-const isRateLimited = createRateLimiter('irrops', 60);
+const isRateLimited = createRateLimiter('irops', 60);
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
 export const HUB_TZ: Record<string, string> = {ORD:'America/Chicago',DEN:'America/Denver',IAH:'America/Chicago',EWR:'America/New_York',SFO:'America/Los_Angeles',IAD:'America/New_York',LAX:'America/Los_Angeles',NRT:'Asia/Tokyo',GUM:'Pacific/Guam'};
-const irropsCache = new CacheStore('irrops', { maxSize: 1, defaultTTL: 15 * 60 * 1000 });
+const iropsCache = new CacheStore('irops', { maxSize: 1, defaultTTL: 15 * 60 * 1000 });
 let fetching: Promise<any> | null = null;
 // Persistent per-hub cache — survives full refresh failures
 let hubCache: Record<string, { flights: any[]; fetchedAt: number }> = {};
@@ -28,7 +28,7 @@ async function fetchHubFromScheduleAPI(hub: string, timestamp: number): Promise<
   try {
     const resp = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'BlueBoard-IRROPS/1.0' }
+      headers: { 'User-Agent': 'BlueBoard-IROPS/1.0' }
     });
     clearTimeout(timeout);
     if (!resp.ok) return [];
@@ -36,7 +36,7 @@ async function fetchHubFromScheduleAPI(hub: string, timestamp: number): Promise<
     return (data as any).flights || [];
   } catch (e: any) {
     clearTimeout(timeout);
-    console.error(`IRROPS: Failed to fetch schedule for ${hub}:`, e.message);
+    console.error(`IROPS: Failed to fetch schedule for ${hub}:`, e.message);
     return [];
   }
 }
@@ -147,7 +147,7 @@ export function getStartOfDayForHub(hub: string): number {
   return startOfToday;
 }
 
-async function buildIrropsData() {
+async function buildIropsData() {
   const flightsByHub: Record<string, any[]> = {};
 
   // Fetch all hubs in parallel via the internal schedule API (cached by cron)
@@ -165,14 +165,14 @@ async function buildIrropsData() {
         flightsByHub[hub] = flights;
         hubCache[hub] = { flights, fetchedAt: Date.now() };
       } else if (hubCache[hub] && (Date.now() - hubCache[hub].fetchedAt) < 60 * 60 * 1000) {
-        console.log(`IRROPS: Using cached data for ${hub} (age: ${Math.round((Date.now() - hubCache[hub].fetchedAt) / 60000)}m)`);
+        console.log(`IROPS: Using cached data for ${hub} (age: ${Math.round((Date.now() - hubCache[hub].fetchedAt) / 60000)}m)`);
         flightsByHub[hub] = hubCache[hub].flights;
       } else {
         flightsByHub[hub] = [];
       }
     } else {
       const hub = HUBS[results.indexOf(result)];
-      console.error(`IRROPS: Error fetching ${hub}:`, result.reason?.message);
+      console.error(`IROPS: Error fetching ${hub}:`, result.reason?.message);
       if (hubCache[hub] && (Date.now() - hubCache[hub].fetchedAt) < 60 * 60 * 1000) {
         flightsByHub[hub] = hubCache[hub].flights;
       } else {
@@ -199,7 +199,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const cached = irropsCache.get('irrops');
+    const cached = iropsCache.get('irops');
     if (cached) {
       res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
       return res.status(200).json({ ...cached, cached: true });
@@ -212,25 +212,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      fetching = buildIrropsData();
+      fetching = buildIropsData();
       const result = await fetching;
-      irropsCache.set('irrops', result);
+      iropsCache.set('irops', result);
       res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
       return res.status(200).json({ ...result, cached: false });
     } catch (e) {
-      console.error('IRROPS API error:', e);
+      console.error('IROPS API error:', e);
       // Return stale cache if available (up to 1 hour past expiry)
-      const stale = irropsCache.getStale('irrops', 60 * 60 * 1000);
+      const stale = iropsCache.getStale('irops', 60 * 60 * 1000);
       if (stale) {
         res.setHeader('Cache-Control', 's-maxage=60');
         return res.status(200).json({ ...stale, cached: true, stale: true });
       }
-      return res.status(502).json({ error: 'Failed to compute IRROPS data' });
+      return res.status(502).json({ error: 'Failed to compute IROPS data' });
     } finally {
       fetching = null;
     }
   } catch (e) {
-    console.error('IRROPS API error:', e);
-    return res.status(502).json({ error: 'Failed to compute IRROPS data' });
+    console.error('IROPS API error:', e);
+    return res.status(502).json({ error: 'Failed to compute IROPS data' });
   }
 }

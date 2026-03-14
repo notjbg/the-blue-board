@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
     "functions": {
-        "api/irrops.ts": { "maxDuration": 90 },
+        "api/irops.ts": { "maxDuration": 90 },
         "api/schedule.ts": { "maxDuration": 60 },
         "api/cron/warm-schedules.ts": { "maxDuration": 300 },
         "api/delay-explain.ts": { "maxDuration": 15 },

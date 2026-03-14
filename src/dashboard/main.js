@@ -8,7 +8,7 @@
 //   3. SCHED_HUB_TZ — search "SCHED_HUB_TZ"
 //   4. preloadHubs in schedule init — search "preloadHubs"
 //   5. hubs arrays in hub health bar render — search "const hubs = ["
-//   6. HUBS in api/irrops.js
+//   6. HUBS in api/irops.js
 //   7. Hub health bar HTML (#hub-health-bar)
 //   8. public/sitemap.xml
 //   9. public/hubs/*.html (individual hub pages + nav in each)
@@ -438,7 +438,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
     'schedule': 'tab-schedule',
     'fleet': 'tab-fleet',
     'weather': 'tab-weather',
-    'irrops': 'tab-weather',
+    'irops': 'tab-weather',
     'stats': 'tab-analytics',
     'sources': 'tab-sources'
   };
@@ -452,9 +452,9 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   // After tab switch, handle sub-navigation
   requestAnimationFrame(() => {
     setTimeout(() => {
-      // Scroll to IRROPS section if requested
-      if (tab === 'irrops') {
-        const el = document.getElementById('irrops-section');
+      // Scroll to IROPS section if requested
+      if (tab === 'irops') {
+        const el = document.getElementById('irops-section');
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
@@ -2224,8 +2224,8 @@ function parseMetarQuick(raw) {
 async function initWeatherTab() {
   if (weatherInitialized) return;
   weatherInitialized = true;
-  // Ensure IRROPS data is loading (may not have fired from idle preload yet)
-  fetchIrropsFromAPI();
+  // Ensure IROPS data is loading (may not have fired from idle preload yet)
+  fetchIropsFromAPI();
 
   const hubStations = {EWR:'KEWR',IAH:'KIAH',ORD:'KORD',DEN:'KDEN',SFO:'KSFO',LAX:'KLAX',IAD:'KIAD',NRT:'RJAA',GUM:'PGUM'};
   const hubs = Object.keys(hubStations);
@@ -2290,7 +2290,7 @@ async function initWeatherTab() {
     else if (d.type === 'arrival_delay') { faaIndex[code].arrivalDelay = true; }
     else if (d.type === 'closure') faaIndex[code].closure = true;
   });
-  // Store globally for IRROPS & schedule cross-reference
+  // Store globally for IROPS & schedule cross-reference
   faaDelayIndex = faaIndex;
 
   // Build cards + map markers
@@ -2884,7 +2884,7 @@ async function preloadScheduleData() {
   if (loaded > 0) {
     sessionStorage.setItem('bb_sched_preload_ts', String(Date.now()));
     updateHubHealth();
-    updateIrrops();
+    updateIrops();
   }
 }
 
@@ -2960,7 +2960,7 @@ async function loadScheduleData() {
     const timestamp = getSchedDayTimestamp(schedCurrentDay);
     const hubKey = `${schedCurrentHub}-${schedCurrentDir}-${schedCurrentDay}`;
 
-    // Always fetch from schedule API for complete data (irrops only has ~5 pages)
+    // Always fetch from schedule API for complete data (irops only has ~5 pages)
     let result;
     const MAX_RETRIES = 3;
     let lastErr;
@@ -3030,7 +3030,7 @@ async function loadScheduleData() {
     renderScheduleTable();
     renderScheduleStats();
     updateHubHealth();
-    updateIrrops();
+    updateIrops();
     checkWatchedFlightChanges(allUAFlights);
   } catch (err) {
     console.error('Schedule load error:', err);
@@ -3319,8 +3319,8 @@ function renderScheduleTable() {
     const schedRiskOtp = hubHealthData[hub];
     const schedRiskWxOrig = weatherOpsByHub[hub];
     const schedRiskWxDest = weatherOpsByHub[destCode];
-    const schedRiskIrrops = irropsHubData[hub];
-    const riskCell = dRisk ? `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${escapeHtml(ident)}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(status.text)}" data-risk-label="${dRisk.label}" data-risk-score="${dRisk.score}" data-risk-factors="${escapeHtml(dRisk.factors.join('|'))}" data-hub="${escapeHtml(hub)}"${schedRiskOtp !== undefined ? ' data-otp="' + schedRiskOtp + '"' : ''}${schedRiskWxOrig ? ' data-weather="' + escapeHtml(schedRiskWxOrig.level + (schedRiskWxOrig.reasons.length ? ': ' + schedRiskWxOrig.reasons.join(', ') : '')) + '"' : ''}${schedRiskWxDest ? ' data-dest-weather="' + escapeHtml(schedRiskWxDest.level + (schedRiskWxDest.reasons.length ? ': ' + schedRiskWxDest.reasons.join(', ') : '')) + '"' : ''}${schedRiskIrrops ? ' data-irrops="' + escapeHtml(schedRiskIrrops.cancellationRate + '% cancelled, ' + (schedRiskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''} style="background:${dRisk.color}20;color:${dRisk.color};cursor:pointer" title="Click for AI analysis">${dRisk.label}</span>` : '';
+    const schedRiskIrops = iropsHubData[hub];
+    const riskCell = dRisk ? `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${escapeHtml(ident)}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(status.text)}" data-risk-label="${dRisk.label}" data-risk-score="${dRisk.score}" data-risk-factors="${escapeHtml(dRisk.factors.join('|'))}" data-hub="${escapeHtml(hub)}"${schedRiskOtp !== undefined ? ' data-otp="' + schedRiskOtp + '"' : ''}${schedRiskWxOrig ? ' data-weather="' + escapeHtml(schedRiskWxOrig.level + (schedRiskWxOrig.reasons.length ? ': ' + schedRiskWxOrig.reasons.join(', ') : '')) + '"' : ''}${schedRiskWxDest ? ' data-dest-weather="' + escapeHtml(schedRiskWxDest.level + (schedRiskWxDest.reasons.length ? ': ' + schedRiskWxDest.reasons.join(', ') : '')) + '"' : ''}${schedRiskIrops ? ' data-irops="' + escapeHtml(schedRiskIrops.cancellationRate + '% cancelled, ' + (schedRiskIrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''} style="background:${dRisk.color}20;color:${dRisk.color};cursor:pointer" title="Click for AI analysis">${dRisk.label}</span>` : '';
 
     return `<tr>
       <td>${escapeHtml(timeStr)}${timeExtra}</td>
@@ -3671,7 +3671,7 @@ function getEquipChangeForFlight(flightNum) {
 let hubHealthData = {};
 
 // Single renderer for the hub health bar — reads from hubHealthData (shared state).
-// Both IRROPS and schedule paths write to hubHealthData, then call this.
+// Both IROPS and schedule paths write to hubHealthData, then call this.
 function renderHubHealthBar() {
   const bar = document.getElementById('hub-health-bar');
   const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
@@ -3706,7 +3706,7 @@ function renderHubHealthBar() {
 
 // Update hubHealthData from schedule data, then re-render.
 // Only SETS data for hubs with sufficient operated flights — never deletes
-// IRROPS-derived data for hubs without schedule data.
+// IROPS-derived data for hubs without schedule data.
 function updateHubHealth() {
   const hubs = ['ORD','DEN','IAH','EWR','SFO','IAD','LAX','NRT','GUM'];
   const totalsByHub = {};
@@ -3737,17 +3737,17 @@ function updateHubHealth() {
     if (operated >= 5) {
       hubHealthData[hub] = Math.round((onTime / operated) * 100);
     }
-    // Don't delete hubHealthData[hub] — IRROPS may have set it
+    // Don't delete hubHealthData[hub] — IROPS may have set it
   });
 
   renderHubHealthBar();
 }
 
-// ═══ IRROPS DASHBOARD ═══
+// ═══ IROPS DASHBOARD ═══
 let faaDelayIndex = {};
 let weatherOpsByHub = {};  // Global METAR-derived ops impact per hub — populated by preloadWeatherAndFAA or initWeatherTab
 let weatherDataPreloaded = false;  // Track whether preload has already populated globals
-let irropsHubData = {};    // Global IRROPS cancellation/delay rates per hub — for delay risk engine
+let iropsHubData = {};    // Global IROPS cancellation/delay rates per hub — for delay risk engine
 let aircraftJourneyCache = {};  // { reg: { segments, ts } } — aircraft history cache (5min TTL)
 let connectionIndex = {};  // { flightNum: { connFlight, hub, minutes, risk } } — connection context for AI
 
@@ -3844,8 +3844,8 @@ async function _doPreloadWeatherAndFAA() {
   }
 }
 
-function updateIrrops() {
-  const content = document.getElementById('irrops-content');
+function updateIrops() {
+  const content = document.getElementById('irops-content');
   // Gather all schedule data
   let allSchedFlts = [];
   for (const flights of Object.values(schedRawByHub)) {
@@ -3853,7 +3853,7 @@ function updateIrrops() {
   }
 
   if (allSchedFlts.length === 0) {
-    content.innerHTML = '<div class="irrops-empty">Load schedule data from the Schedule tab to see IRROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irrops-load">📅 Load Schedule Data</button></div>';
+    content.innerHTML = '<div class="irops-empty">Load schedule data from the Schedule tab to see IROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irops-load">📅 Load Schedule Data</button></div>';
     return;
   }
 
@@ -3887,18 +3887,18 @@ function updateIrrops() {
 
   const score = totalFlights > 0 ? ((cancellations * 3 + delayed60 * 2 + delayed30 + diversions * 2) / totalFlights * 100).toFixed(1) : 0;
   const scoreCls = score < 5 ? 'low' : score < 15 ? 'med' : 'high';
-  const scoreLabel = score < 5 ? 'Normal Ops' : score < 15 ? 'Minor Disruptions' : 'Significant IRROPS';
+  const scoreLabel = score < 5 ? 'Normal Ops' : score < 15 ? 'Minor Disruptions' : 'Significant IROPS';
 
   worstDelays.sort((a, b) => b.delay - a.delay);
   const top5 = worstDelays.slice(0, 5);
 
-  let html = `<div style="margin-bottom:10px"><span class="irrops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
-  html += '<div class="irrops-metrics">';
-  html += `<div class="irrops-card"><div class="iv" style="color:#f59e0b">${delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#c026d3">${diversions}</div><div class="il">Diversions</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${groundStops}</div><div class="il">Ground Stops (FAA)</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:var(--ua-blue)">${totalFlights}</div><div class="il">Total Flights</div></div>`;
+  let html = `<div style="margin-bottom:10px"><span class="irops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
+  html += '<div class="irops-metrics">';
+  html += `<div class="irops-card"><div class="iv" style="color:#f59e0b">${delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#c026d3">${diversions}</div><div class="il">Diversions</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${groundStops}</div><div class="il">Ground Stops (FAA)</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:var(--ua-blue)">${totalFlights}</div><div class="il">Total Flights</div></div>`;
   html += '</div>';
 
   // FAA alerts
@@ -3913,9 +3913,9 @@ function updateIrrops() {
   }
 
   if (top5.length) {
-    html += '<div class="irrops-worst"><h4>Most Disrupted Flights</h4>';
+    html += '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
     top5.forEach(f => {
-      html += `<div class="irrops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
+      html += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
     });
     html += '</div>';
   }
@@ -3923,38 +3923,38 @@ function updateIrrops() {
   content.innerHTML = html;
 }
 
-function autoLoadIrrops() {
-  // Try server-side precomputed IRROPS first
-  fetchIrropsFromAPI();
+function autoLoadIrops() {
+  // Try server-side precomputed IROPS first
+  fetchIropsFromAPI();
 }
 
-let _irropsPromise = null;
-function fetchIrropsFromAPI() {
-  if (_irropsPromise) return _irropsPromise;
-  _irropsPromise = _doFetchIrropsFromAPI();
-  return _irropsPromise;
+let _iropsPromise = null;
+function fetchIropsFromAPI() {
+  if (_iropsPromise) return _iropsPromise;
+  _iropsPromise = _doFetchIropsFromAPI();
+  return _iropsPromise;
 }
-async function _doFetchIrropsFromAPI() {
-  const content = document.getElementById('irrops-content');
-  if (content) content.innerHTML = '<div class="irrops-empty" style="color:var(--ua-muted);font-size:10px">Loading IRROPS data…</div>';
+async function _doFetchIropsFromAPI() {
+  const content = document.getElementById('irops-content');
+  if (content) content.innerHTML = '<div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div>';
   try {
-    const resp = await fetch('/api/irrops');
+    const resp = await fetch('/api/irops');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    renderIrropsFromAPI(data);
+    renderIropsFromAPI(data);
   } catch (e) {
-    console.error('IRROPS API failed, falling back to manual:', e);
-    _irropsPromise = null; // allow retry
-    if (content) content.innerHTML = '<div class="irrops-empty">Load schedule data from the Schedule tab to see IRROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irrops-load">📅 Load Schedule Data</button></div>';
+    console.error('IROPS API failed, falling back to manual:', e);
+    _iropsPromise = null; // allow retry
+    if (content) content.innerHTML = '<div class="irops-empty">Load schedule data from the Schedule tab to see IROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irops-load">📅 Load Schedule Data</button></div>';
   }
 }
 
-function renderIrropsFromAPI(data) {
-  // Store IRROPS hub data globally for delay risk engine
+function renderIropsFromAPI(data) {
+  // Store IROPS hub data globally for delay risk engine
   if (data.hubMetrics) {
     for (const [hub, m] of Object.entries(data.hubMetrics)) {
       if (m && m.total > 0) {
-        irropsHubData[hub] = {
+        iropsHubData[hub] = {
           cancellationRate: Math.round(((m.cancellations || 0) / m.total) * 100),
           delayed60Rate: Math.round(((m.delayed60 || 0) / m.total) * 100),
           total: m.total,
@@ -3963,7 +3963,7 @@ function renderIrropsFromAPI(data) {
     }
   }
 
-  // Populate hubHealthData from IRROPS hubMetrics, then render the shared bar.
+  // Populate hubHealthData from IROPS hubMetrics, then render the shared bar.
   if (data.hubMetrics) {
     for (const [hub, m] of Object.entries(data.hubMetrics)) {
       if (!m || !m.total) continue;
@@ -3980,25 +3980,25 @@ function renderIrropsFromAPI(data) {
     renderHubHealthBar();
   }
 
-  const content = document.getElementById('irrops-content');
+  const content = document.getElementById('irops-content');
   const score = data.score;
   const scoreCls = score < 5 ? 'low' : score < 15 ? 'med' : 'high';
-  const scoreLabel = score < 5 ? 'Normal Ops' : score < 15 ? 'Minor Disruptions' : 'Significant IRROPS';
+  const scoreLabel = score < 5 ? 'Normal Ops' : score < 15 ? 'Minor Disruptions' : 'Significant IROPS';
 
-  let html = `<div style="margin-bottom:10px"><span class="irrops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
-  html += '<div class="irrops-metrics">';
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${data.cancellations || '—'}</div><div class="il">Cancellations<span style="font-size:7px;display:block;color:var(--ua-muted)" title="FR24 schedule data does not reliably include cancelled flights">Limited data</span></div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#f59e0b">${data.delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#ef4444">${data.delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:#c026d3">${data.diversions}</div><div class="il">Diversions</div></div>`;
-  html += `<div class="irrops-card"><div class="iv" style="color:var(--ua-blue)">${data.totalFlights}</div><div class="il">Total Flights</div></div>`;
+  let html = `<div style="margin-bottom:10px"><span class="irops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
+  html += '<div class="irops-metrics">';
+  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${data.cancellations || '—'}</div><div class="il">Cancellations<span style="font-size:7px;display:block;color:var(--ua-muted)" title="FR24 schedule data does not reliably include cancelled flights">Limited data</span></div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#f59e0b">${data.delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${data.delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:#c026d3">${data.diversions}</div><div class="il">Diversions</div></div>`;
+  html += `<div class="irops-card"><div class="iv" style="color:var(--ua-blue)">${data.totalFlights}</div><div class="il">Total Flights</div></div>`;
   html += '</div>';
 
   // Worst delays
   if (data.worstDelays && data.worstDelays.length) {
-    html += '<div class="irrops-worst"><h4>Most Disrupted Flights</h4>';
+    html += '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
     data.worstDelays.forEach(f => {
-      html += `<div class="irrops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
+      html += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
     });
     html += '</div>';
   }
@@ -4130,8 +4130,8 @@ async function renderMyFlights() {
   }
   empty.style.display = 'none';
 
-  // Fetch ALL data sources in parallel — weather+FAA, IRROPS+OTP, and per-flight times.
-  // This ensures computeDelayRisk() has real weather, FAA programs, IRROPS, and OTP data
+  // Fetch ALL data sources in parallel — weather+FAA, IROPS+OTP, and per-flight times.
+  // This ensures computeDelayRisk() has real weather, FAA programs, IROPS, and OTP data
   // before scoring. Zero extra latency since everything runs concurrently.
   const flightTimePromises = flights.map(w => {
     const cacheKey = 'mf_' + w.flight;
@@ -4145,11 +4145,11 @@ async function renderMyFlights() {
 
   const allResults = await Promise.allSettled([
     preloadWeatherAndFAA(),     // → populates weatherOpsByHub, faaDelayIndex
-    fetchIrropsFromAPI(),       // → populates irropsHubData, hubHealthData
+    fetchIropsFromAPI(),       // → populates iropsHubData, hubHealthData
     ...flightTimePromises,      // → per-flight schedule/gate/time data
   ]);
 
-  // First 2 results are weather+IRROPS (void), rest are flight times
+  // First 2 results are weather+IROPS (void), rest are flight times
   const timeData = allResults.slice(2).map(r => r.status === 'fulfilled' ? r.value : null);
 
   container.innerHTML = flights.map((w, i) => buildMyFlightCard(w, timeData[i])).join('');
@@ -4469,13 +4469,13 @@ function buildMyFlightCard(watched, td) {
   const riskOtp = hubHealthData[origCode];
   const riskWx = weatherOpsByHub[origCode];
   const riskWxDest = weatherOpsByHub[destCode];
-  const riskIrrops = irropsHubData[origCode];
+  const riskIrops = iropsHubData[origCode];
   const riskConn = connectionIndex[flightNum];
   const riskConnStr = riskConn ? (riskConn.isOutbound
     ? 'Connecting from ' + riskConn.connFlight + ' via ' + riskConn.hub + ', ' + riskConn.minutes + 'min layover (' + riskConn.risk + ')'
     : 'Connects to ' + riskConn.connFlight + ' ' + riskConn.hub + '\u2192' + (riskConn.dest || '?') + ', ' + riskConn.minutes + 'min layover (' + riskConn.risk + ')') : '';
   if (risk && (resolvedStatus === 'scheduled' || resolvedStatus === 'delayed' || resolvedStatus === '' || !resolvedStatus)) {
-    riskHtml = `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrrops ? ' data-irrops="' + escapeHtml(riskIrrops.cancellationRate + '% cancelled, ' + (riskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${riskConnStr ? ' data-connection="' + escapeHtml(riskConnStr) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''} style="background:${risk.color}20;color:${risk.color};cursor:pointer" title="Click for AI analysis">${risk.label} RISK</span>`;
+    riskHtml = `<span class="delay-risk-badge" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrops ? ' data-irops="' + escapeHtml(riskIrops.cancellationRate + '% cancelled, ' + (riskIrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${riskConnStr ? ' data-connection="' + escapeHtml(riskConnStr) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''} style="background:${risk.color}20;color:${risk.color};cursor:pointer" title="Click for AI analysis">${risk.label} RISK</span>`;
   }
 
   // Departure/arrival time data attributes for countdown timer
@@ -4503,7 +4503,7 @@ function buildMyFlightCard(watched, td) {
     <div class="mf-actions">
       ${liveFlight ? `<button data-action="focus-flight" data-icao24="${escapeHtml(liveFlight.icao24)}">View on Map</button>` : ''}
       ${reg ? `<button data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">Aircraft Details</button>` : ''}
-      ${risk ? `<button class="delay-explain-btn" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrrops ? ' data-irrops="' + escapeHtml(riskIrrops.cancellationRate + '% cancelled, ' + (riskIrrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${riskConnStr ? ' data-connection="' + escapeHtml(riskConnStr) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''}>Explain Delay Risk</button>` : ''}
+      ${risk ? `<button class="delay-explain-btn" data-action="explain-delay" data-flight="${flightNum}" data-route="${escapeHtml(origCode + '\u2192' + destCode)}" data-status="${escapeHtml(resolvedStatus || 'scheduled')}" data-risk-label="${risk.label}" data-risk-score="${risk.score}" data-risk-factors="${escapeHtml(risk.factors.join('|'))}" data-hub="${escapeHtml(origCode)}"${riskOtp !== undefined ? ' data-otp="' + riskOtp + '"' : ''}${riskWx ? ' data-weather="' + escapeHtml(riskWx.level + (riskWx.reasons.length ? ': ' + riskWx.reasons.join(', ') : '')) + '"' : ''}${riskWxDest ? ' data-dest-weather="' + escapeHtml(riskWxDest.level + (riskWxDest.reasons.length ? ': ' + riskWxDest.reasons.join(', ') : '')) + '"' : ''}${riskIrops ? ' data-irops="' + escapeHtml(riskIrops.cancellationRate + '% cancelled, ' + (riskIrops.delayed60Rate || 0) + '% delayed 60min+') + '"' : ''}${riskConnStr ? ' data-connection="' + escapeHtml(riskConnStr) + '"' : ''}${inboundStr ? ' data-inbound="' + escapeHtml(inboundStr) + '"' : ''}>Explain Delay Risk</button>` : ''}
       <button data-action="toggle-watch-flight" data-flight="${flightNum}" data-route="${escapeHtml(watched.route)}" data-status="${escapeHtml(watched.status)}" data-stop-prop="1">Unwatch</button>
     </div>
   </div>`;
@@ -4554,7 +4554,7 @@ function updateMyFlightsCountdowns() {
 
 // ═══ DELAY RISK ENGINE v3 — Multi-Signal Scoring ═══
 // 10 signals: actual delay, FAA programs (origin/dest), weather (phenomena-aware),
-// hub OTP, time-of-day, inbound aircraft (ETA-based), hub profile, IRROPS stress
+// hub OTP, time-of-day, inbound aircraft (ETA-based), hub profile, IROPS stress
 
 // United hub-specific base risk profiles (historical delay tendencies)
 const HUB_RISK_PROFILES = {
@@ -4776,22 +4776,22 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
     if (hubProfile.base >= 5) factors.push(hubProfile.name);
   }
 
-  // ── Signal 9: IRROPS NETWORK STRESS AT ORIGIN (0-15) ──
-  var irrops = irropsHubData[origHub];
-  if (irrops) {
-    if (irrops.cancellationRate >= 15)     { score += 15; factors.push(origHub + ' ' + irrops.cancellationRate + '% cancellation rate'); }
-    else if (irrops.cancellationRate >= 8) { score += 10; factors.push(origHub + ' elevated cancellations (' + irrops.cancellationRate + '%)'); }
-    else if (irrops.cancellationRate >= 3) { score += 4; factors.push(origHub + ' some cancellations'); }
-    if (irrops.delayed60Rate >= 20)        { score += 5; factors.push(origHub + ' high 60min+ delay rate'); }
+  // ── Signal 9: IROPS NETWORK STRESS AT ORIGIN (0-15) ──
+  var irops = iropsHubData[origHub];
+  if (irops) {
+    if (irops.cancellationRate >= 15)     { score += 15; factors.push(origHub + ' ' + irops.cancellationRate + '% cancellation rate'); }
+    else if (irops.cancellationRate >= 8) { score += 10; factors.push(origHub + ' elevated cancellations (' + irops.cancellationRate + '%)'); }
+    else if (irops.cancellationRate >= 3) { score += 4; factors.push(origHub + ' some cancellations'); }
+    if (irops.delayed60Rate >= 20)        { score += 5; factors.push(origHub + ' high 60min+ delay rate'); }
   }
 
-  // ── Signal 10: DESTINATION IRROPS (0-10) ──
+  // ── Signal 10: DESTINATION IROPS (0-10) ──
   // Destination disruptions → gate congestion, ATC holds, diversions
-  var destIrrops = irropsHubData[destHub];
-  if (destIrrops) {
-    if (destIrrops.cancellationRate >= 15)     { score += 8; factors.push(destHub + ' ' + destIrrops.cancellationRate + '% cancellations (arrival disruptions)'); }
-    else if (destIrrops.cancellationRate >= 8) { score += 5; factors.push(destHub + ' elevated cancellations (arrival)'); }
-    if (destIrrops.delayed60Rate >= 20)        { score += 3; factors.push(destHub + ' high delay rate (arrival holds likely)'); }
+  var destIrops = iropsHubData[destHub];
+  if (destIrops) {
+    if (destIrops.cancellationRate >= 15)     { score += 8; factors.push(destHub + ' ' + destIrops.cancellationRate + '% cancellations (arrival disruptions)'); }
+    else if (destIrops.cancellationRate >= 8) { score += 5; factors.push(destHub + ' elevated cancellations (arrival)'); }
+    if (destIrops.delayed60Rate >= 20)        { score += 3; factors.push(destHub + ' high delay rate (arrival holds likely)'); }
   }
 
   // ── Compound multiplier: when 3+ severe signals stack, risk compounds ──
@@ -4800,7 +4800,7 @@ function computeDelayRisk(watched, origHub, destHub, timeData, liveFlight) {
   if (faaDest && (faaDest.groundStop || faaDest.closure)) severeSignals++;
   if (wxOrig && wxOrig.level === 'severe') severeSignals++;
   if (wxDest && wxDest.level === 'severe') severeSignals++;
-  if (irrops && irrops.cancellationRate >= 15) severeSignals++;
+  if (irops && irops.cancellationRate >= 15) severeSignals++;
   if (severeSignals >= 3) {
     var compoundBonus = Math.min(severeSignals * 5, 15);
     score += compoundBonus;
@@ -4940,21 +4940,21 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
     if (hubProfile.base >= 5) factors.push(hubProfile.name);
   }
 
-  // ── Signal 8: IRROPS NETWORK STRESS AT ORIGIN (0-15) ──
-  var schedIrrops = irropsHubData[depHub];
-  if (schedIrrops) {
-    if (schedIrrops.cancellationRate >= 15)     { score += 15; factors.push(depHub + ' ' + schedIrrops.cancellationRate + '% cancellation rate'); }
-    else if (schedIrrops.cancellationRate >= 8) { score += 10; factors.push(depHub + ' elevated cancellations (' + schedIrrops.cancellationRate + '%)'); }
-    else if (schedIrrops.cancellationRate >= 3) { score += 4; factors.push(depHub + ' some cancellations'); }
-    if (schedIrrops.delayed60Rate >= 20)        { score += 5; factors.push(depHub + ' high 60min+ delay rate'); }
+  // ── Signal 8: IROPS NETWORK STRESS AT ORIGIN (0-15) ──
+  var schedIrops = iropsHubData[depHub];
+  if (schedIrops) {
+    if (schedIrops.cancellationRate >= 15)     { score += 15; factors.push(depHub + ' ' + schedIrops.cancellationRate + '% cancellation rate'); }
+    else if (schedIrops.cancellationRate >= 8) { score += 10; factors.push(depHub + ' elevated cancellations (' + schedIrops.cancellationRate + '%)'); }
+    else if (schedIrops.cancellationRate >= 3) { score += 4; factors.push(depHub + ' some cancellations'); }
+    if (schedIrops.delayed60Rate >= 20)        { score += 5; factors.push(depHub + ' high 60min+ delay rate'); }
   }
 
-  // ── Signal 9: DESTINATION IRROPS (0-10) ──
-  var schedDestIrrops = irropsHubData[arrHub];
-  if (schedDestIrrops) {
-    if (schedDestIrrops.cancellationRate >= 15)     { score += 8; factors.push(arrHub + ' ' + schedDestIrrops.cancellationRate + '% cancellations (arrival disruptions)'); }
-    else if (schedDestIrrops.cancellationRate >= 8) { score += 5; factors.push(arrHub + ' elevated cancellations (arrival)'); }
-    if (schedDestIrrops.delayed60Rate >= 20)        { score += 3; factors.push(arrHub + ' high delay rate (arrival holds likely)'); }
+  // ── Signal 9: DESTINATION IROPS (0-10) ──
+  var schedDestIrops = iropsHubData[arrHub];
+  if (schedDestIrops) {
+    if (schedDestIrops.cancellationRate >= 15)     { score += 8; factors.push(arrHub + ' ' + schedDestIrops.cancellationRate + '% cancellations (arrival disruptions)'); }
+    else if (schedDestIrops.cancellationRate >= 8) { score += 5; factors.push(arrHub + ' elevated cancellations (arrival)'); }
+    if (schedDestIrops.delayed60Rate >= 20)        { score += 3; factors.push(arrHub + ' high delay rate (arrival holds likely)'); }
   }
 
   // ── Compound multiplier: 3+ severe signals ──
@@ -4963,7 +4963,7 @@ function computeDelayRiskForScheduleFlight(fl, hub) {
   if (faaDest && (faaDest.groundStop || faaDest.closure)) schedSevere++;
   if (wxOrig && wxOrig.level === 'severe') schedSevere++;
   if (wxDest && wxDest.level === 'severe') schedSevere++;
-  if (schedIrrops && schedIrrops.cancellationRate >= 15) schedSevere++;
+  if (schedIrops && schedIrops.cancellationRate >= 15) schedSevere++;
   if (schedSevere >= 3) {
     score += Math.min(schedSevere * 5, 15);
     factors.push('Multiple severe disruptions compounding');
@@ -5284,8 +5284,8 @@ document.addEventListener('click', function(e) {
     case 'refresh-fleet-data':
       refreshFleetData();
       break;
-    case 'irrops-load':
-      autoLoadIrrops();
+    case 'irops-load':
+      autoLoadIrops();
       break;
     case 'map-error-retry': {
       const overlay = actionEl.closest('#map-error-overlay');
@@ -5413,7 +5413,7 @@ document.addEventListener('click', function(e) {
         weather: el.dataset.weather,
         destWeather: el.dataset.destWeather,
         inbound: el.dataset.inbound,
-        irrops: el.dataset.irrops,
+        irops: el.dataset.irops,
         hubTime: el.dataset.hubTime,
         connection: el.dataset.connection,
       });
@@ -5499,7 +5499,7 @@ document.addEventListener('click', function(e) {
       'The "Where\'s My Plane?" section shows the inbound aircraft for your watched flight'
     ],
     'tab-weather': [
-      'Load schedule data in the Schedule tab to unlock the IRROPS disruption monitor'
+      'Load schedule data in the Schedule tab to unlock the IROPS disruption monitor'
     ],
     'tab-fleet': [
       'Click any fleet type chip to filter the aircraft database instantly'
@@ -5611,9 +5611,9 @@ async function initApp() {
   // The hash IIFE only set the visual state; this triggers the actual data loads.
   const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
   if (activeTab && activeTab !== 'tab-live') switchToTab(activeTab, false);
-  // Defer IRROPS + schedule preload to idle — they're only needed for Weather/Schedule tabs
+  // Defer IROPS + schedule preload to idle — they're only needed for Weather/Schedule tabs
   // Background preload: fetch top 3 hubs on idle so Schedule tab is fast without hammering mobile
-  const idlePreload = () => { preloadScheduleData(); fetchIrropsFromAPI(); preloadWeatherAndFAA(); };
+  const idlePreload = () => { preloadScheduleData(); fetchIropsFromAPI(); preloadWeatherAndFAA(); };
   if ('requestIdleCallback' in window) requestIdleCallback(idlePreload); else setTimeout(idlePreload, 5000);
   initCreditWidget();
 }
@@ -5993,7 +5993,7 @@ async function fetchDelayExplanation(ctx) {
         weather: ctx.weather,
         destWeather: ctx.destWeather,
         inbound: ctx.inbound,
-        irrops: ctx.irrops,
+        irops: ctx.irops,
         hubTime: ctx.hubTime,
         connection: ctx.connection,
       }),

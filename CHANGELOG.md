@@ -44,13 +44,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 ## [1.3.3] - 2026-03-12
 
 ### Fixed
-- Hub health bar now shows all 9 hubs — previously only ORD displayed because schedule preload overwrote IRROPS-derived data for hubs without loaded schedule data
-- Consolidated two competing hub health renderers into a single `renderHubHealthBar()` function, eliminating a race condition between IRROPS and schedule data paths
+- Hub health bar now shows all 9 hubs — previously only ORD displayed because schedule preload overwrote IROPS-derived data for hubs without loaded schedule data
+- Consolidated two competing hub health renderers into a single `renderHubHealthBar()` function, eliminating a race condition between IROPS and schedule data paths
 
 ## [1.3.2] - 2026-03-12
 
 ### Changed
-- Strip `hubFlights` from IRROPS API response — reduces payload from ~4.6MB to ~100KB (schedule tab fetches its own data)
+- Strip `hubFlights` from IROPS API response — reduces payload from ~4.6MB to ~100KB (schedule tab fetches its own data)
 
 ### Fixed
 - Weather tab layout gap when hub cards are loading — added min-height to `.hub-cards` container
@@ -72,7 +72,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ### Added
 - **AI-Powered Delay Explanations** — Claude Haiku explains why a flight is delayed in plain language, with inbound aircraft context
-- **Delay Risk Engine v3** — 8-signal scoring with phenomena-aware weather, IRROPS stress, ETA-based turnaround analysis
+- **Delay Risk Engine v3** — 8-signal scoring with phenomena-aware weather, IROPS stress, ETA-based turnaround analysis
 - **Aircraft Journey Chain Tracking** — see where an aircraft has been and predict downstream delay propagation
 - **Schedule Filters** — filter by route type (domestic/international), Starlink-equipped, time range, and delay risk level
 - **Live Starlink Data** — replaced static Starlink database with live API feed and flight connectivity predictions
@@ -100,8 +100,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 - Schedule gate format and hub cache warming
 - Flight schedule: broken pagination, missing hub timeouts, restrictive flight regex
 - Direction filtering with ICAO/IATA code matching
-- Cron auth, IRROPS performance, flight-times 404
-- Client-side schedule cache: stop caching partial/empty results, stop IRROPS from clobbering cache
+- Cron auth, IROPS performance, flight-times 404
+- Client-side schedule cache: stop caching partial/empty results, stop IROPS from clobbering cache
 - ORD international flights: parallel batching to fetch all schedule pages
 - In-air flight status detection and watched flight map highlighting
 - Flight-times API: prefer in-air flights over future scheduled
@@ -127,7 +127,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 
 ### Changed
 - **Design/UX audit** — typography scale, contrast improvements, interaction polish across the app
-- Hub weather cards moved above IRROPS monitor in weather tab
+- Hub weather cards moved above IROPS monitor in weather tab
 - FAA endpoint: fragile regex XML parsing replaced with `fast-xml-parser`
 - SEO & LLM discoverability improvements (structured data, meta tags)
 - Typography unified: `var(--font-ui)` replaces `var(--mono)` on UI buttons
@@ -199,7 +199,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 - SVG plane icons replace emoji for cross-platform accuracy
 - Service worker rewrite: split caches, no cross-origin interception
 - Core Web Vitals: deferred Leaflet, preloaded LCP tile, fixed INP
-- IRROPS data hydrates schedule cache for instant tab loading
+- IROPS data hydrates schedule cache for instant tab loading
 - Hub health: sequential fetching with retries, timezone-aware rollover
 - Donation CTA copy refined
 
@@ -230,7 +230,7 @@ Initial public launch.
 - Schedule tab with departures & arrivals at 7 United hubs
 - Fleet database (1,078+ aircraft, Starlink WiFi status)
 - Hub health bar with on-time performance
-- IRROPS monitor with disruption scoring
+- IROPS monitor with disruption scoring
 - Weather & delays: METAR, FAA monitoring, radar map
 - Global search (flights, tails, routes, hubs)
 - First-time onboarding overlay

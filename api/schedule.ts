@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
-import { HUB_TZ } from './irrops.js';
+import { HUB_TZ } from './irops.js';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
@@ -169,7 +169,7 @@ async function fetchWithTimeout(url: string, deadlineMs?: number): Promise<Respo
   }
 }
 
-// Resilient page fetch — returns null on failure instead of throwing (matches irrops pattern)
+// Resilient page fetch — returns null on failure instead of throwing (matches irops pattern)
 async function fetchOnePage(hub: string, dir: string, timestamp: number, page: number, deadlineMs?: number): Promise<any | null> {
   const url = `https://api.flightradar24.com/common/v1/airport.json?code=${encodeURIComponent(hub)}&plugin[]=schedule&plugin-setting[schedule][mode]=${encodeURIComponent(dir)}&plugin-setting[schedule][timestamp]=${timestamp}&page=${page}&limit=100`;
   const MAX_RETRIES = 2;
