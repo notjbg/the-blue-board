@@ -1161,7 +1161,7 @@ function showFlightPopup(f, marker) {
   if (aircraft) {
     html += `<div class="popup-aircraft">`;
     html += `<div class="popup-aircraft-type">${escapeHtml(aircraft.t)} <span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(aircraft.r)}" style="font-size:10px">${escapeHtml(aircraft.r)}</span></div>`;
-    html += `<div style="font-size:10px;color:var(--ua-muted)">${escapeHtml(aircraft.c || '')} | ${escapeHtml(aircraft.w || '')} | ${escapeHtml(aircraft.i || '')}</div>`;
+    html += `<div style="font-size:10px;color:var(--ua-muted)">${escapeHtml(aircraft.c || '')} | ${escapeHtml(normalizeWifi(aircraft.w) || '')} | ${escapeHtml(aircraft.i || '')}</div>`;
     if (isStarlink) {
       html += `<span class="starlink-badge">⚡ STARLINK CONFIRMED</span> `;
     } else if (flightNum && flightNum !== 'N/A') {
@@ -1751,7 +1751,7 @@ function initFleetTab() {
   }
 
   // Populate filters
-  const wifiTypes = [...new Set(FLEET_DB.map(a => a.w).filter(Boolean))].sort();
+  const wifiTypes = [...new Set(FLEET_DB.map(a => normalizeWifi(a.w)).filter(Boolean))].sort();
   document.getElementById('fleet-filter-type').innerHTML = '<option value="">All Types</option>' +
     typeOrder.map(t => `<option value="${t}">${t} (${typeCounts[t]||0})</option>`).join('');
   document.getElementById('fleet-filter-wifi').innerHTML = '<option value="">All WiFi</option>' +
@@ -1781,7 +1781,7 @@ function renderFleetTable() {
 
   let data = FLEET_DB.filter(a => {
     if (typeF && a.t !== typeF) return false;
-    if (wifiF && a.w !== wifiF) return false;
+    if (wifiF && normalizeWifi(a.w) !== wifiF) return false;
     if (statusF === 'active' && a.s) return false;
     if (statusF === 'stored' && !a.s) return false;
     if (statusF === 'starlink' && !STARLINK_TAILS.has(a.r)) return false;
@@ -1805,7 +1805,7 @@ function renderFleetTable() {
     return `<tr class="${rowCls}">
       <td style="font-weight:700"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(a.r)}">${escapeHtml(a.r)}</span>${special ? ' <span class="special-badge">⭐ ' + escapeHtml(special.name) + '</span>' : ''}</td>
       <td>${escapeHtml(a.t)}</td><td>${escapeHtml(a.a)}</td><td>${escapeHtml(a.c)}</td>
-      <td>${escapeHtml(a.tot || '')}</td><td>${escapeHtml(a.w)}</td><td>${escapeHtml(a.i)}</td><td>${escapeHtml(a.d)}</td>
+      <td>${escapeHtml(a.tot || '')}</td><td>${escapeHtml(normalizeWifi(a.w))}</td><td>${escapeHtml(a.i)}</td><td>${escapeHtml(a.d)}</td>
       <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.s)}</td>
       <td>${isSL ? '<span class="starlink-badge">⚡</span>' : ''}</td>
     </tr>`;
@@ -3264,7 +3264,7 @@ function renderScheduleTable() {
           const seatStr = Object.entries(match.seats).map(([cls,cnt]) => cnt + cls).join('/');
           parts.push(seatStr);
         }
-        if (match.w) parts.push(match.w);
+        if (match.w) parts.push(normalizeWifi(match.w));
         if (isStar) parts.push('⚡ Starlink');
         if (match.i) parts.push(match.i);
         if (match.d) parts.push('Del ' + match.d);
@@ -3490,8 +3490,18 @@ const ICAO_TO_FLEET_TYPE = {
 // Cabin class rankings: higher = more premium
 const CABIN_RANK = { 'J': 4, 'F': 3, 'PP': 2, 'PE': 2, 'E+': 1, 'Y': 0 };
 
-// WiFi quality ranking: higher = better
-const WIFI_RANK = { 'Starlink': 3, 'ViaSatKA': 2, 'Satl Ka': 1, 'Satl Ka US': 1, 'Satl Ku': 1, 'Satl KU': 1, 'NO': 0 };
+// WiFi display name normalization (raw data → clean labels)
+const WIFI_DISPLAY = {
+  'Sat KA': 'Satellite Ka', 'Satl Ka': 'Satellite Ka',
+  'Satl Ka US': 'Satellite Ka (US)',
+  'Satl KU': 'Satellite Ku', 'Satl Ku': 'Satellite Ku',
+  'ViaSatKA': 'ViaSat Ka',
+  'Starlink': 'Starlink', 'NO': 'NO'
+};
+function normalizeWifi(raw) { return WIFI_DISPLAY[raw] || raw; }
+
+// WiFi quality ranking: higher = better (uses normalized names)
+const WIFI_RANK = { 'Starlink': 3, 'ViaSat Ka': 2, 'Satellite Ka': 1, 'Satellite Ka (US)': 1, 'Satellite Ku': 1, 'NO': 0 };
 
 // IFE quality ranking
 const IFE_RANK = { 'AVOD': 3, 'AVOD+PDE': 3, 'AVOD/PDE': 3, 'Seatback': 2, 'DTV/PDE': 1, 'PDE': 0 };
@@ -3509,7 +3519,7 @@ function getTypicalFleetStats(icaoCode) {
   const representative = ofType.find(a => (a.c || '') === topConfig) || ofType[0];
   // Collect WiFi types used by this fleet type
   const wifiCounts = {};
-  ofType.forEach(a => { if (a.w) wifiCounts[a.w] = (wifiCounts[a.w] || 0) + 1; });
+  ofType.forEach(a => { if (a.w) { const nw = normalizeWifi(a.w); wifiCounts[nw] = (wifiCounts[nw] || 0) + 1; } });
   const topWifi = Object.entries(wifiCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   // Check if any have Starlink
   const hasStarlink = ofType.some(a => STARLINK_TAILS.has(a.r));
@@ -3569,13 +3579,13 @@ function analyzeSwapImpact(oldAcCode, newAcCode, newReg) {
   }
 
   // WiFi comparison
-  const oldWifi = oldStats?.wifi || '';
-  const newWifi = newActual?.w || newStats?.wifi || '';
+  const oldWifi = normalizeWifi(oldStats?.wifi || '');
+  const newWifi = normalizeWifi(newActual?.w || newStats?.wifi || '');
   if (oldWifi && newWifi && oldWifi !== newWifi) {
     const oldWR = WIFI_RANK[oldWifi] ?? 1;
     const newWR = WIFI_RANK[newWifi] ?? 1;
     if (oldWR !== newWR) {
-      const shortWifi = (newActual && STARLINK_TAILS.has(newActual.r)) ? 'Starlink' : newWifi.replace('ViaSatKA', 'ViaSat').replace('Satl ', '');
+      const shortWifi = (newActual && STARLINK_TAILS.has(newActual.r)) ? 'Starlink' : newWifi;
       impacts.push({
         text: shortWifi + ' WiFi',
         cls: newWR > oldWR ? 'upgrade' : 'downgrade'
@@ -6084,7 +6094,7 @@ function buildAircraftDetailHTML(ac, reg) {
   html += '<div class="ac-detail-grid">';
   html += '<div><div class="ac-detail-label">Delivered</div><div class="ac-detail-value">' + escapeHtml(ac.d || '—') + (age !== null ? ' (' + age + ' yrs)' : '') + '</div></div>';
   html += '<div><div class="ac-detail-label">Total Seats</div><div class="ac-detail-value">' + escapeHtml(String(ac.tot || '—')) + '</div></div>';
-  html += '<div><div class="ac-detail-label">WiFi</div><div class="ac-detail-value">' + escapeHtml(ac.w || '—') + '</div></div>';
+  html += '<div><div class="ac-detail-label">WiFi</div><div class="ac-detail-value">' + escapeHtml(normalizeWifi(ac.w) || '—') + '</div></div>';
   html += '<div><div class="ac-detail-label">IFE</div><div class="ac-detail-value">' + escapeHtml(ac.i || '—') + '</div></div>';
   html += '<div><div class="ac-detail-label">Power</div><div class="ac-detail-value">' + escapeHtml(ac.p || '—') + '</div></div>';
   html += '<div><div class="ac-detail-label">Engine</div><div class="ac-detail-value">' + escapeHtml(engine) + '</div></div>';
@@ -6218,7 +6228,7 @@ function renderFR24Modal(f, source, cached) {
       fleetInfo = '<div style="margin-top:8px;padding:8px;background:rgba(0,93,170,.1);border-radius:4px;font-size:10px">' +
         '<span style="color:var(--ua-accent)">Fleet Match:</span> ' + escapeHtml(match.t) +
         (match.c ? ' • ' + escapeHtml(match.c) : '') +
-        (match.w ? ' • WiFi: ' + escapeHtml(match.w) : '') +
+        (match.w ? ' • WiFi: ' + escapeHtml(normalizeWifi(match.w)) : '') +
         '</div>';
     }
   }
