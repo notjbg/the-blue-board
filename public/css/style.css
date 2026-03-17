@@ -1,6 +1,6 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--bg-card:#111827;--font-ui:'Inter',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',monospace;--mono:'JetBrains Mono',monospace}
-body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);overflow:hidden;font-size:12px;height:100vh;height:100dvh;display:flex;flex-direction:column}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);overflow:hidden;font-size:12px;line-height:1.4;height:100vh;height:100dvh;display:flex;flex-direction:column}
 body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(30,41,59,.15) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(30,41,59,.15) 50px);pointer-events:none;z-index:0}
 
 /* Scrollbar */
