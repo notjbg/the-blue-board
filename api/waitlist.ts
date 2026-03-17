@@ -234,9 +234,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Something went wrong — please try again' });
     }
 
-    // Send welcome email only to first-time signups (fire-and-forget)
+    // Await the send in serverless runtimes so the function does not exit
+    // before Resend receives the outbound request.
     if (isNewSignup) {
-      sendWelcomeEmail(normalizedEmail);
+      await sendWelcomeEmail(normalizedEmail);
     }
 
     return res.status(200).json({ success: true });

@@ -1,12 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockEmailSend = vi.fn();
 
 // Mock Supabase before importing handler
 vi.mock('../api/_supabase.js', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      upsert: vi.fn(() => Promise.resolve({ error: null })),
-    })),
+    from: vi.fn(),
   },
+}));
+
+vi.mock('resend', () => ({
+  Resend: vi.fn(() => ({
+    emails: {
+      send: mockEmailSend,
+    },
+  })),
 }));
 
 import handler from '../api/waitlist.js';
@@ -15,6 +23,13 @@ import { supabase } from '../api/_supabase.js';
 // Use unique IPs per test to avoid rate limiter collisions
 let ipCounter = 100;
 function uniqueIp() { return '10.0.0.' + (ipCounter++); }
+
+let existingRows = [];
+let upsertError = null;
+let mockUpsert;
+let mockSelect;
+let mockEq;
+let mockLimit;
 
 function makeReq(overrides = {}) {
   return {
@@ -41,9 +56,25 @@ function makeRes() {
 describe('waitlist API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    existingRows = [];
+    upsertError = null;
+    mockEmailSend.mockResolvedValue({ data: { id: 'email_123' }, error: null });
+
+    mockUpsert = vi.fn(() => Promise.resolve({ error: upsertError }));
+    mockLimit = vi.fn(() => Promise.resolve({ data: existingRows, error: null }));
+    mockEq = vi.fn(() => ({ limit: mockLimit }));
+    mockSelect = vi.fn(() => ({ eq: mockEq }));
+
     supabase.from.mockReturnValue({
-      upsert: vi.fn(() => Promise.resolve({ error: null })),
+      select: mockSelect,
+      upsert: mockUpsert,
     });
+
+    delete process.env.RESEND_API_KEY;
+  });
+
+  afterEach(() => {
+    delete process.env.RESEND_API_KEY;
   });
 
   it('rejects non-POST methods', async () => {
@@ -78,9 +109,6 @@ describe('waitlist API', () => {
   });
 
   it('upserts with correct data', async () => {
-    const mockUpsert = vi.fn(() => Promise.resolve({ error: null }));
-    supabase.from.mockReturnValue({ upsert: mockUpsert });
-
     const res = makeRes();
     await handler(makeReq({ body: { email: 'Test@Example.com', source: 'footer', featureRequest: 'Dark mode' } }), res);
 
@@ -93,9 +121,7 @@ describe('waitlist API', () => {
   });
 
   it('returns 500 on Supabase error', async () => {
-    supabase.from.mockReturnValue({
-      upsert: vi.fn(() => Promise.resolve({ error: { message: 'db error' } })),
-    });
+    upsertError = { message: 'db error' };
 
     const res = makeRes();
     await handler(makeReq(), res);
@@ -115,9 +141,6 @@ describe('waitlist API', () => {
   });
 
   it('truncates long source and feature_request', async () => {
-    const mockUpsert = vi.fn(() => Promise.resolve({ error: null }));
-    supabase.from.mockReturnValue({ upsert: mockUpsert });
-
     const res = makeRes();
     await handler(makeReq({
       body: {
@@ -130,5 +153,71 @@ describe('waitlist API', () => {
     const upsertArg = mockUpsert.mock.calls[0][0];
     expect(upsertArg.source.length).toBe(50);
     expect(upsertArg.feature_request.length).toBe(500);
+  });
+
+  it('sends a welcome email for first-time signups when Resend is configured', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+
+    const res = makeRes();
+    await handler(makeReq(), res);
+
+    expect(mockEmailSend).toHaveBeenCalledTimes(1);
+    expect(mockEmailSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: 'Jonah @ The Blue Board <hello@theblueboard.co>',
+        replyTo: 'hello@theblueboard.co',
+        to: 'test@example.com',
+        subject: 'Welcome aboard ✈️',
+      })
+    );
+    expect(res._status).toBe(200);
+  });
+
+  it('skips the welcome email for repeat signups', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    existingRows = [{ email: 'test@example.com' }];
+
+    const res = makeRes();
+    await handler(makeReq(), res);
+
+    expect(mockEmailSend).not.toHaveBeenCalled();
+    expect(res._status).toBe(200);
+  });
+
+  it('waits for Resend before returning success', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+
+    let resolveSend;
+    mockEmailSend.mockImplementation(() => new Promise((resolve) => {
+      resolveSend = resolve;
+    }));
+
+    const res = makeRes();
+    const pending = handler(makeReq(), res);
+
+    await vi.waitFor(() => {
+      expect(mockEmailSend).toHaveBeenCalledTimes(1);
+      expect(typeof resolveSend).toBe('function');
+    });
+    expect(res._status).toBe(0);
+
+    resolveSend({ data: { id: 'email_456' }, error: null });
+    await pending;
+
+    expect(res._status).toBe(200);
+  });
+
+  it('still succeeds when Resend returns an error', async () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockEmailSend.mockResolvedValue({ data: null, error: { message: 'send failed' } });
+
+    const res = makeRes();
+    await handler(makeReq(), res);
+
+    expect(res._status).toBe(200);
+    expect(errorSpy).toHaveBeenCalled();
+
+    errorSpy.mockRestore();
   });
 });
