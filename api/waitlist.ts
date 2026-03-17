@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { supabase } from './_supabase.js';
-import { resend } from './_resend.js';
 
 // 5 submissions per IP per hour → ~5 per 60 minutes
 // Rate limiter works in 60s windows, so allow 5 per 60s window
@@ -161,6 +160,9 @@ async function sendWelcomeEmail(email: string): Promise<void> {
   if (!process.env.RESEND_API_KEY) return;
 
   try {
+    const { Resend } = await import('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const { error } = await resend.emails.send({
       from: FROM_ADDRESS,
       replyTo: REPLY_TO,
