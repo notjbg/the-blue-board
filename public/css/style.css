@@ -504,7 +504,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #hub-health-bar .hh-info:hover{opacity:1;color:var(--ua-accent)}
 #hub-health-bar .hh-tooltip{display:none;position:absolute;top:20px;left:0;background:rgba(17,24,39,.95);border:1px solid var(--ua-border);border-radius:4px;padding:8px 10px;font-size:9px;color:var(--ua-text);white-space:normal;width:260px;z-index:9999;line-height:1.4;backdrop-filter:blur(8px)}
 #hub-health-bar .hh-info:hover .hh-tooltip{display:block}
-.hh-hub{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.hh-hub{display:inline-flex;align-items:center;gap:3px;padding:4px 8px;border-radius:3px;white-space:nowrap;min-height:28px}
 .hh-hub .hh-code{font-weight:700;color:var(--ua-text)}
 .hh-hub .hh-pct{font-weight:600}
 .hh-sep{color:var(--ua-border);margin:0 2px}
