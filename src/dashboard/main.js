@@ -5867,14 +5867,14 @@ function hideDisclaimer() {
     donateWrap.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid var(--ua-border);text-align:center';
     var donateText = document.createElement('div');
     donateText.style.cssText = 'font-size:14px;color:var(--ua-fg);line-height:1.5;margin-bottom:12px';
-    donateText.textContent = 'This site costs real money to run \u2014 API calls, hosting, and hours of dev time. It\u2019s free because one person pays for it.';
+    donateText.textContent = 'Free. No ads. No paywalls. Just one United nerd who hates bad flight trackers. A $5 donation covers a full day of live flights, API calls, and everything that keeps this running.';
     donateWrap.appendChild(donateText);
     var donateBtn = document.createElement('a');
     donateBtn.href = 'https://buymeacoffee.com/notjbg';
     donateBtn.target = '_blank';
     donateBtn.rel = 'noopener noreferrer';
     donateBtn.style.cssText = 'display:inline-block;padding:10px 28px;background:rgba(255,255,255,0.08);border:1px solid var(--ua-accent);color:var(--ua-accent);border-radius:8px;font-size:14px;font-weight:600;font-family:var(--font-ui);text-decoration:none;transition:background .2s,color .2s;cursor:pointer';
-    donateBtn.textContent = '\u2615 Buy me a coffee';
+    donateBtn.textContent = 'Donate $5';
     donateBtn.addEventListener('mouseenter', function() { donateBtn.style.background = 'var(--ua-accent)'; donateBtn.style.color = '#fff'; });
     donateBtn.addEventListener('mouseleave', function() { donateBtn.style.background = 'rgba(255,255,255,0.08)'; donateBtn.style.color = 'var(--ua-accent)'; });
     donateWrap.appendChild(donateBtn);
