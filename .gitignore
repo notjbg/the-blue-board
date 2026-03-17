@@ -1,6 +1,7 @@
 .vercel
 node_modules
 .DS_Store
+.context/
 *.bak
 dist
 .astro
