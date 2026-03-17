@@ -220,4 +220,17 @@ describe('waitlist API', () => {
 
     errorSpy.mockRestore();
   });
+
+  it('returns 429 when rate limited (6th request from same IP)', async () => {
+    const fixedIp = '10.99.99.99';
+    for (let i = 0; i < 5; i++) {
+      const res = makeRes();
+      await handler(makeReq({ headers: { origin: 'https://theblueboard.co', 'x-real-ip': fixedIp } }), res);
+      expect(res._status).toBe(200);
+    }
+    const res = makeRes();
+    await handler(makeReq({ headers: { origin: 'https://theblueboard.co', 'x-real-ip': fixedIp } }), res);
+    expect(res._status).toBe(429);
+    expect(res._json.error).toMatch(/too many/i);
+  });
 });

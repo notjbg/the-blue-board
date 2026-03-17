@@ -11,3 +11,4 @@ public/js/dashboard.js
 .env*.local
 
 audit-output
+.gstack/
