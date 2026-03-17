@@ -1,0 +1,404 @@
+---
+import { fleetOrder, fleetNavLabels, fleetTypes } from '../../data/fleet/index.js';
+
+// Build type summaries for the grid
+const typeSummaries: Record<string, { displayName: string; count: number; role: string; bodyType: string; seatTotal: string; slug: string }> = {};
+for (const key of fleetOrder) {
+  const t = fleetTypes[key];
+  typeSummaries[key] = {
+    displayName: t.displayName,
+    count: t.count,
+    role: t.role,
+    bodyType: t.bodyType,
+    seatTotal: t.seatConfig.total,
+    slug: t.slug,
+  };
+}
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>United Airlines Fleet Database — 1,078 Aircraft, 19 Types, Seat Maps & Guides | The Blue Board</title>
+<meta name="description" content="Complete United Airlines fleet database with 1,078 mainline aircraft across 19 types. Detailed guides for every aircraft type — Boeing 737, 757, 767, 777, 787 Dreamliner, and Airbus A319, A320, A321neo. Seat configurations, WiFi, Starlink status, and full aircraft registries.">
+<meta name="keywords" content="United Airlines fleet, United fleet database, United Airlines aircraft, United Airlines fleet list, United Airlines 737, United Airlines 787, United Airlines 777, United Airlines A321neo, United fleet tracker, United Airlines seat map, United Airlines Polaris, United Airlines seat configuration, United Airlines WiFi, United Starlink fleet, United Airlines fleet size, United Airlines planes, United Airlines fleet composition, UA fleet, United Airlines aircraft database, United Airlines fleet age">
+<meta name="author" content="The Blue Board">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://theblueboard.co/fleet">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content="United Airlines Fleet — 1,078 Aircraft Database | The Blue Board">
+<meta property="og:description" content="Complete United Airlines fleet database. Every mainline aircraft — 737, 757, 767, 777, 787, A319, A320, A321neo — with seat configs, WiFi, and detailed type guides.">
+<meta property="og:url" content="https://theblueboard.co/fleet">
+<meta property="og:site_name" content="The Blue Board">
+<meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Blue Board — United Airlines Fleet Database">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@theblueboard">
+<meta name="twitter:title" content="United Airlines Fleet — 1,078 Aircraft Database | The Blue Board">
+<meta name="twitter:description" content="Complete United Airlines fleet. 1,078 aircraft, 19 types. Seat maps, WiFi, Starlink status. Updated daily.">
+<meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:site" content="@theblueboard">
+
+<!-- Schema: BreadcrumbList -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "The Blue Board", "item": "https://theblueboard.co"},
+    {"@type": "ListItem", "position": 2, "name": "Fleet Database", "item": "https://theblueboard.co/fleet"}
+  ]
+}
+</script>
+<!-- Schema: Dataset -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  "name": "United Airlines Fleet Database",
+  "description": "Complete database of United Airlines mainline fleet with 1,078 aircraft across 19 types. Includes aircraft type, registration, seat configuration, WiFi type, IFE system, delivery date, operational status, and Starlink satellite internet equipment status.",
+  "url": "https://theblueboard.co/fleet",
+  "license": "https://creativecommons.org/licenses/by-nc/4.0/",
+  "creator": {"@type": "Organization", "name": "The Blue Board", "url": "https://theblueboard.co"},
+  "dateModified": "2026-03-17",
+  "temporalCoverage": "2025/..",
+  "keywords": ["United Airlines", "fleet database", "aircraft", "seat configuration", "Starlink WiFi", "Polaris"],
+  "variableMeasured": [
+    {"@type": "PropertyValue", "name": "Aircraft Count", "value": "1078"},
+    {"@type": "PropertyValue", "name": "Aircraft Types", "value": "19"},
+    {"@type": "PropertyValue", "name": "Starlink Equipped", "value": "258"}
+  ]
+}
+</script>
+<!-- Schema: ItemList -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "United Airlines Fleet — Aircraft Types",
+  "description": "All 19 mainline aircraft types in the United Airlines fleet with detailed guides",
+  "numberOfItems": 19,
+  "itemListElement": fleetOrder.map((key, i) => ({
+    "@type": "ListItem",
+    "position": i + 1,
+    "name": `United Airlines ${fleetTypes[key].displayName}`,
+    "url": `https://theblueboard.co/fleet/${key}`
+  }))
+})} />
+<!-- Schema: FAQPage -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How many aircraft does United Airlines have?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "United Airlines operates a mainline fleet of 1,078 aircraft as of March 2026, spanning 19 aircraft types including the Boeing 737, 757, 767, 777, and 787 families, plus Airbus A319, A320, and A321neo. This does not include United Express regional aircraft operated by partner carriers."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which United Airlines planes have Polaris business class?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "United Polaris lie-flat business class is available on all widebody international aircraft: Boeing 777-200ER (55), 777-300ER (22), 787-8 (12), 787-9 (48), 787-10 (21), 767-300ER (37), and 767-400ER (16). That's 211 aircraft with Polaris seats. Use The Blue Board's fleet database to check the exact seat configuration for any specific aircraft."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which United Airlines planes have Starlink WiFi?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "As of March 2026, 258 United Airlines aircraft are equipped with SpaceX Starlink satellite internet, including both mainline and United Express regional jets. Starlink provides gate-to-gate high-speed connectivity. Check if your specific plane has Starlink using The Blue Board's Starlink Tracker."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the largest aircraft in United's fleet?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Boeing 777-300ER is the largest aircraft in United Airlines' fleet, seating up to 350 passengers across four cabin classes: 60 Polaris business, 24 Premium Plus, 62 Economy Plus, and 204 Economy. United operates 22 of these aircraft on flagship long-haul international routes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the newest aircraft in United's fleet?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The Airbus A321neo is the newest narrowbody type in United's fleet, with 62 aircraft delivered between 2023 and 2026. The Boeing 737 MAX 9 and MAX 8 are also recent additions. For widebodies, the Boeing 787-9 Dreamliner continues to receive new deliveries through 2025."
+      }
+    }
+  ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+
+<style is:inline>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--font-ui:'Inter',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}a:hover{text-decoration:underline}
+.section p a,.section li a{text-decoration:underline;text-decoration-color:rgba(138,180,248,.4);text-underline-offset:2px}
+.section p a:hover,.section li a:hover{text-decoration-color:var(--ua-accent)}
+.container{max-width:1100px;margin:0 auto;padding:20px 16px}
+
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,var(--ua-dark),#0d1520);border-bottom:1px solid rgba(0,93,170,.3)}
+.header h1{font-size:16px;font-weight:700;color:#fff;letter-spacing:1.5px}
+.header h1 .ua{color:var(--ua-blue)}
+.header a{font-size:11px;color:var(--ua-accent)}
+.breadcrumb{font-size:10px;color:var(--ua-muted);margin-bottom:20px}
+.breadcrumb a{color:var(--ua-accent)}
+
+.hero{text-align:center;padding:32px 20px 28px;border-bottom:1px solid var(--ua-border);margin-bottom:24px}
+.hero h2{font-size:26px;font-weight:700;color:#fff;margin-bottom:6px;line-height:1.3}
+.hero .tagline{font-size:13px;color:var(--ua-muted);margin-bottom:20px}
+.hero .cta-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:12px 28px;border-radius:5px;font-family:var(--font-ui);font-size:13px;font-weight:700;text-decoration:none;transition:background .2s}
+.cta:hover{background:#0070cc;text-decoration:none}
+.cta-secondary{background:transparent;border:1px solid var(--ua-blue);color:var(--ua-accent)}
+.cta-secondary:hover{background:rgba(0,93,170,.15)}
+.hero .hint{font-size:10px;color:var(--ua-muted);line-height:1.6}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:20px 0}
+.stat-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;text-align:center}
+.stat-card .val{font-size:26px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono)}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+h3{font-size:14px;font-weight:600;color:var(--ua-blue);margin:28px 0 12px;text-transform:uppercase;letter-spacing:1px}
+.card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:16px;margin-bottom:16px}
+p{margin-bottom:12px}
+
+/* Type Grid */
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:32px}
+.type-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:16px;transition:border-color .2s,transform .2s}
+.type-card:hover{border-color:var(--ua-blue);transform:translateY(-2px)}
+.type-card .type-count{font-size:28px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono);letter-spacing:1px}
+.type-card .type-name{font-size:13px;font-weight:600;margin:4px 0 2px}
+.type-card .type-info{font-size:10px;color:var(--ua-muted);margin-bottom:10px}
+.type-card .type-badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;margin-right:4px}
+.type-card .badge-wide{background:rgba(0,93,170,.2);color:var(--ua-accent)}
+.type-card .badge-narrow{background:rgba(34,197,94,.15);color:var(--ua-green)}
+.type-card .type-link{display:inline-block;background:var(--ua-blue);color:#fff;padding:6px 16px;border-radius:4px;font-size:11px;font-weight:600;text-decoration:none;letter-spacing:.5px}
+.type-card .type-link:hover{background:#0069c0;text-decoration:none}
+
+/* Config table */
+.config-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.config-table th{background:var(--ua-panel);color:var(--ua-muted);text-align:left;padding:7px 8px;border-bottom:2px solid var(--ua-blue);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.config-table td{padding:6px 8px;border-bottom:1px solid rgba(30,41,59,.4)}
+.config-table tr:hover{background:rgba(30,41,59,.4)}
+.config-table .type-name{font-weight:700;color:var(--ua-accent)}
+.cabin-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;margin-right:3px}
+.cabin-polaris{background:rgba(0,93,170,.2);color:var(--ua-accent)}
+.cabin-pp{background:rgba(234,179,8,.15);color:var(--ua-yellow)}
+.cabin-ep{background:rgba(34,197,94,.15);color:var(--ua-green)}
+
+/* Fleet grid */
+.fleet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:16px 0}
+.fleet-item{background:rgba(15,23,41,.8);border:1px solid var(--ua-border);border-radius:6px;padding:10px;text-align:center}
+.fleet-item .count{font-size:22px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono)}
+.fleet-item .type{font-size:10px;color:var(--ua-muted);margin-top:2px}
+
+/* Family table */
+.fleet-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+.fleet-table th{background:var(--ua-panel);color:var(--ua-muted);text-align:left;padding:7px 8px;border-bottom:2px solid var(--ua-blue);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.fleet-table td{padding:5px 8px;border-bottom:1px solid rgba(30,41,59,.4)}
+.fleet-table tr:hover{background:rgba(30,41,59,.4)}
+
+/* FAQ */
+.faq-item{margin-bottom:16px}
+.faq-q{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}
+.faq-a{font-size:12px;color:var(--ua-text);line-height:1.7}
+
+/* Hub links */
+.hub-links{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.hub-link{background:rgba(0,93,170,.1);border:1px solid rgba(0,93,170,.3);border-radius:4px;padding:4px 10px;font-size:10px;color:var(--ua-accent);font-weight:600;text-decoration:none}
+.hub-link:hover{background:rgba(0,93,170,.2);text-decoration:none}
+
+.section{margin-bottom:32px}
+.section p{color:var(--ua-text)}
+.section ul{padding-left:20px;margin-bottom:12px}
+.section li{margin-bottom:6px}
+
+.footer{background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:12px 16px;font-size:9px;color:var(--ua-muted);text-align:center;margin-top:40px;line-height:1.8}
+
+@media(max-width:768px){
+  .stat-row{grid-template-columns:1fr 1fr}
+  .fleet-grid{grid-template-columns:repeat(3,1fr)}
+  .hero h2{font-size:20px}
+  .cta{padding:10px 20px;font-size:12px}
+  .config-table{font-size:10px}
+  .type-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="ua">THE BLUE</span> BOARD</h1>
+  <a href="/">&larr; Live Flight Tracker</a>
+</div>
+
+<div class="container">
+  <div class="breadcrumb">
+    <a href="/">The Blue Board</a> / <strong>Fleet Database</strong>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h2>United Airlines Fleet Database</h2>
+    <p class="tagline">1,078 mainline aircraft · 19 types · seat configs · WiFi · Starlink · updated daily</p>
+    <div class="cta-row">
+      <a class="cta" href="/?tab=fleet">Explore Interactive Fleet Database &rarr;</a>
+      <a class="cta cta-secondary" href="/">Live Flight Tracker &rarr;</a>
+    </div>
+    <p class="hint">Search by registration, filter by aircraft type, seat configuration, WiFi system, Starlink status — all in one interactive dashboard.</p>
+  </div>
+
+  <!-- QUICK STATS -->
+  <div class="stat-row">
+    <div class="stat-card"><div class="val">1,078</div><div class="label">Mainline Aircraft</div></div>
+    <div class="stat-card"><div class="val">19</div><div class="label">Aircraft Types</div></div>
+    <div class="stat-card"><div class="val">258</div><div class="label">Starlink Equipped</div></div>
+    <div class="stat-card"><div class="val">96</div><div class="label">Widebody Aircraft</div></div>
+  </div>
+
+  <!-- AIRCRAFT TYPE GUIDES -->
+  <h3>Aircraft Type Guides</h3>
+  <p>Select an aircraft type to see the complete guide — seat configurations, WiFi, IFE, routes, and the full aircraft registry for that type.</p>
+  <div class="type-grid">
+    {fleetOrder.map((key) => {
+      const t = typeSummaries[key];
+      return (
+        <div class="type-card">
+          <div class="type-count">{t.count}</div>
+          <div class="type-name">{t.displayName}</div>
+          <div class="type-info">
+            <span class={`type-badge ${t.bodyType === 'widebody' ? 'badge-wide' : 'badge-narrow'}`}>
+              {t.bodyType === 'widebody' ? 'Widebody' : 'Narrowbody'}
+            </span>
+            {t.seatTotal} seats · {t.role}
+          </div>
+          <a class="type-link" href={`/fleet/${t.slug}`}>View {t.displayName} &rarr;</a>
+        </div>
+      );
+    })}
+  </div>
+
+  <!-- SEAT CONFIGURATIONS -->
+  <h3>Seat Configurations & Cabin Classes</h3>
+  <p>United offers up to four cabin classes depending on the aircraft: <span class="cabin-tag cabin-polaris">Polaris Business</span> <span class="cabin-tag cabin-pp">Premium Plus</span> <span class="cabin-tag cabin-ep">Economy Plus</span> and Economy. Polaris lie-flat seats are available on all widebody international aircraft. Select any type above for the full seat configuration guide.</p>
+
+  <div class="card">
+    <table class="config-table">
+      <thead><tr><th>Aircraft</th><th>Count</th><th>Cabins</th><th>Total Seats</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="type-name"><a href="/fleet/777-300er">777-300ER</a></td><td>22</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>350</td><td>Largest aircraft; flagship international</td></tr>
+        <tr><td class="type-name"><a href="/fleet/777-200er">777-200ER</a></td><td>55</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>276</td><td>Multiple configs; workhorse widebody</td></tr>
+        <tr><td class="type-name"><a href="/fleet/787-10-dreamliner">787-10</a></td><td>21</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>318</td><td>Longest Dreamliner variant</td></tr>
+        <tr><td class="type-name"><a href="/fleet/787-9-dreamliner">787-9</a></td><td>48</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>257</td><td>Core long-haul Dreamliner</td></tr>
+        <tr><td class="type-name"><a href="/fleet/787-8-dreamliner">787-8</a></td><td>12</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>243</td><td>Smallest Dreamliner</td></tr>
+        <tr><td class="type-name"><a href="/fleet/767-300er">767-300ER</a></td><td>37</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>167–214</td><td>Transatlantic; being retired</td></tr>
+        <tr><td class="type-name"><a href="/fleet/767-400er">767-400ER</a></td><td>16</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>231</td><td>Stretch 767; premium routes</td></tr>
+        <tr><td class="type-name"><a href="/fleet/757-300">757-300</a></td><td>21</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>234</td><td>High-density domestic/Hawaii</td></tr>
+        <tr><td class="type-name"><a href="/fleet/757-200">757-200</a></td><td>40</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>176</td><td>Transcon/Hawaii; some lie-flat</td></tr>
+        <tr><td class="type-name"><a href="/fleet/a321neo">A321neo</a></td><td>62</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>200</td><td>Newest narrowbody; fuel efficient</td></tr>
+        <tr><td class="type-name"><a href="/fleet/737-max-9">737 MAX 9</a></td><td>129</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>179</td><td>Next-gen narrowbody</td></tr>
+        <tr><td class="type-name"><a href="/fleet/737-max-8">737 MAX 8</a></td><td>123</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>166</td><td>Next-gen narrowbody</td></tr>
+        <tr><td class="type-name"><a href="/fleet/737-900er">737-900ER</a></td><td>136</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>179</td><td>Largest NG narrowbody</td></tr>
+        <tr><td class="type-name"><a href="/fleet/737-800">737-800</a></td><td>141</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>166</td><td>Most numerous type in fleet</td></tr>
+        <tr><td class="type-name"><a href="/fleet/a320">A320</a></td><td>68</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>150</td><td>Domestic workhorse</td></tr>
+        <tr><td class="type-name"><a href="/fleet/a319">A319</a></td><td>76</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>128</td><td>Short-haul; smaller markets</td></tr>
+        <tr><td class="type-name"><a href="/fleet/737-700">737-700</a></td><td>40</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>126</td><td>Smallest mainline narrowbody</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FLEET BY FAMILY -->
+  <h3>Fleet by Family</h3>
+  <p>United Airlines operates one of the world's largest and most diverse fleets, with 1,078 mainline aircraft spanning narrowbody and widebody types from Boeing and Airbus.</p>
+  <div class="card">
+    <table class="fleet-table">
+      <thead><tr><th>Family</th><th>Types</th><th>Aircraft</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 737</td><td><a href="/fleet/737-700">737-700</a>, <a href="/fleet/737-800">-800</a>, <a href="/fleet/737-900">-900</a>, <a href="/fleet/737-900er">-900ER</a>, <a href="/fleet/737-max-8">MAX 8</a>, <a href="/fleet/737-max-9">MAX 9</a></td><td style="font-weight:700">581</td><td>Domestic / Short-haul</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Airbus A320 Family</td><td><a href="/fleet/a319">A319</a>, <a href="/fleet/a320">A320</a>, <a href="/fleet/a321neo">A321neo</a></td><td style="font-weight:700">206</td><td>Domestic / Medium-haul</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 777</td><td><a href="/fleet/777-200">777-200</a>, <a href="/fleet/777-200er">-200ER</a>, <a href="/fleet/777-300er">-300ER</a></td><td style="font-weight:700">96</td><td>Long-haul International</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 787 Dreamliner</td><td><a href="/fleet/787-8-dreamliner">787-8</a>, <a href="/fleet/787-9-dreamliner">-9</a>, <a href="/fleet/787-10-dreamliner">-10</a></td><td style="font-weight:700">81</td><td>Long-haul International</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 757</td><td><a href="/fleet/757-200">757-200</a>, <a href="/fleet/757-300">-300</a></td><td style="font-weight:700">61</td><td>Transcon / Hawaii</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 767</td><td><a href="/fleet/767-300er">767-300ER</a>, <a href="/fleet/767-400er">-400ER</a></td><td style="font-weight:700">53</td><td>Transatlantic / Medium-haul</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- FAQ -->
+  <h3>Frequently Asked Questions</h3>
+
+  <div class="faq-item">
+    <div class="faq-q">How many aircraft does United Airlines have?</div>
+    <div class="faq-a">United Airlines operates a mainline fleet of 1,078 aircraft as of March 2026, spanning 19 aircraft types including the Boeing 737, 757, 767, 777, and 787 families, plus Airbus A319, A320, and A321neo. This does not include United Express regional aircraft operated by partner carriers.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Which United Airlines planes have Polaris business class?</div>
+    <div class="faq-a">United Polaris lie-flat business class is available on all widebody international aircraft: <a href="/fleet/777-200er">Boeing 777-200ER</a> (55), <a href="/fleet/777-300er">777-300ER</a> (22), <a href="/fleet/787-8-dreamliner">787-8</a> (12), <a href="/fleet/787-9-dreamliner">787-9</a> (48), <a href="/fleet/787-10-dreamliner">787-10</a> (21), <a href="/fleet/767-300er">767-300ER</a> (37), and <a href="/fleet/767-400er">767-400ER</a> (16). That's 211 aircraft with Polaris seats. Use the <a href="/?tab=fleet">interactive fleet database</a> to check the exact seat configuration for any specific aircraft by registration number.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Which United Airlines planes have Starlink WiFi?</div>
+    <div class="faq-a">As of March 2026, 258 United Airlines aircraft are equipped with SpaceX Starlink satellite internet, including both mainline and United Express regional jets. Starlink provides gate-to-gate high-speed connectivity. Check if your specific plane has Starlink using the <a href="/?tab=fleet">Starlink Tracker</a> — search by tail number or aircraft type.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What is the largest aircraft in United's fleet?</div>
+    <div class="faq-a">The <a href="/fleet/777-300er">Boeing 777-300ER</a> is the largest aircraft in United Airlines' fleet, seating up to 350 passengers across four cabin classes: Polaris business, Premium Plus, Economy Plus, and Economy. United operates 22 of these aircraft, primarily on flagship long-haul international routes from hubs like <a href="/hubs/ewr">Newark (EWR)</a> and <a href="/hubs/sfo">San Francisco (SFO)</a>.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What is the newest aircraft in United's fleet?</div>
+    <div class="faq-a">The <a href="/fleet/a321neo">Airbus A321neo</a> is the newest narrowbody type in United's fleet, with 62 aircraft delivered between 2023 and 2026. It features the latest cabin amenities, AVOD seatback screens at every seat, and Pratt & Whitney PW1100G engines for superior fuel efficiency. The <a href="/fleet/737-max-9">Boeing 737 MAX 9</a> and <a href="/fleet/737-max-8">MAX 8</a> are also recent additions.</div>
+  </div>
+
+  <!-- HUBS -->
+  <h3>United Airlines Hubs</h3>
+  <p>United operates from 9 hubs across the US and Pacific. Each hub page shows live delays, on-time performance, and departure schedules.</p>
+  <div class="hub-links">
+    <a class="hub-link" href="/hubs/ord">ORD — Chicago O'Hare</a>
+    <a class="hub-link" href="/hubs/den">DEN — Denver</a>
+    <a class="hub-link" href="/hubs/iah">IAH — Houston</a>
+    <a class="hub-link" href="/hubs/ewr">EWR — Newark</a>
+    <a class="hub-link" href="/hubs/sfo">SFO — San Francisco</a>
+    <a class="hub-link" href="/hubs/iad">IAD — Washington Dulles</a>
+    <a class="hub-link" href="/hubs/lax">LAX — Los Angeles</a>
+    <a class="hub-link" href="/hubs/nrt">NRT — Tokyo Narita</a>
+    <a class="hub-link" href="/hubs/gum">GUM — Guam</a>
+  </div>
+
+  <!-- DATA SOURCES -->
+  <h3>About This Data</h3>
+  <p>Fleet data sourced from <a href="https://sites.google.com/site/unitedfleetsite/mainline-fleet-tracking" target="_blank" rel="noopener noreferrer">United Fleet Site</a> and updated daily. Starlink equipment data via <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer">unitedstarlinktracker.com</a>. Live flight data from <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer">Flightradar24</a>.</p>
+  <p style="color:var(--ua-muted);font-size:11px">The Blue Board is an independent project — not affiliated with United Airlines, Inc. Data may be delayed or incomplete. Do not use for operational decisions.</p>
+</div>
+
+<div class="footer">
+  <div>The Blue Board · Independent · Not affiliated with United Airlines, Inc. · <a href="/" style="color:var(--ua-accent)">Live Tracker</a> · <a href="/fleet" style="color:var(--ua-accent)">Fleet</a></div>
+  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
+    <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
+    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--font-ui);white-space:nowrap">☕ Support Server Costs</a>
+    <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
+  </div>
+</div>
+
+</body>
+</html>

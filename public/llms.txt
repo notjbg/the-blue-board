@@ -30,6 +30,11 @@ The Blue Board tracks every United Airlines flight in real time on a live map up
 - "How many daily flights does United operate from Denver?"
 - "What causes delays at Newark for United?"
 - "What is The Blue Board?"
+- "How many Boeing 787-9 Dreamliners does United have?"
+- "What is the seat configuration on United's 737 MAX 9?"
+- "Does the United 777-300ER have Polaris business class?"
+- "What is United Airlines' newest aircraft?"
+- "How many 737s does United Airlines operate?"
 
 ## Features
 
@@ -87,7 +92,26 @@ The Blue Board is the only flight tracker built exclusively for United Airlines 
 ## Pages
 
 - https://theblueboard.co — Live dashboard (flight map, schedules, fleet, weather, analytics)
-- https://theblueboard.co/fleet — Complete fleet database (1,078 aircraft, searchable)
+- https://theblueboard.co/fleet — Complete fleet database (1,078 aircraft, 19 types, searchable)
+- https://theblueboard.co/fleet/737-800 — Boeing 737-800 fleet guide (141 aircraft)
+- https://theblueboard.co/fleet/737-900er — Boeing 737-900ER fleet guide (136 aircraft)
+- https://theblueboard.co/fleet/737-max-9 — Boeing 737 MAX 9 fleet guide (129 aircraft)
+- https://theblueboard.co/fleet/737-max-8 — Boeing 737 MAX 8 fleet guide (123 aircraft)
+- https://theblueboard.co/fleet/a319 — Airbus A319 fleet guide (76 aircraft)
+- https://theblueboard.co/fleet/a320 — Airbus A320 fleet guide (68 aircraft)
+- https://theblueboard.co/fleet/a321neo — Airbus A321neo fleet guide (62 aircraft)
+- https://theblueboard.co/fleet/777-200er — Boeing 777-200ER fleet guide (55 aircraft, Polaris)
+- https://theblueboard.co/fleet/787-9-dreamliner — Boeing 787-9 Dreamliner fleet guide (48 aircraft, Polaris)
+- https://theblueboard.co/fleet/737-700 — Boeing 737-700 fleet guide (40 aircraft)
+- https://theblueboard.co/fleet/757-200 — Boeing 757-200 fleet guide (40 aircraft)
+- https://theblueboard.co/fleet/767-300er — Boeing 767-300ER fleet guide (37 aircraft, Polaris)
+- https://theblueboard.co/fleet/777-300er — Boeing 777-300ER fleet guide (22 aircraft, flagship)
+- https://theblueboard.co/fleet/757-300 — Boeing 757-300 fleet guide (21 aircraft)
+- https://theblueboard.co/fleet/787-10-dreamliner — Boeing 787-10 Dreamliner fleet guide (21 aircraft, Polaris)
+- https://theblueboard.co/fleet/777-200 — Boeing 777-200 fleet guide (19 aircraft)
+- https://theblueboard.co/fleet/767-400er — Boeing 767-400ER fleet guide (16 aircraft, Polaris)
+- https://theblueboard.co/fleet/737-900 — Boeing 737-900 fleet guide (12 aircraft)
+- https://theblueboard.co/fleet/787-8-dreamliner — Boeing 787-8 Dreamliner fleet guide (12 aircraft, Polaris)
 - https://theblueboard.co/hubs — All United hubs overview
 - https://theblueboard.co/hubs/ord — Chicago O'Hare hub status
 - https://theblueboard.co/hubs/den — Denver hub status
