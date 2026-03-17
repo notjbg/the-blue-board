@@ -4,6 +4,31 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.8] - 2026-03-17
+
+### Added
+- 19 SEO-optimized fleet type pages (`/fleet/737-max-9`, `/fleet/a321neo`, etc.) with structured data (Product, FAQ, BreadcrumbList schemas), full aircraft registry tables, and inter-type navigation
+- Fleet overview index page (`/fleet`) with all 19 types
+- Welcome email via Resend on first waitlist signup, with de-duplication for repeat submissions
+- Rate limiter test for waitlist API (covers 429 response path)
+- `text-wrap: balance` on headings in hub and fleet content pages
+
+### Changed
+- Dashboard section headings bumped from 10px to 11px with tighter letter-spacing for readability
+- Body line-height set to 1.4 (was browser default ~1.2)
+- Hub health bar touch targets enlarged (padding 2px→4px, min-height 28px)
+- Header H1 letter-spacing reduced from 1.5px to 1px
+- `color-scheme: dark` added to all page templates (dashboard, hub, fleet)
+
+### Fixed
+- Security hardening: Supabase service role key for server-side API, RLS on waitlist table, prompt injection sanitization on delay-explain endpoint
+- Waitlist API uses upsert with conflict on email (prevents duplicates)
+- Dynamic import for Resend to prevent function crash when module unavailable
+- Fleet type deep links from dashboard now route correctly to static pages
+
+### Removed
+- Legacy `public/fleet.html` (replaced by Astro-generated fleet pages)
+
 ## [1.3.7] - 2026-03-15
 
 ### Fixed
