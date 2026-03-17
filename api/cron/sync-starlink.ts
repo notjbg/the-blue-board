@@ -7,8 +7,8 @@ import type { VercelRequest, VercelResponse } from '../types.js';
 const UPSTREAM_URL = 'https://unitedstarlinktracker.com/api/data';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Verify cron secret in production
-  if (process.env.CRON_SECRET && req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verify cron secret — reject if missing or mismatched
+  if (req.headers['authorization'] !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

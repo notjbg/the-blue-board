@@ -7,3 +7,10 @@ CREATE TABLE waitlist (
 );
 
 CREATE INDEX idx_waitlist_email ON waitlist(email);
+
+-- Row Level Security: anon key can only INSERT, not read
+ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_insert_only" ON waitlist
+  FOR INSERT TO anon
+  WITH CHECK (true);

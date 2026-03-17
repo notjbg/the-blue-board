@@ -3,9 +3,11 @@
 // Returns current billing period credit consumption from FR24's usage API.
 
 import type { VercelRequest, VercelResponse } from './types.js';
+import { createRateLimiter } from './_rate-limit.js';
 
 const FR24_BASE = 'https://fr24api.flightradar24.com';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const isRateLimited = createRateLimiter('fr24-usage', 10);
 
 let usageCache: { data: any; ts: number } | null = null;
 
@@ -25,6 +27,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (isRateLimited(req)) {
+    return res.status(429).json({ error: 'Too many requests — try again later' });
+  }
 
   if (!process.env.FR24_API_TOKEN) {
     return res.status(200).json({ data: null, error: 'No FR24 API token configured' });
@@ -51,8 +57,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     clearTimeout(timeout);
 
     if (!resp.ok) {
-      const text = await resp.text().catch(() => '');
-      return res.status(resp.status).json({ error: `FR24 API returned ${resp.status}`, detail: text });
+      console.error(`FR24 usage API returned ${resp.status}`);
+      return res.status(502).json({ error: 'Upstream API error' });
     }
 
     const data = await resp.json();
@@ -61,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60');
     return res.status(200).json({ ...data, cached: false });
   } catch (e: any) {
-    return res.status(500).json({ error: 'Failed to fetch FR24 usage', detail: e.message });
+    console.error('FR24 usage fetch error:', e.message);
+    return res.status(500).json({ error: 'Failed to fetch usage data' });
   }
 }

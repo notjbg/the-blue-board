@@ -32,6 +32,12 @@ interface DelayContext {
   connection?: string;
 }
 
+// Sanitize context fields: truncate to max length, strip instruction-like patterns
+function sanitize(val: string | undefined, maxLen: number): string {
+  if (!val || typeof val !== 'string') return '';
+  return val.slice(0, maxLen).replace(/(\bignore\b.*\binstructions?\b|\bsystem\b.*\bprompt\b|\bforget\b.*\babove\b|\bact as\b|\byou are now\b)/gi, '[filtered]');
+}
+
 function getCacheKey(ctx: DelayContext): string {
   const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
   const weatherKey = (ctx.weather || '').slice(0, 40) + '|' + (ctx.destWeather || '').slice(0, 40);
@@ -70,21 +76,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Build context prompt with aircraft journey chain
+    // All fields sanitized to mitigate prompt injection via crafted POST bodies
+    const flight = sanitize(ctx.flight, 20);
+    const route = sanitize(ctx.route, 20);
+    const status = sanitize(ctx.status, 30);
+    const riskLabel = sanitize(ctx.riskLabel, 20);
+    const riskScore = typeof ctx.riskScore === 'number' ? Math.max(0, Math.min(100, ctx.riskScore)) : 0;
+
     const lines = [
-      `Flight: ${ctx.flight} (${ctx.route || 'unknown route'})`,
-      `Status: ${ctx.status || 'scheduled'}`,
-      `Risk Level: ${ctx.riskLabel || 'LOW'} (score ${ctx.riskScore || 0}/100)`,
+      `Flight: ${flight} (${route || 'unknown route'})`,
+      `Status: ${status || 'scheduled'}`,
+      `Risk Level: ${riskLabel || 'LOW'} (score ${riskScore}/100)`,
     ];
-    if (ctx.factors && ctx.factors.length > 0) {
-      lines.push(`Contributing factors: ${ctx.factors.join('; ')}`);
+    if (ctx.factors && Array.isArray(ctx.factors)) {
+      lines.push(`Contributing factors: ${ctx.factors.map(f => sanitize(f, 80)).join('; ')}`);
     }
-    if (ctx.otp) lines.push(`Hub on-time performance: ${ctx.otp}%`);
-    if (ctx.weather) lines.push(`Origin weather: ${ctx.weather}`);
-    if (ctx.destWeather) lines.push(`Destination weather: ${ctx.destWeather}`);
-    if (ctx.irops) lines.push(`Hub disruption status: ${ctx.irops}`);
-    if (ctx.hubTime) lines.push(`Current local time at hub: ${ctx.hubTime}`);
-    if (ctx.connection) lines.push(`Passenger connection: ${ctx.connection}`);
-    if (ctx.inbound) lines.push(`Aircraft journey: ${ctx.inbound}`);
+    if (ctx.otp) lines.push(`Hub on-time performance: ${sanitize(ctx.otp, 10)}%`);
+    if (ctx.weather) lines.push(`Origin weather: ${sanitize(ctx.weather, 200)}`);
+    if (ctx.destWeather) lines.push(`Destination weather: ${sanitize(ctx.destWeather, 200)}`);
+    if (ctx.irops) lines.push(`Hub disruption status: ${sanitize(ctx.irops, 200)}`);
+    if (ctx.hubTime) lines.push(`Current local time at hub: ${sanitize(ctx.hubTime, 30)}`);
+    if (ctx.connection) lines.push(`Passenger connection: ${sanitize(ctx.connection, 100)}`);
+    if (ctx.inbound) lines.push(`Aircraft journey: ${sanitize(ctx.inbound, 300)}`);
 
     const message = await getClient().messages.create({
       model: 'claude-haiku-4-5',
