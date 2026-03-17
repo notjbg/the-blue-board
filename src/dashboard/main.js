@@ -5874,7 +5874,7 @@ function hideDisclaimer() {
     donateBtn.target = '_blank';
     donateBtn.rel = 'noopener noreferrer';
     donateBtn.style.cssText = 'display:inline-block;padding:10px 28px;background:rgba(255,255,255,0.08);border:1px solid var(--ua-accent);color:var(--ua-accent);border-radius:8px;font-size:14px;font-weight:600;font-family:var(--font-ui);text-decoration:none;transition:background .2s,color .2s;cursor:pointer';
-    donateBtn.textContent = 'Donate $5';
+    donateBtn.textContent = 'Donate';
     donateBtn.addEventListener('mouseenter', function() { donateBtn.style.background = 'var(--ua-accent)'; donateBtn.style.color = '#fff'; });
     donateBtn.addEventListener('mouseleave', function() { donateBtn.style.background = 'rgba(255,255,255,0.08)'; donateBtn.style.color = 'var(--ua-accent)'; });
     donateWrap.appendChild(donateBtn);
