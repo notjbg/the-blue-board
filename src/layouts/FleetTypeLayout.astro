@@ -1,0 +1,298 @@
+---
+import { fleetOrder, fleetNavLabels } from '../data/fleet/index.js';
+import fleetDb from '../../public/data/fleet.json';
+
+const { data } = Astro.props;
+const slug = data.slug;
+const typeCode = data.typeCode;
+
+// Filter fleet.json for this aircraft type at build time
+const typeAircraft = (fleetDb as any[]).filter((a: any) => a.t === typeCode);
+
+// Build Product schema
+const productSchema = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": `United Airlines ${data.displayName}`,
+  "description": data.description,
+  "brand": { "@type": "Brand", "name": "United Airlines" },
+  "manufacturer": { "@type": "Organization", "name": data.aircraftSchema.manufacturer },
+  "category": "Commercial Aircraft",
+  "additionalProperty": [
+    { "@type": "PropertyValue", "name": "Fleet Count", "value": String(data.count) },
+    { "@type": "PropertyValue", "name": "Seat Capacity", "value": data.seatConfig.total },
+    { "@type": "PropertyValue", "name": "Body Type", "value": data.bodyType === 'widebody' ? 'Wide-body' : 'Narrow-body' },
+    { "@type": "PropertyValue", "name": "Delivery Period", "value": data.deliveryRange },
+    { "@type": "PropertyValue", "name": "Range", "value": data.aircraftSchema.range },
+  ]
+};
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
+<title>{data.title}</title>
+<meta name="description" content={data.description}>
+<meta name="keywords" content={data.keywords}>
+<meta name="author" content="The Blue Board">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href={`https://theblueboard.co/fleet/${slug}`}>
+<meta property="og:type" content="website">
+<meta property="og:locale" content="en_US">
+<meta property="og:title" content={data.ogTitle}>
+<meta property="og:description" content={data.ogDescription}>
+<meta property="og:url" content={`https://theblueboard.co/fleet/${slug}`}>
+<meta property="og:site_name" content="The Blue Board">
+<meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta property="og:image:alt" content={data.ogImageAlt}>
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@theblueboard">
+<meta name="twitter:title" content={data.twitterTitle}>
+<meta name="twitter:description" content={data.twitterDescription}>
+<meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:site" content="@theblueboard">
+
+<!-- Schema: BreadcrumbList -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "The Blue Board", "item": "https://theblueboard.co"},
+    {"@type": "ListItem", "position": 2, "name": "Fleet", "item": "https://theblueboard.co/fleet"},
+    {"@type": "ListItem", "position": 3, "name": data.breadcrumbName, "item": `https://theblueboard.co/fleet/${slug}`}
+  ]
+})} />
+<!-- Schema: FAQPage -->
+<script type="application/ld+json" set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": data.faqSchema.map((faq: { question: string; answer: string }) => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer,
+    }
+  }))
+})} />
+<!-- Schema: Product -->
+<script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style is:inline>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ua-blue:#005DAA;--ua-dark:#0a0e14;--ua-panel:#111827;--ua-border:#1e293b;--ua-text:#e2e8f0;--ua-muted:#94a3b8;--ua-accent:#8ab4f8;--ua-green:#22c55e;--ua-yellow:#eab308;--ua-red:#ef4444;--font-ui:'Inter',system-ui,-apple-system,sans-serif;--font-mono:'JetBrains Mono',monospace}
+body{background:var(--ua-dark);color:var(--ua-text);font-family:var(--font-ui);font-size:13px;line-height:1.7;min-height:100vh}
+a{color:var(--ua-accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.section p a,.section li a{text-decoration:underline;text-decoration-color:rgba(138,180,248,.4);text-underline-offset:2px}
+.section p a:hover,.section li a:hover{text-decoration-color:var(--ua-accent)}
+.container{max-width:900px;margin:0 auto;padding:20px 16px}
+
+/* Header */
+.fleet-header{border-bottom:1px solid var(--ua-border);padding:20px 0 16px;margin-bottom:24px}
+.fleet-header .nav{font-size:11px;color:var(--ua-muted);margin-bottom:12px}
+.fleet-header .nav a{color:var(--ua-accent);font-size:11px}
+.fleet-header h1{font-size:22px;font-weight:700;color:var(--ua-text);letter-spacing:-.5px;margin-bottom:4px}
+.fleet-header .subtitle{font-size:12px;color:var(--ua-muted)}
+.fleet-header .type-badge{color:var(--ua-blue);font-weight:700}
+
+/* Stats Row */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:20px 0}
+.stat-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;text-align:center}
+.stat-card .val{font-size:24px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono)}
+.stat-card .label{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+
+/* CTA */
+.cta{display:inline-block;background:var(--ua-blue);color:#fff;padding:10px 24px;border-radius:5px;font-family:var(--font-ui);font-size:12px;font-weight:600;text-decoration:none;transition:background .2s}
+.cta:hover{background:#0069c0;text-decoration:none}
+.cta:active{transform:scale(.97)}
+
+/* Content Sections */
+.section{margin-bottom:40px;padding-top:24px;border-top:1px solid var(--ua-border)}
+.section:first-of-type{border-top:none;padding-top:0}
+.section h2{font-size:16px;font-weight:700;color:var(--ua-text);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--ua-border)}
+.section h3{font-size:13px;font-weight:600;color:var(--ua-accent);margin:16px 0 8px}
+.section p{color:var(--ua-text);margin-bottom:12px}
+.section ul{padding-left:20px;margin-bottom:12px}
+.section li{color:var(--ua-text);margin-bottom:4px}
+.highlight-box{background:var(--ua-panel);border-left:3px solid var(--ua-blue);padding:12px 16px;margin:16px 0;border-radius:0 6px 6px 0;font-size:12px}
+
+/* Cabin Tags */
+.cabin-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:600;margin-right:3px}
+.cabin-polaris{background:rgba(0,93,170,.2);color:var(--ua-accent)}
+.cabin-pp{background:rgba(234,179,8,.15);color:var(--ua-yellow)}
+.cabin-ep{background:rgba(34,197,94,.15);color:var(--ua-green)}
+
+/* Registry Table */
+.registry-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px}
+.registry-table th{background:var(--ua-panel);color:var(--ua-muted);text-align:left;padding:7px 8px;border-bottom:2px solid var(--ua-blue);font-size:9px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+.registry-table td{padding:5px 8px;border-bottom:1px solid rgba(30,41,59,.4);font-family:var(--font-mono);font-size:10px}
+.registry-table tr:hover{background:rgba(30,41,59,.4)}
+.registry-table .reg{font-weight:700;color:var(--ua-accent)}
+.registry-table .status-stored{color:var(--ua-red)}
+.registry-table .status-maint{color:var(--ua-yellow)}
+.registry-table .starlink-badge{color:var(--ua-green);font-weight:700}
+
+/* Config Table */
+.config-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.config-table th{background:var(--ua-panel);color:var(--ua-muted);text-align:left;padding:7px 8px;border-bottom:2px solid var(--ua-blue);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.config-table td{padding:6px 8px;border-bottom:1px solid rgba(30,41,59,.4)}
+
+/* Jump Nav */
+.jump-nav{display:flex;flex-wrap:wrap;gap:8px;padding:16px 0;margin-bottom:24px}
+.jump-nav a{color:var(--ua-text);background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;text-decoration:none;white-space:nowrap;transition:border-color .2s,color .2s,background-color .2s,transform .2s,box-shadow .2s}
+.jump-nav a:hover{border-color:var(--ua-blue);color:#fff;background:var(--ua-blue);text-decoration:none;transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,93,170,.3)}
+.jump-nav a:active{transform:scale(.97)}
+
+/* Fleet Nav */
+.fleet-nav{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}
+.fleet-nav a{background:var(--ua-panel);border:1px solid var(--ua-border);padding:6px 14px;border-radius:4px;font-size:11px;font-weight:600;color:var(--ua-muted);text-decoration:none;transition:border-color .2s,color .2s}
+.fleet-nav a:hover{border-color:var(--ua-blue);color:var(--ua-accent);text-decoration:none}
+.fleet-nav a.active{border-color:var(--ua-blue);color:var(--ua-blue);background:rgba(0,93,170,.1)}
+.fleet-nav a:active{transform:scale(.97)}
+
+/* Scroll Hint */
+.scroll-hint{text-align:center;padding:16px 0 4px;transition:opacity .5s}
+.scroll-hint-inner{display:inline-flex;align-items:center;gap:8px;color:var(--ua-accent);font-size:11px;font-weight:500;letter-spacing:.5px;opacity:.85}
+.scroll-hint-arrow{display:inline-block;animation:bounce 1.5s ease-in-out infinite;font-size:14px}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+/* Responsive */
+@media(max-width:600px){
+  .fleet-header h1{font-size:18px}
+  .stat-row{grid-template-columns:repeat(2,1fr)}
+  .registry-table{font-size:9px}
+  .registry-table td{padding:4px 6px}
+}
+</style>
+</head>
+<body>
+
+<main class="container">
+
+  <!-- Header -->
+  <div class="fleet-header">
+    <div class="nav"><a href="/">&larr; The Blue Board</a> / <a href="/fleet">Fleet</a> / <span class="type-badge">{data.displayName}</span></div>
+    <h1><Fragment set:html={data.headerTitle} /></h1>
+    <div class="subtitle">{data.subtitle}</div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stat-row">
+    <div class="stat-card"><div class="val">{data.count}</div><div class="label">Aircraft</div></div>
+    <div class="stat-card"><div class="val">{data.seatConfig.total}</div><div class="label">Total Seats</div></div>
+    <div class="stat-card"><div class="val">{data.deliveryRange}</div><div class="label">Deliveries</div></div>
+    <div class="stat-card"><div class="val">{data.bodyType === 'widebody' ? 'Wide' : 'Narrow'}</div><div class="label">Body Type</div></div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:24px">
+    <a class="cta" href={`/?tab=fleet&filter=${encodeURIComponent(typeCode)}`}>Explore {data.displayName} in Interactive Database &rarr;</a>
+  </div>
+
+  <!-- Scroll Hint -->
+  <div class="scroll-hint" id="scrollHint">
+    <div class="scroll-hint-inner">
+      <span>Explore aircraft details below</span>
+      <span class="scroll-hint-arrow">&darr;</span>
+    </div>
+  </div>
+
+  <!-- Jump Nav -->
+  <nav class="jump-nav">
+    {data.jumpNav.map((item: { href: string; label: string }) => (
+      <a href={item.href}>{item.label}</a>
+    ))}
+  </nav>
+
+  <!-- Content HTML -->
+  <Fragment set:html={data.contentHtml} />
+
+  <!-- Aircraft Registry -->
+  <div class="section">
+    <h2 id="registry">Aircraft Registry — All {typeAircraft.length} {data.displayName}</h2>
+    <p>Complete list of every United Airlines {data.displayName} with registration, delivery year, seat configuration, WiFi, IFE, and current status. Data updated daily from public aviation records.</p>
+    <div style="overflow-x:auto">
+      <table class="registry-table">
+        <thead>
+          <tr>
+            <th>Reg</th>
+            <th>AC#</th>
+            <th>Config</th>
+            <th>WiFi</th>
+            <th>IFE</th>
+            <th>Power</th>
+            <th>Year</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {typeAircraft.sort((a: any, b: any) => (a.r || '').localeCompare(b.r || '')).map((ac: any) => {
+            const isStored = ac.s && ac.s.toLowerCase().includes('stored');
+            const isMaint = ac.s && (ac.s.toLowerCase().includes('maint') || ac.s.toLowerCase().includes('paint') || ac.s.toLowerCase().includes('mod'));
+            const isStarlink = ac.w && ac.w.toLowerCase().includes('starlink');
+            return (
+              <tr>
+                <td class="reg">{ac.r}</td>
+                <td>{ac.a || '—'}</td>
+                <td>{ac.c || '—'}</td>
+                <td>{isStarlink ? <span class="starlink-badge">{ac.w}</span> : (ac.w || '—')}</td>
+                <td>{ac.i || '—'}</td>
+                <td>{ac.p || '—'}</td>
+                <td>{ac.d || '—'}</td>
+                <td class={isStored ? 'status-stored' : isMaint ? 'status-maint' : ''}>{ac.s || 'Active'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FAQ (visible, matches schema) -->
+  <div class="section">
+    <h2 id="faq">Frequently Asked Questions</h2>
+    {data.faqSchema.map((faq: { question: string; answer: string }) => (
+      <div style="margin-bottom:16px">
+        <h3>{faq.question}</h3>
+        <p>{faq.answer}</p>
+      </div>
+    ))}
+  </div>
+
+  <!-- All Fleet Types -->
+  <div class="section">
+    <h2 id="all-types">All United Fleet Types</h2>
+    <p>Explore every aircraft type in United Airlines' mainline fleet.</p>
+    <nav class="fleet-nav">
+      {fleetOrder.map((t: string) => (
+        <a href={`/fleet/${t}`} class={t === slug ? 'active' : ''}>{fleetNavLabels[t]}</a>
+      ))}
+    </nav>
+    <p style="margin-top:12px"><a href="/fleet">&larr; Back to Fleet Overview</a></p>
+  </div>
+
+</main>
+
+<!-- Footer -->
+<div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8;margin-top:40px">
+  <div><a href="/" style="color:var(--ua-accent);text-decoration:none">The Blue Board</a> · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="/" style="color:var(--ua-accent);text-decoration:none">Open Dashboard &rarr;</a></div>
+  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
+    <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
+    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--font-ui);white-space:nowrap">☕ Support Server Costs</a>
+    <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
+  </div>
+</div>
+
+<!-- Scroll Hint Script -->
+<script is:inline>
+(function(){var h=document.getElementById('scrollHint');if(h){var done=false;window.addEventListener('scroll',function(){if(!done&&window.scrollY>100){h.style.opacity='0';done=true;setTimeout(function(){h.style.display='none'},500)}});}})();
+</script>
+</body>
+</html>

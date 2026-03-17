@@ -1,0 +1,12 @@
+---
+import FleetTypeLayout from '../../layouts/FleetTypeLayout.astro';
+import { fleetTypes } from '../../data/fleet/index.js';
+
+export function getStaticPaths() {
+  return Object.keys(fleetTypes).map((type) => ({ params: { type } }));
+}
+
+const { type } = Astro.params;
+const data = fleetTypes[type];
+---
+<FleetTypeLayout data={data} />

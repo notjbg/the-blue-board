@@ -39,7 +39,32 @@ The primary interface with 6 tabs:
 6. **Sources**: Data source attribution and credits.
 
 ### Fleet Database (https://theblueboard.co/fleet)
-Dedicated page for the complete United Airlines fleet database. 1,078 mainline aircraft across 19 types. Searchable by aircraft type, tail number, seat configuration, WiFi type, and Starlink status. Includes Dataset schema markup for structured data consumers.
+Dedicated page for the complete United Airlines fleet database. 1,078 mainline aircraft across 19 types. Overview of all aircraft types with links to individual type guides. Searchable interactive database with aircraft type, tail number, seat configuration, WiFi type, and Starlink status. Includes Dataset and ItemList schema markup.
+
+### Individual Aircraft Type Pages (https://theblueboard.co/fleet/{type})
+Dedicated guides for each of United Airlines' 19 aircraft types:
+
+- **https://theblueboard.co/fleet/737-800** — Boeing 737-800: 141 aircraft, most numerous type. 166 seats (16F/54E+/96Y). Domestic workhorse.
+- **https://theblueboard.co/fleet/737-900er** — Boeing 737-900ER: 136 aircraft. 179 seats (20F/45E+/114Y). Largest NG narrowbody.
+- **https://theblueboard.co/fleet/737-max-9** — Boeing 737 MAX 9: 129 aircraft. 179 seats. Next-gen narrowbody, deliveries through 2026.
+- **https://theblueboard.co/fleet/737-max-8** — Boeing 737 MAX 8: 123 aircraft. 166 seats. Next-gen narrowbody.
+- **https://theblueboard.co/fleet/a319** — Airbus A319: 76 aircraft. 128 seats. Being gradually retired.
+- **https://theblueboard.co/fleet/a320** — Airbus A320: 68 aircraft. 150 seats. Domestic workhorse.
+- **https://theblueboard.co/fleet/a321neo** — Airbus A321neo: 62 aircraft. 200 seats. Newest narrowbody, deliveries through 2026.
+- **https://theblueboard.co/fleet/777-200er** — Boeing 777-200ER: 55 aircraft. 276 seats. Polaris lie-flat. Workhorse widebody.
+- **https://theblueboard.co/fleet/787-9-dreamliner** — Boeing 787-9 Dreamliner: 48 aircraft. 257 seats. Polaris, Premium Plus. Core long-haul.
+- **https://theblueboard.co/fleet/737-700** — Boeing 737-700: 40 aircraft. 126 seats. Smallest mainline narrowbody.
+- **https://theblueboard.co/fleet/757-200** — Boeing 757-200: 40 aircraft. 176 seats. Lie-flat First on transcon routes.
+- **https://theblueboard.co/fleet/767-300er** — Boeing 767-300ER: 37 aircraft. Polaris. Transatlantic, being retired.
+- **https://theblueboard.co/fleet/777-300er** — Boeing 777-300ER: 22 aircraft. 350 seats. Flagship international. Largest in fleet.
+- **https://theblueboard.co/fleet/757-300** — Boeing 757-300: 21 aircraft. 234 seats. High-density domestic/Hawaii.
+- **https://theblueboard.co/fleet/787-10-dreamliner** — Boeing 787-10 Dreamliner: 21 aircraft. 318 seats. Longest Dreamliner.
+- **https://theblueboard.co/fleet/777-200** — Boeing 777-200: 19 aircraft. Older variant, some stored.
+- **https://theblueboard.co/fleet/767-400er** — Boeing 767-400ER: 16 aircraft. Polaris, Premium Plus. Stretch 767.
+- **https://theblueboard.co/fleet/737-900** — Boeing 737-900: 12 aircraft. Oldest 737 variant.
+- **https://theblueboard.co/fleet/787-8-dreamliner** — Boeing 787-8 Dreamliner: 12 aircraft. Smallest Dreamliner. Polaris.
+
+Each type page includes: fleet count, seat configuration tables, WiFi and IFE details, power outlets, routes and hubs, complete aircraft registry (every tail number), and FAQs. Data from fleet.json, updated daily.
 
 ### Hubs Overview (https://theblueboard.co/hubs)
 Index page listing all 9 United Airlines hub airports with key stats (daily departures, terminals, role in network). Links to individual hub status pages.
