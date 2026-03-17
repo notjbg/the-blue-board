@@ -20,7 +20,8 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@supabase/supabase-js": "^2.49.1",
     "astro": "^5.0.0",
-    "fast-xml-parser": "^5.4.2"
+    "fast-xml-parser": "^5.4.2",
+    "resend": "^6.9.4"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
