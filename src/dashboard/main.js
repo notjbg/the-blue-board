@@ -34,6 +34,7 @@ let STARLINK_TAILS = new Set();
 let STARLINK_FLIGHTS_BY_TAIL = {};  // upcoming flights keyed by tail number
 let STARLINK_FLEET_STATS = null;    // { mainline, express, total }
 let STARLINK_LAST_UPDATED = null;   // ISO timestamp from upstream
+let pendingFleetDeepLinkFilter = null;
 
 // Build registration lookup
 const FLEET_BY_REG = {};
@@ -428,7 +429,7 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
   const params = new URLSearchParams(location.search);
   const tab = params.get('tab');
   const hub = params.get('hub');
-  const filter = params.get('filter');
+  const fleetFilter = params.get('type') || params.get('filter');
   if (!tab) return;
 
   // Map ?tab= values to internal tab IDs
@@ -458,10 +459,10 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      // Fleet tab: auto-select Starlink filter
-      if (tab === 'fleet' && filter === 'starlink') {
-        const sel = document.getElementById('fleet-filter-status');
-        if (sel) { sel.value = 'starlink'; sel.dispatchEvent(new Event('change')); }
+      // Fleet tab: support deep links for either status shortcuts or a specific aircraft type.
+      if (tab === 'fleet' && fleetFilter) {
+        pendingFleetDeepLinkFilter = fleetFilter;
+        applyFleetDeepLinkFilter(fleetFilter, { render: FLEET_DB.length > 0 });
       }
 
       // Schedule tab: filter by hub airport
@@ -472,6 +473,31 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
     }, 500); // wait for tab content to render
   });
 })();
+
+function applyFleetDeepLinkFilter(filter, { render = true } = {}) {
+  const statusSel = document.getElementById('fleet-filter-status');
+  const typeSel = document.getElementById('fleet-filter-type');
+  if (!statusSel || !typeSel) return false;
+
+  const statusValues = new Set(Array.from(statusSel.options).map(opt => opt.value).filter(Boolean));
+  const typeValues = new Set(Array.from(typeSel.options).map(opt => opt.value).filter(Boolean));
+
+  if (statusValues.has(filter)) {
+    statusSel.value = filter;
+    typeSel.value = '';
+    if (render) renderFleetTable();
+    return true;
+  }
+
+  if (typeValues.has(filter)) {
+    typeSel.value = filter;
+    statusSel.value = '';
+    if (render) renderFleetTable();
+    return true;
+  }
+
+  return false;
+}
 
 // ═══ MOBILE BOTTOM NAV (4 tabs + More menu) ═══
 (function(){
@@ -1756,6 +1782,11 @@ function initFleetTab() {
     typeOrder.map(t => `<option value="${t}">${t} (${typeCounts[t]||0})</option>`).join('');
   document.getElementById('fleet-filter-wifi').innerHTML = '<option value="">All WiFi</option>' +
     wifiTypes.map(w => `<option value="${w}">${w}</option>`).join('');
+
+  if (pendingFleetDeepLinkFilter) {
+    applyFleetDeepLinkFilter(pendingFleetDeepLinkFilter, { render: false });
+    pendingFleetDeepLinkFilter = null;
+  }
 
   renderFleetTable();
   renderAgeChart();
