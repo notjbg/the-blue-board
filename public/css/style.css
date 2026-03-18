@@ -380,12 +380,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-sidebar-toggle{display:flex!important}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
-  /* ── Map controls: collapse behind menu toggle (Change 1) ── */
-  #tab-live #controls{top:6px;right:6px;gap:3px}
-  #tab-live #controls .ctrl-btn:not(#btn-refresh):not(#mobile-ctrl-toggle){display:none}
-  #tab-live #controls.ctrl-menu-open .ctrl-btn{display:flex}
-  #mobile-ctrl-toggle{display:flex!important}
-  .ctrl-btn{padding:6px 10px;font-size:12px;min-height:36px}
+  /* ── Map controls: always-visible compact horizontal strip (Change 1) ── */
+  #tab-live #controls{top:auto;bottom:46px;right:6px;left:6px;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+  #tab-live #controls .ctrl-btn{display:flex}
+  #mobile-ctrl-toggle{display:none!important}
+  .ctrl-btn{padding:4px 8px;font-size:11px;min-height:32px}
   /* ── Stats bar: horizontal scrollable strip (Changes 2, 7) ── */
   #stats-bar{padding:4px 10px;gap:0;display:flex!important;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:40px}
   #stats-bar::-webkit-scrollbar{display:none}
@@ -443,8 +442,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-more-menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;color:var(--ua-text);font-family:var(--font-ui);font-size:13px;padding:10px 16px;cursor:pointer;transition:background-color .15s cubic-bezier(.4,0,.2,1)}
   #mobile-more-menu button:hover{background:rgba(30,41,59,.5)}
   #mobile-more-menu button .bnav-icon{font-size:18px}
-  /* ── Hub health bar: hidden on mobile (Change 5) ── */
-  #hub-health-bar{display:none!important}
+  /* ── Hub health bar: compact pill grid on mobile (Change 5) ── */
+  #hub-health-bar{display:flex!important;flex-wrap:wrap;justify-content:center;padding:4px 8px;gap:0}
+  #hub-health-bar .hh-label,#hub-health-bar .hh-explainer,#hub-health-bar .hh-info,#hub-health-bar .hh-sep,#hub-health-bar .hh-avg{display:none!important}
+  #hub-health-bar .hh-hub{padding:3px 8px;font-size:10px;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px;min-height:auto}
   #tip-strip{display:none!important}
   /* ── Footer: condensed single line (Change 6) ── */
   .footer-hub-links,.footer-data-sources{display:none!important}
