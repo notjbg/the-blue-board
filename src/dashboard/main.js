@@ -3057,7 +3057,9 @@ async function loadScheduleData() {
       let msg = '';
       if (result.degraded && meta.dataAge) {
         const ageMin = Math.round(meta.dataAge / 60);
-        msg = `Showing cached complete data from ${ageMin}m ago while refreshing.`;
+        msg = result.partial
+          ? `Showing cached partial data from ${ageMin}m ago while refreshing.`
+          : `Showing cached complete data from ${ageMin}m ago while refreshing.`;
       } else if (meta.partialReason === 'deadline_exceeded') {
         msg = 'The request timed out before all pages were fetched.';
       } else if (meta.partialReason === 'first_page_failed') {
@@ -3067,7 +3069,13 @@ async function loadScheduleData() {
       } else {
         msg = 'Some flights may be missing.';
       }
-      const pct = meta.completeness != null && !result.degraded ? ` ${Math.round(meta.completeness * 100)}% loaded.` : '';
+      const pct = meta.completeness != null
+        ? result.degraded && result.partial
+          ? ` ${Math.round(meta.completeness * 100)}% previously loaded.`
+          : !result.degraded
+            ? ` ${Math.round(meta.completeness * 100)}% loaded.`
+            : ''
+        : '';
       const bgColor = result.degraded ? 'rgba(78,205,196,.12)' : 'rgba(234,179,8,.12)';
       const borderColor = result.degraded ? 'rgba(78,205,196,.3)' : 'rgba(234,179,8,.3)';
       const textColor = result.degraded ? '#4ecdc4' : '#eab308';

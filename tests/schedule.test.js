@@ -376,32 +376,19 @@ describe('schedule API', () => {
     }
   });
 
-  it('scrape-first: scraping fails, falls back to official API', async () => {
+  it('scrape-first: historical failures do not trigger official API rescue', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const urlStr = String(url);
       if (urlStr.includes('fr24api.flightradar24.com')) {
-        return {
-          ok: true,
-          json: async () => ({
-            data: [{
-              flight_icao: 'UAL200',
-              flight_iata: 'UA200',
-              status: 'scheduled',
-              orig_iata: 'LAX',
-              dest_iata: 'SFO',
-              scheduled_departure: 1741653600,
-              scheduled_arrival: 1741660800,
-            }]
-          }),
-        };
+        throw new Error('Official API should not be called for historical windows');
       }
       // Scraping returns 403
       return { ok: false, status: 403, text: async () => 'Forbidden', headers: { get: () => null } };
     });
 
-    const ts = Math.floor(Date.now() / 1000) - 25200;
+    const ts = getStartOfDayForHub('LAX') - 86400;
     const req = {
       method: 'GET',
       headers: { origin: 'http://localhost:3000' },
@@ -412,8 +399,11 @@ describe('schedule API', () => {
     await handler(req, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.meta.source).toBe('official-api');
-    expect(res.body.meta.fallbackFrom).toBe('scraping');
+    expect(res.body.partial).toBe(true);
+    expect(res.body.meta.source).toBe('scraping');
+    for (const call of fetchSpy.mock.calls) {
+      expect(String(call[0])).not.toContain('fr24api.flightradar24.com');
+    }
   });
 
   it('scrape-first: tomorrow uses official fallback when scraping fails', async () => {
@@ -653,6 +643,64 @@ describe('schedule API', () => {
     expect(vercelFunctionMocks.waitUntil).toHaveBeenCalledTimes(1);
   });
 
+  it('returns persisted partial snapshot on cold start while refreshing in the background', async () => {
+    const ts = getStartOfDayForHub('ORD') + 86400;
+    scheduleSnapshotMocks.loadScheduleSnapshot.mockResolvedValue({
+      data: {
+        flights: [{
+          airline: { code: { iata: 'UA' } },
+          identification: { number: { default: 'UA123' } },
+          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+          airport: {
+            origin: { code: { iata: 'ORD' } },
+            destination: { code: { iata: 'LAX' } }
+          }
+        }],
+        total: 1,
+        totalFetched: 2,
+        pagesScanned: 2,
+        totalPages: 4,
+        cached: false,
+        partial: true,
+        hub: 'ORD',
+        dir: 'departures',
+        meta: {
+          partialReason: 'rate_limited',
+          pagesRequested: 4,
+          pagesSucceeded: 2,
+          pagesFailed: 2,
+          missingPages: [3, 4],
+          completeness: 0.5,
+          elapsedMs: 75,
+          source: 'scraping'
+        }
+      },
+      refreshedAt: Date.now() - (7 * 60 * 1000)
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('background refresh should be best-effort');
+    });
+
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'ORD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.partial).toBe(true);
+    expect(res.body.degraded).toBe(true);
+    expect(res.body.meta.fallbackScope).toBe('persistent_partial');
+    expect(res.body.meta.bestKnownPartial).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(vercelFunctionMocks.waitUntil).toHaveBeenCalledTimes(1);
+  });
+
   it('persists complete aggregated results after a successful fetch', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
@@ -704,6 +752,73 @@ describe('schedule API', () => {
       data: expect.objectContaining({
         partial: false,
         total: 1
+      })
+    }));
+  });
+
+  it('persists partial aggregated results when they are the best available fallback', { timeout: 15000 }, async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      const pageMatch = urlStr.match(/page=(\d+)/);
+      const page = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+
+      if (page === 2) {
+        return { ok: false, status: 429, text: async () => 'Too Many Requests', headers: { get: () => null } };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: page, total: 2 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'UA' } },
+                          identification: { number: { default: `UA8${page}` } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'ORD' } },
+                            destination: { code: { iata: 'LAX' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = getStartOfDayForHub('ORD') + 86400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'ORD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.partial).toBe(true);
+    expect(res.body.total).toBe(1);
+    expect(scheduleSnapshotMocks.saveScheduleSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      cacheKey: `agg:ORD:departures:${ts}`,
+      data: expect.objectContaining({
+        partial: true,
+        total: 1,
+        meta: expect.objectContaining({
+          completeness: 0.5,
+          partialReason: 'rate_limited'
+        })
       })
     }));
   });

@@ -1,5 +1,6 @@
 const SNAPSHOT_TABLE = 'schedule_snapshots';
 const SNAPSHOT_TTL_MS = 72 * 60 * 60 * 1000;
+const MIN_PARTIAL_SNAPSHOT_COMPLETENESS = 0.25;
 
 interface PersistedSnapshotRow {
   payload: any;
@@ -22,6 +23,39 @@ interface SaveScheduleSnapshotArgs {
 let warnedMissingConfig = false;
 let warnedInitFailure = false;
 let supabaseClientPromise: Promise<any | null> | null = null;
+
+function getSnapshotCompleteness(data: any): number {
+  const completeness = Number(data?.meta?.completeness);
+  if (Number.isFinite(completeness)) {
+    return Math.max(0, Math.min(1, completeness));
+  }
+  return data?.partial ? 0 : 1;
+}
+
+function shouldPersistPartialSnapshot(data: any): boolean {
+  if (!data?.partial) return false;
+  const total = Number(data?.total || 0);
+  return total > 0 && getSnapshotCompleteness(data) >= MIN_PARTIAL_SNAPSHOT_COMPLETENESS;
+}
+
+function isSnapshotCandidateBetter(candidate: any, existing: any): boolean {
+  if (!existing) return true;
+  if (!candidate?.partial) return true;
+  if (!existing?.partial) return false;
+
+  const candidateCompleteness = getSnapshotCompleteness(candidate);
+  const existingCompleteness = getSnapshotCompleteness(existing);
+  if (candidateCompleteness > existingCompleteness + 0.01) return true;
+  if (candidateCompleteness + 0.01 < existingCompleteness) return false;
+
+  const candidateTotal = Number(candidate?.total || 0);
+  const existingTotal = Number(existing?.total || 0);
+  if (candidateTotal !== existingTotal) return candidateTotal > existingTotal;
+
+  const candidatePages = Number(candidate?.meta?.pagesSucceeded || 0);
+  const existingPages = Number(existing?.meta?.pagesSucceeded || 0);
+  return candidatePages > existingPages;
+}
 
 function getSupabaseConfig(): { url: string; key: string } | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -87,7 +121,10 @@ export async function loadScheduleSnapshot(cacheKey: string): Promise<PersistedS
 }
 
 export async function saveScheduleSnapshot({ cacheKey, hub, dir, ts, data }: SaveScheduleSnapshotArgs): Promise<void> {
-  if (!data || data.partial) return;
+  if (!data) return;
+
+  const isCompleteSnapshot = !data.partial;
+  if (!isCompleteSnapshot && !shouldPersistPartialSnapshot(data)) return;
 
   const supabase = await getSupabaseAdmin();
   if (!supabase) return;
@@ -96,6 +133,22 @@ export async function saveScheduleSnapshot({ cacheKey, hub, dir, ts, data }: Sav
   const expiresAtIso = new Date(Math.max(Date.now() + SNAPSHOT_TTL_MS, (ts * 1000) + SNAPSHOT_TTL_MS)).toISOString();
 
   try {
+    if (!isCompleteSnapshot) {
+      const { data: existingRows, error: existingError } = await supabase
+        .from(SNAPSHOT_TABLE)
+        .select('payload')
+        .eq('cache_key', cacheKey)
+        .limit(1);
+
+      if (existingError) {
+        console.error(`Schedule snapshot read-before-write failed for ${cacheKey}:`, existingError.message);
+        return;
+      }
+
+      const existingPayload = (existingRows as PersistedSnapshotRow[] | null)?.[0]?.payload;
+      if (!isSnapshotCandidateBetter(data, existingPayload)) return;
+    }
+
     const { error } = await supabase
       .from(SNAPSHOT_TABLE)
       .upsert({
