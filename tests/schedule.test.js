@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import handler, { shouldAttemptOfficialFallback, recordFallback, resetFallbackBreaker } from '../api/schedule.js';
+import { getStartOfDayForHub } from '../api/irops.js';
+
+function formatForFR24Test(date) {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+}
 
 function createRes() {
   return {
@@ -391,6 +396,49 @@ describe('schedule API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.meta.source).toBe('official-api');
     expect(res.body.meta.fallbackFrom).toBe('scraping');
+  });
+
+  it('scrape-first: tomorrow uses official fallback when scraping fails', async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+
+    let officialUrl = '';
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        officialUrl = urlStr;
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{
+              flight_icao: 'UAL201',
+              flight_iata: 'UA201',
+              status: 'scheduled',
+              orig_iata: 'LAX',
+              dest_iata: 'ORD',
+              scheduled_departure: 1741653600,
+              scheduled_arrival: 1741660800,
+            }]
+          }),
+        };
+      }
+      return { ok: false, status: 403, text: async () => 'Forbidden', headers: { get: () => null } };
+    });
+
+    const ts = getStartOfDayForHub('LAX') + 86400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'LAX', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.meta.source).toBe('official-api');
+    expect(res.body.meta.fallbackFrom).toBe('scraping');
+    expect(officialUrl).toContain(`flight_datetime_from=${encodeURIComponent(formatForFR24Test(new Date(ts * 1000)))}`);
+    expect(officialUrl).toContain(`flight_datetime_to=${encodeURIComponent(formatForFR24Test(new Date((ts + 86400 - 1) * 1000)))}`);
   });
 
   it('circuit breaker trips after repeated fallbacks', () => {
