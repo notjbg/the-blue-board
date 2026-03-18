@@ -1,9 +1,14 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { loadScheduleSnapshot, saveScheduleSnapshot } from './_schedule-snapshots.js';
+import { getStartOfDayForHub } from './irops.js';
 import { waitUntil } from '@vercel/functions';
 
 const isRateLimited = createRateLimiter('schedule', 30);
+
+type ScheduleFetchOptions = {
+  allowTargetedOfficialRescue?: boolean;
+};
 
 // In-memory LRU cache for FR24 schedule data
 const cache = new Map<string, { data: any; expires: number; time: number }>();
@@ -17,6 +22,7 @@ const MAX_COMPLETE_CACHE_SIZE = 128;
 const COMPLETE_CACHE_MAX_AGE = 21600000; // 6 hours
 const BATCH_DELAY = 500; // 500ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
+const TARGETED_OFFICIAL_RESCUE_HUBS = new Set(['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX']);
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
 const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000, LAX: 55000, DEN: 55000, IAD: 55000, NRT: 55000, GUM: 55000 };
@@ -137,15 +143,25 @@ function getLastCompleteByHubDir(hub: string, dir: string, ts: number) {
   return entry;
 }
 
-async function getPersistentComplete(key: string) {
+async function getPersistentFallback(key: string) {
   const snapshot = await loadScheduleSnapshot(key);
-  if (!snapshot || snapshot.data?.partial) return null;
-  saveComplete(key, snapshot.data, snapshot.refreshedAt);
-  return { data: snapshot.data, time: snapshot.refreshedAt };
+  if (!snapshot) return null;
+  if (!snapshot.data?.partial) {
+    saveComplete(key, snapshot.data, snapshot.refreshedAt);
+  }
+  return {
+    data: snapshot.data,
+    time: snapshot.refreshedAt,
+    fallbackScope: snapshot.data?.partial ? 'persistent_partial' as const : 'persistent' as const,
+  };
 }
 
-function buildDegradedResponse(entry: { data: any; time: number }, fallbackScope: 'exact' | 'hub_dir' | 'persistent') {
+function buildDegradedResponse(
+  entry: { data: any; time: number },
+  fallbackScope: 'exact' | 'hub_dir' | 'persistent' | 'persistent_partial'
+) {
   const dataAge = Math.max(0, Math.round((Date.now() - entry.time) / 1000));
+  const isBestKnownPartial = entry.data?.partial === true;
   return {
     ...entry.data,
     cached: true,
@@ -155,8 +171,18 @@ function buildDegradedResponse(entry: { data: any; time: number }, fallbackScope
       ...(entry.data?.meta || {}),
       dataAge,
       fallbackScope,
+      bestKnownPartial: isBestKnownPartial,
     }
   };
+}
+
+function shouldAttemptTargetedOfficialRescue(hub: string, ts: number, options?: ScheduleFetchOptions): boolean {
+  if (!options?.allowTargetedOfficialRescue || !process.env.FR24_API_TOKEN) return false;
+  const hubUpper = hub.toUpperCase();
+  if (!TARGETED_OFFICIAL_RESCUE_HUBS.has(hubUpper)) return false;
+
+  const startOfToday = getStartOfDayForHub(hubUpper);
+  return ts === startOfToday || ts === startOfToday + 86400;
 }
 
 function cacheSet(key: string, data: any, ttlMs: number): void {
@@ -635,10 +661,17 @@ function enqueueBackgroundTask(promise: Promise<any>): void {
   }
 }
 
-function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: string, ttl: number): void {
+function triggerBackgroundRefresh(
+  hub: string,
+  dir: string,
+  ts: number,
+  aggKey: string,
+  ttl: number,
+  options: ScheduleFetchOptions = {}
+): void {
   if (pendingAggs.has(aggKey)) return;
   const refreshHub = String(hub);
-  const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000).then(async result => {
+  const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000, options).then(async result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
     saveComplete(aggKey, result);
     await saveScheduleSnapshot({ cacheKey: aggKey, hub: refreshHub, dir, ts, data: result });
@@ -693,10 +726,18 @@ async function tryOfficialFallback(
   return null;
 }
 
-async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: number, overallDeadline?: number) {
+async function fetchAllPages(
+  hub: string,
+  dir: string,
+  ts: number,
+  timeoutMs?: number,
+  overallDeadline?: number,
+  options: ScheduleFetchOptions = {}
+) {
   const logHub = String(hub);
   const now = Date.now();
   const effectiveDeadline = overallDeadline || (now + (timeoutMs || HUB_TIMEOUT_MS[logHub.toUpperCase()] || 45000));
+  const allowTargetedOfficialRescue = shouldAttemptTargetedOfficialRescue(logHub, ts, options);
 
   // ── Source routing decision tree ──
   const srcPriority = (process.env.SCHEDULE_SOURCE_PRIORITY || 'scrape').toLowerCase();
@@ -747,8 +788,8 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   const startTime = Date.now();
   const firstPage = await fetchOnePage(logHub, dir, ts, 1, deadline);
   if (!firstPage || firstPage._rateLimited) {
-    // Scraping failed on first page — try official API fallback if in scrape-first mode
-    if (srcPriority === 'scrape') {
+    // Targeted rescue: only spend official credits for missing high-priority windows.
+    if (srcPriority === 'scrape' && allowTargetedOfficialRescue) {
       console.log(`Scraping failed on first page for ${logHub} ${dir}, trying official API fallback`);
       const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
       if (fallback) return fallback;
@@ -889,7 +930,7 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
   };
 
   // Scrape-first fallback: if scraping failed completely, try official API (with circuit breaker)
-  if (srcPriority === 'scrape' && scrapeResult.total === 0 && scrapeResult.partial) {
+  if (srcPriority === 'scrape' && allowTargetedOfficialRescue && scrapeResult.total === 0 && scrapeResult.partial) {
     console.log(`Scraping returned 0 flights for ${logHub} ${dir}, trying official API fallback`);
     const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
     if (fallback) return fallback;
@@ -971,7 +1012,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const stale = cacheGetStale(currentAggKey);
     if (stale && !stale.data.partial) {
-      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl, { allowTargetedOfficialRescue: false });
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
     }
@@ -979,16 +1020,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const exactLastComplete = getLastComplete(currentAggKey);
     const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir, ts);
     if (fallbackComplete) {
-      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl, { allowTargetedOfficialRescue: false });
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
       return res.status(200).json(buildDegradedResponse(fallbackComplete, exactLastComplete ? 'exact' : 'hub_dir'));
     }
 
-    const persistentComplete = await getPersistentComplete(currentAggKey);
-    if (persistentComplete) {
-      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
+    const persistentFallback = await getPersistentFallback(currentAggKey);
+    if (persistentFallback) {
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl, {
+        allowTargetedOfficialRescue: persistentFallback.fallbackScope === 'persistent_partial'
+      });
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-      return res.status(200).json(buildDegradedResponse(persistentComplete, 'persistent'));
+      return res.status(200).json(buildDegradedResponse(persistentFallback, persistentFallback.fallbackScope));
     }
 
     if (pendingAggs.has(currentAggKey)) {
@@ -999,7 +1042,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline).then(async result => {
+    const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline, {
+      allowTargetedOfficialRescue: true
+    }).then(async result => {
       cacheSet(currentAggKey, result, result.partial ? 60000 : ttl);
       saveComplete(currentAggKey, result);
       await saveScheduleSnapshot({ cacheKey: currentAggKey, hub, dir, ts, data: result });
@@ -1017,10 +1062,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(200).json(buildDegradedResponse(lc, exactLc ? 'exact' : 'hub_dir'));
         }
 
-        const persistentLc = await getPersistentComplete(currentAggKey);
-        if (persistentLc) {
+        const persistentResult = await getPersistentFallback(currentAggKey);
+        if (persistentResult && persistentResult.fallbackScope === 'persistent') {
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-          return res.status(200).json(buildDegradedResponse(persistentLc, 'persistent'));
+          return res.status(200).json(buildDegradedResponse(persistentResult, 'persistent'));
         }
       }
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
@@ -1031,10 +1076,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (e) {
     console.error('Schedule API error:', e);
     if (aggKey) {
-      const persistentFallback = await getPersistentComplete(aggKey);
+      const persistentFallback = await getPersistentFallback(aggKey);
       if (persistentFallback) {
         res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-        return res.status(200).json(buildDegradedResponse(persistentFallback, 'persistent'));
+        return res.status(200).json(buildDegradedResponse(persistentFallback, persistentFallback.fallbackScope));
       }
     }
     return res.status(502).json({ error: 'Upstream service unavailable' });

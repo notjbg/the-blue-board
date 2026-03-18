@@ -12,7 +12,7 @@ import {
 
 const BASE_URL = 'https://theblueboard.co';
 
-function renderUrl(path, lastmod, changefreq, priority) {
+function renderUrl(path: string, lastmod: string, changefreq: string, priority: string) {
   return [
     '  <url>',
     `    <loc>${xmlEscape(`${BASE_URL}${path}`)}</loc>`,
@@ -24,10 +24,11 @@ function renderUrl(path, lastmod, changefreq, priority) {
 }
 
 export function GET() {
+  const fleetKeys = fleetOrder as Array<keyof typeof fleetTypes>;
   const urls = [
     renderUrl('/', getLastModified(homeLastmodPaths), 'daily', '1.0'),
     renderUrl('/fleet', getLastModified(fleetIndexLastmodPaths), 'daily', '0.9'),
-    ...fleetOrder.map((key) =>
+    ...fleetKeys.map((key) =>
       renderUrl(
         `/fleet/${fleetTypes[key].slug}`,
         getLastModified(getFleetRouteLastmodPaths(fleetTypes[key].slug)),
