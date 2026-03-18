@@ -380,12 +380,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-sidebar-toggle{display:flex!important}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
-  /* ── Map controls: collapse behind menu toggle (Change 1) ── */
-  #tab-live #controls{top:6px;right:6px;gap:3px}
-  #tab-live #controls .ctrl-btn:not(#btn-refresh):not(#mobile-ctrl-toggle){display:none}
-  #tab-live #controls.ctrl-menu-open .ctrl-btn{display:flex}
-  #mobile-ctrl-toggle{display:flex!important}
-  .ctrl-btn{padding:6px 10px;font-size:12px;min-height:36px}
+  /* ── Map controls: always-visible compact horizontal strip (Change 1) ── */
+  #tab-live #controls{top:auto;bottom:46px;right:6px;left:6px;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+  #tab-live #controls .ctrl-btn{display:flex}
+  #mobile-ctrl-toggle{display:none!important}
+  .ctrl-btn{padding:4px 8px;font-size:11px;min-height:32px}
   /* ── Stats bar: horizontal scrollable strip (Changes 2, 7) ── */
   #stats-bar{padding:4px 10px;gap:0;display:flex!important;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:40px}
   #stats-bar::-webkit-scrollbar{display:none}
