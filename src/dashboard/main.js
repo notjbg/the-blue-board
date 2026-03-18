@@ -5364,6 +5364,13 @@ async function initApp() {
   var acDeepLink = new URLSearchParams(location.search).get('aircraft');
   const loadFleetAndInit = async () => {
     await loadFleetData();
+    // Flights can render before the idle-loaded fleet DB arrives, so refresh
+    // any fleet-dependent live UI as soon as the fleet data finishes loading.
+    if (allFlights.length > 0) {
+      updateStats();
+      updateAnalytics();
+      updateLiveFleetPanel();
+    }
     updateTicker(); // Re-render ticker now that fleet data is available (avoids 30s gap with missing fleet counts)
     initFleetTab();
     var onboardingEl = document.getElementById('onboarding-overlay');
