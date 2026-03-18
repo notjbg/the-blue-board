@@ -1,18 +1,20 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
+import { loadScheduleSnapshot, saveScheduleSnapshot } from './_schedule-snapshots.js';
+import { waitUntil } from '@vercel/functions';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
 // In-memory LRU cache for FR24 schedule data
 const cache = new Map<string, { data: any; expires: number; time: number }>();
-const MAX_CACHE_SIZE = 200;
+const MAX_CACHE_SIZE = 400;
 
 // Separate cache for last-known-complete aggregates (fallback when fresh fetch is partial)
 const lastCompleteCache = new Map<string, { data: any; time: number }>();
 // Broader fallback cache keyed by hub+direction (survives day-key misses)
 const lastCompleteByHubDir = new Map<string, { data: any; time: number; sourceKey: string }>();
-const MAX_COMPLETE_CACHE_SIZE = 50;
-const COMPLETE_CACHE_MAX_AGE = 1800000; // 30 minutes
+const MAX_COMPLETE_CACHE_SIZE = 128;
+const COMPLETE_CACHE_MAX_AGE = 21600000; // 6 hours
 const BATCH_DELAY = 500; // 500ms pause between parallel batches
 const STALE_GRACE = 120000; // serve stale data for up to 2min past expiry
 
@@ -96,12 +98,12 @@ function cacheGetStale(key: string) {
   return entry;
 }
 
-function saveComplete(key: string, data: any): void {
+function saveComplete(key: string, data: any, savedAtMs = Date.now()): void {
   if (data.partial) return;
   if (lastCompleteCache.size >= MAX_COMPLETE_CACHE_SIZE) {
     lastCompleteCache.delete(lastCompleteCache.keys().next().value!);
   }
-  lastCompleteCache.set(key, { data, time: Date.now() });
+  lastCompleteCache.set(key, { data, time: savedAtMs });
 
   // Also populate hub+direction+day level cache for broader fallback
   const aggMatch = /^agg:([A-Z]{3,4}):(departures|arrivals):(\d+)$/i.exec(key);
@@ -110,7 +112,7 @@ function saveComplete(key: string, data: any): void {
     if (lastCompleteByHubDir.size >= MAX_COMPLETE_CACHE_SIZE) {
       lastCompleteByHubDir.delete(lastCompleteByHubDir.keys().next().value!);
     }
-    lastCompleteByHubDir.set(hdKey, { data, time: Date.now(), sourceKey: key });
+    lastCompleteByHubDir.set(hdKey, { data, time: savedAtMs, sourceKey: key });
   }
 }
 
@@ -133,6 +135,28 @@ function getLastCompleteByHubDir(hub: string, dir: string, ts: number) {
     return null;
   }
   return entry;
+}
+
+async function getPersistentComplete(key: string) {
+  const snapshot = await loadScheduleSnapshot(key);
+  if (!snapshot || snapshot.data?.partial) return null;
+  saveComplete(key, snapshot.data, snapshot.refreshedAt);
+  return { data: snapshot.data, time: snapshot.refreshedAt };
+}
+
+function buildDegradedResponse(entry: { data: any; time: number }, fallbackScope: 'exact' | 'hub_dir' | 'persistent') {
+  const dataAge = Math.max(0, Math.round((Date.now() - entry.time) / 1000));
+  return {
+    ...entry.data,
+    cached: true,
+    stale: true,
+    degraded: true,
+    meta: {
+      ...(entry.data?.meta || {}),
+      dataAge,
+      fallbackScope,
+    }
+  };
 }
 
 function cacheSet(key: string, data: any, ttlMs: number): void {
@@ -598,13 +622,26 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
 }
 
 const pendingAggs = new Map<string, Promise<any>>();
+let warnedWaitUntilUnavailable = false;
+
+function enqueueBackgroundTask(promise: Promise<any>): void {
+  try {
+    waitUntil(promise);
+  } catch (error: any) {
+    if (!warnedWaitUntilUnavailable) {
+      console.warn('waitUntil unavailable; schedule background refresh is best-effort:', error?.message || error);
+      warnedWaitUntilUnavailable = true;
+    }
+  }
+}
 
 function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: string, ttl: number): void {
   if (pendingAggs.has(aggKey)) return;
   const refreshHub = String(hub);
-  const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000).then(result => {
+  const promise = fetchAllPages(refreshHub, dir, ts, undefined, Date.now() + 55000).then(async result => {
     cacheSet(aggKey, result, result.partial ? 60000 : ttl);
     saveComplete(aggKey, result);
+    await saveScheduleSnapshot({ cacheKey: aggKey, hub: refreshHub, dir, ts, data: result });
     return result;
   }).catch(e => {
     console.error(`Background refresh failed for ${refreshHub} [${aggKey}]:`, e.message);
@@ -612,6 +649,7 @@ function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: 
     pendingAggs.delete(aggKey);
   });
   pendingAggs.set(aggKey, promise);
+  enqueueBackgroundTask(promise);
 }
 
 // ── Circuit breaker: stop falling back to official API during sustained scraping outages ──
@@ -646,7 +684,7 @@ async function tryOfficialFallback(
     const remaining = Math.max(2000, effectiveDeadline - Date.now() - 1000);
     const result = await fetchViaOfficialAPI(logHub, dir, ts, Math.min(remaining, 30000));
     if (result && result.total > 0) {
-      result.meta = { ...result.meta, fallbackFrom: 'scraping' };
+      result.meta = { ...(result.meta as any), fallbackFrom: 'scraping' };
       return result;
     }
   } catch (e: any) {
@@ -861,6 +899,8 @@ async function fetchAllPages(hub: string, dir: string, ts: number, timeoutMs?: n
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  let aggKey: string | null = null;
+  let swr = 600;
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -896,7 +936,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isOld = (now - ts) > 86400;
     const ttl = isOld ? 600000 : 900000;
     const cdnMaxAge = isOld ? 3600 : 900;
-    const swr = 600;
+    swr = 600;
 
     // Single page mode (backward compat)
     if (page !== undefined) {
@@ -920,75 +960,83 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Aggregation mode
-    const aggKey = `agg:${hub}:${dir}:${ts}`;
+    const currentAggKey = `agg:${hub}:${dir}:${ts}`;
+    aggKey = currentAggKey;
 
-    const cached = cacheGet(aggKey);
+    const cached = cacheGet(currentAggKey);
     if (cached) {
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...cached.data, cached: true });
     }
 
-    const stale = cacheGetStale(aggKey);
+    const stale = cacheGetStale(currentAggKey);
     if (stale && !stale.data.partial) {
-      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
       return res.status(200).json({ ...stale.data, cached: true, stale: true });
     }
 
-    const exactLastComplete = getLastComplete(aggKey);
+    const exactLastComplete = getLastComplete(currentAggKey);
     const fallbackComplete = exactLastComplete || getLastCompleteByHubDir(hub, dir, ts);
     if (fallbackComplete) {
-      triggerBackgroundRefresh(hub, dir, ts, aggKey, ttl);
-      const dataAge = Math.round((Date.now() - fallbackComplete.time) / 1000);
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
       res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-      return res.status(200).json({ ...fallbackComplete.data, cached: true, stale: true, degraded: true,
-        meta: {
-          ...fallbackComplete.data.meta,
-          dataAge,
-          fallbackScope: exactLastComplete ? 'exact' : 'hub_dir',
-        }
-      });
+      return res.status(200).json(buildDegradedResponse(fallbackComplete, exactLastComplete ? 'exact' : 'hub_dir'));
     }
 
-    if (pendingAggs.has(aggKey)) {
-      const result = await pendingAggs.get(aggKey);
+    const persistentComplete = await getPersistentComplete(currentAggKey);
+    if (persistentComplete) {
+      triggerBackgroundRefresh(hub, dir, ts, currentAggKey, ttl);
+      res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+      return res.status(200).json(buildDegradedResponse(persistentComplete, 'persistent'));
+    }
+
+    if (pendingAggs.has(currentAggKey)) {
+      const result = await pendingAggs.get(currentAggKey);
       if (result) {
         res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
         return res.status(200).json({ ...result, cached: true });
       }
     }
 
-    const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline).then(result => {
-      cacheSet(aggKey, result, result.partial ? 60000 : ttl);
-      saveComplete(aggKey, result);
+    const aggPromise = fetchAllPages(hub, dir, ts, undefined, functionDeadline).then(async result => {
+      cacheSet(currentAggKey, result, result.partial ? 60000 : ttl);
+      saveComplete(currentAggKey, result);
+      await saveScheduleSnapshot({ cacheKey: currentAggKey, hub, dir, ts, data: result });
       return result;
     });
 
-    pendingAggs.set(aggKey, aggPromise);
+    pendingAggs.set(currentAggKey, aggPromise);
     try {
       const result = await aggPromise;
       if (result.partial) {
-        const exactLc = getLastComplete(aggKey);
+        const exactLc = getLastComplete(currentAggKey);
         const lc = exactLc || getLastCompleteByHubDir(hub, dir, ts);
         if (lc) {
-          const dataAge = Math.round((Date.now() - lc.time) / 1000);
           res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
-          return res.status(200).json({ ...lc.data, cached: true, stale: true, degraded: true,
-            meta: {
-              ...lc.data.meta,
-              dataAge,
-              fallbackScope: exactLc ? 'exact' : 'hub_dir',
-            }
-          });
+          return res.status(200).json(buildDegradedResponse(lc, exactLc ? 'exact' : 'hub_dir'));
+        }
+
+        const persistentLc = await getPersistentComplete(currentAggKey);
+        if (persistentLc) {
+          res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+          return res.status(200).json(buildDegradedResponse(persistentLc, 'persistent'));
         }
       }
       res.setHeader('Cache-Control', `s-maxage=${cdnMaxAge}, stale-while-revalidate=${swr}`);
       return res.status(200).json(result);
     } finally {
-      pendingAggs.delete(aggKey);
+      pendingAggs.delete(currentAggKey);
     }
   } catch (e) {
     console.error('Schedule API error:', e);
+    if (aggKey) {
+      const persistentFallback = await getPersistentComplete(aggKey);
+      if (persistentFallback) {
+        res.setHeader('Cache-Control', `s-maxage=60, stale-while-revalidate=${swr}`);
+        return res.status(200).json(buildDegradedResponse(persistentFallback, 'persistent'));
+      }
+    }
     return res.status(502).json({ error: 'Upstream service unavailable' });
   }
 }

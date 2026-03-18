@@ -1,4 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const scheduleSnapshotMocks = vi.hoisted(() => ({
+  loadScheduleSnapshot: vi.fn(async () => null),
+  saveScheduleSnapshot: vi.fn(async () => {}),
+}));
+
+const vercelFunctionMocks = vi.hoisted(() => ({
+  waitUntil: vi.fn(),
+}));
+
+vi.mock('../api/_schedule-snapshots.js', () => scheduleSnapshotMocks);
+vi.mock('@vercel/functions', () => vercelFunctionMocks);
+
 import handler, { shouldAttemptOfficialFallback, recordFallback, resetFallbackBreaker } from '../api/schedule.js';
 import { getStartOfDayForHub } from '../api/irops.js';
 
@@ -28,6 +41,11 @@ function createRes() {
 describe('schedule API', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    scheduleSnapshotMocks.loadScheduleSnapshot.mockReset();
+    scheduleSnapshotMocks.saveScheduleSnapshot.mockReset();
+    scheduleSnapshotMocks.loadScheduleSnapshot.mockResolvedValue(null);
+    scheduleSnapshotMocks.saveScheduleSnapshot.mockResolvedValue(undefined);
+    vercelFunctionMocks.waitUntil.mockReset();
   });
 
   afterEach(() => {
@@ -576,6 +594,118 @@ describe('schedule API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.total).toBe(1);
     expect(res.body.meta.source).toBe('scraping');
+  });
+
+  it('returns persisted exact snapshot on cold start while refreshing in the background', async () => {
+    const ts = Math.floor(Date.now() / 1000) - 46800;
+    scheduleSnapshotMocks.loadScheduleSnapshot.mockResolvedValue({
+      data: {
+        flights: [{
+          airline: { code: { iata: 'UA' } },
+          identification: { number: { default: 'UA777' } },
+          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+          airport: {
+            origin: { code: { iata: 'ORD' } },
+            destination: { code: { iata: 'SFO' } }
+          }
+        }],
+        total: 1,
+        totalFetched: 1,
+        pagesScanned: 1,
+        totalPages: 1,
+        cached: false,
+        partial: false,
+        hub: 'ORD',
+        dir: 'departures',
+        meta: {
+          partialReason: null,
+          pagesRequested: 1,
+          pagesSucceeded: 1,
+          pagesFailed: 0,
+          missingPages: [],
+          completeness: 1,
+          elapsedMs: 50,
+          source: 'scraping'
+        }
+      },
+      refreshedAt: Date.now() - (5 * 60 * 1000)
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      throw new Error('fetch should not run when an exact persisted snapshot is available');
+    });
+
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'ORD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.degraded).toBe(true);
+    expect(res.body.meta.fallbackScope).toBe('persistent');
+    expect(scheduleSnapshotMocks.loadScheduleSnapshot).toHaveBeenCalledWith(`agg:ORD:departures:${ts}`);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(vercelFunctionMocks.waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists complete aggregated results after a successful fetch', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        result: {
+          response: {
+            airport: {
+              pluginData: {
+                schedule: {
+                  departures: {
+                    page: { current: 1, total: 1 },
+                    data: [{
+                      flight: {
+                        airline: { code: { iata: 'UA' } },
+                        identification: { number: { default: 'UA888' } },
+                        time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                        airport: {
+                          origin: { code: { iata: 'EWR' } },
+                          destination: { code: { iata: 'LAX' } }
+                        }
+                      }
+                    }]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+    });
+
+    const ts = Math.floor(Date.now() / 1000) - 50400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'EWR', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.partial).toBe(false);
+    expect(scheduleSnapshotMocks.saveScheduleSnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      cacheKey: `agg:EWR:departures:${ts}`,
+      hub: 'EWR',
+      dir: 'departures',
+      ts,
+      data: expect.objectContaining({
+        partial: false,
+        total: 1
+      })
+    }));
   });
 
   it('scrape-first: rate-limited mid-loop pauses and continues fetching', { timeout: 15000 }, async () => {
