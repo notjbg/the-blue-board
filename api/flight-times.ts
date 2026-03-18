@@ -4,7 +4,7 @@
 
 import type { VercelRequest, VercelResponse } from './types.js';
 
-const CACHE_TTL_MS = 120_000; // 2 minutes
+const CACHE_TTL_MS = 60_000; // 1 minute
 const cache = new Map<string, { data: any; ts: number }>();
 
 function getCached(key: string): any | null {
@@ -18,7 +18,7 @@ function setCache(key: string, data: any): void {
   cache.set(key, { data, ts: Date.now() });
 }
 
-// Rate limiting: 5 req/min per IP
+// Rate limiting: 30 req/min per IP
 const rateLimitByIp = new Map<string, number[]>();
 export function getClientIp(req: VercelRequest): string {
   const realIp = req.headers?.['x-real-ip'];
@@ -34,7 +34,7 @@ function isRateLimited(req: VercelRequest): boolean {
   if (!rateLimitByIp.has(ip)) rateLimitByIp.set(ip, []);
   const ipLog = rateLimitByIp.get(ip)!;
   while (ipLog.length && ipLog[0] < now - 60_000) ipLog.shift();
-  if (ipLog.length >= 5) return true;
+  if (ipLog.length >= 30) return true;
   ipLog.push(now);
   // Evict stale IPs every 5 minutes
   if (now - lastRateLimitCleanup > 300_000) {
@@ -145,7 +145,7 @@ async function tryFR24Summary(req: VercelRequest, res: VercelResponse, flight: s
     if (f.orig_icao) result.origin.iata = icaoToIata(f.orig_icao);
     if (f.dest_icao_actual || f.dest_icao) result.destination.iata = icaoToIata(f.dest_icao_actual || f.dest_icao);
     setCache(cacheKey, result);
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     return res.status(200).json(result);
   } catch (e) {
     return res.status(404).json({ success: false, error: 'No flight data available' });
@@ -169,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const cacheKey = `fa:${flight}`;
   const cached = getCached(cacheKey);
   if (cached) {
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     return res.status(200).json({ ...cached, cached: true });
   }
 
@@ -285,7 +285,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     setCache(cacheKey, result);
-    res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     return res.status(200).json(result);
   } catch (e) {
     console.error('FlightAware scrape error:', e);
