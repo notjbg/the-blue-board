@@ -56,7 +56,9 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 .busiest-badge{background:var(--ua-blue);color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
 #tab-live .map-area{flex:1;position:relative}
 #tab-live #map{width:100%;height:100%}
-#tab-live #controls{position:absolute;top:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:5px}
+#tab-live #controls{position:absolute;top:10px;right:10px;z-index:1000}
+#ctrl-panel{display:flex;flex-direction:column;gap:5px}
+#mobile-ctrl-toggle{display:none}
 .ctrl-btn{background:rgba(10,14,20,.9);border:1px solid var(--ua-border);color:#ccc;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:10px;font-family:var(--font-mono);backdrop-filter:blur(8px);transition:background-color .2s cubic-bezier(.4,0,.2,1),border-color .2s cubic-bezier(.4,0,.2,1),color .2s cubic-bezier(.4,0,.2,1),transform .15s cubic-bezier(.4,0,.2,1)}
 .ctrl-btn:hover{background:rgba(0,93,170,.3);border-color:var(--ua-blue)}
 .ctrl-btn.active{border-color:var(--ua-accent);color:var(--ua-accent)}
@@ -346,6 +348,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 
 /* Animations */
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ctrlPanelIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 .tab-content.active{animation:fadeIn .2s ease}
 
 #sched-table-wrap{max-height:calc(100vh - 260px)}
@@ -380,11 +383,14 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #mobile-sidebar-toggle{display:flex!important}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
-  /* ── Map controls: always-visible compact horizontal strip (Change 1) ── */
-  #tab-live #controls{top:auto;bottom:46px;right:6px;left:6px;flex-direction:row;flex-wrap:wrap;justify-content:flex-end;gap:4px}
-  #tab-live #controls .ctrl-btn{display:flex}
-  #mobile-ctrl-toggle{display:none!important}
-  .ctrl-btn{padding:4px 8px;font-size:11px;min-height:32px}
+  /* ── Map controls: expandable FAB + floating panel ── */
+  #tab-live #controls{top:auto;bottom:8px;right:8px;left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  #ctrl-panel{display:none;flex-direction:column;background:rgba(10,14,20,.95);border:1px solid var(--ua-border);border-radius:12px;padding:6px;gap:4px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,.5)}
+  #controls.ctrl-menu-open #ctrl-panel{display:flex;animation:ctrlPanelIn .2s ease-out}
+  #ctrl-panel .ctrl-btn{display:flex;padding:10px 14px;font-size:12px;min-height:40px;border-radius:8px;white-space:nowrap;background:rgba(30,41,59,.4);border-color:transparent}
+  #ctrl-panel .ctrl-btn.active{background:rgba(0,93,170,.2);border-color:var(--ua-accent);color:var(--ua-accent)}
+  #mobile-ctrl-toggle{display:flex!important;width:44px;height:44px;border-radius:50%;align-items:center;justify-content:center;padding:0;background:rgba(10,14,20,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 2px 12px rgba(0,0,0,.4);min-height:44px;color:var(--ua-accent);border:1px solid var(--ua-border)}
+  .ctrl-btn{min-height:32px}
   /* ── Stats bar: horizontal scrollable strip (Changes 2, 7) ── */
   #stats-bar{padding:4px 10px;gap:0;display:flex!important;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-height:40px}
   #stats-bar::-webkit-scrollbar{display:none}

@@ -589,20 +589,32 @@ switchToTab = function(tabId, updateHash) {
     var ticker = document.getElementById('ticker');
     if (!ticker) return;
     var items = ticker.querySelectorAll('.ticker-item');
-    // Only take unique items (ticker duplicates items for seamless scroll)
     var uniqueCount = Math.ceil(items.length / 2);
-    clearMobileTickerState();
 
-    if (!isMobile() || uniqueCount === 0) return;
+    if (!isMobile() || uniqueCount === 0) {
+      clearMobileTickerState();
+      return;
+    }
 
-    // Show first item
+    // If rotation is already running, just re-apply visibility to current item
+    // (innerHTML wipe from data refresh removes all classes — don't restart)
+    if (rotateInterval !== null) {
+      if (currentIndex >= uniqueCount) currentIndex = 0;
+      for (var i = 0; i < items.length; i++) {
+        items[i].classList.remove('mobile-active', 'mobile-fade-out');
+      }
+      if (items[currentIndex]) items[currentIndex].classList.add('mobile-active');
+      return;
+    }
+
+    // First-time setup
     currentIndex = 0;
     if (items[0]) items[0].classList.add('mobile-active');
 
     if (uniqueCount <= 1) return;
 
     rotateInterval = setInterval(function() {
-      if (!isMobile()) { clearInterval(rotateInterval); return; }
+      if (!isMobile()) { clearInterval(rotateInterval); rotateInterval = null; return; }
       var items = ticker.querySelectorAll('.ticker-item');
       var uniqueCount = Math.ceil(items.length / 2);
       if (uniqueCount <= 1) return;
