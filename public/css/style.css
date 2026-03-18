@@ -384,7 +384,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #tab-live .map-area{height:calc(100vh - 100px);min-height:300px}
   #tab-live #map{height:100%}
   /* ── Map controls: expandable FAB + floating panel ── */
-  #tab-live #controls{top:auto;bottom:8px;right:8px;left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  #tab-live #controls{top:auto;bottom:8px;right:auto;left:8px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
   #ctrl-panel{display:none;flex-direction:column;background:rgba(10,14,20,.95);border:1px solid var(--ua-border);border-radius:12px;padding:6px;gap:4px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 20px rgba(0,0,0,.5)}
   #controls.ctrl-menu-open #ctrl-panel{display:flex;animation:ctrlPanelIn .2s ease-out}
   #ctrl-panel .ctrl-btn{display:flex;padding:10px 14px;font-size:12px;min-height:40px;border-radius:8px;white-space:nowrap;background:rgba(30,41,59,.4);border-color:transparent}
