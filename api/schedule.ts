@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
 import { loadScheduleSnapshot, saveScheduleSnapshot } from './_schedule-snapshots.js';
+import { waitUntil } from '@vercel/functions';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
@@ -621,6 +622,18 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
 }
 
 const pendingAggs = new Map<string, Promise<any>>();
+let warnedWaitUntilUnavailable = false;
+
+function enqueueBackgroundTask(promise: Promise<any>): void {
+  try {
+    waitUntil(promise);
+  } catch (error: any) {
+    if (!warnedWaitUntilUnavailable) {
+      console.warn('waitUntil unavailable; schedule background refresh is best-effort:', error?.message || error);
+      warnedWaitUntilUnavailable = true;
+    }
+  }
+}
 
 function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: string, ttl: number): void {
   if (pendingAggs.has(aggKey)) return;
@@ -636,6 +649,7 @@ function triggerBackgroundRefresh(hub: string, dir: string, ts: number, aggKey: 
     pendingAggs.delete(aggKey);
   });
   pendingAggs.set(aggKey, promise);
+  enqueueBackgroundTask(promise);
 }
 
 // ── Circuit breaker: stop falling back to official API during sustained scraping outages ──

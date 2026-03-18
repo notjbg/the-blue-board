@@ -6,8 +6,8 @@ import type { VercelRequest, VercelResponse } from '../types.js';
 import { getStartOfDayForHub } from '../irops.js';
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
-const WARM_TASKS_PER_RUN = 4;
-const INTER_TASK_DELAY_MS = 3000;
+const WARM_TASKS_PER_RUN = Math.max(1, Math.min(8, Number(process.env.SCHEDULE_WARM_TASKS_PER_RUN || 4) || 4));
+const INTER_TASK_DELAY_MS = Math.max(0, Number(process.env.SCHEDULE_WARM_DELAY_MS || 3000) || 3000);
 const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : process.env.VERCEL_URL
@@ -17,10 +17,10 @@ const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
 const WINDOW_TASKS = [
   { dayOffset: 0, label: 'today', dir: 'departures' },
   { dayOffset: 0, label: 'today', dir: 'arrivals' },
-  { dayOffset: -1, label: 'yesterday', dir: 'departures' },
-  { dayOffset: -1, label: 'yesterday', dir: 'arrivals' },
   { dayOffset: 1, label: 'tomorrow', dir: 'departures' },
   { dayOffset: 1, label: 'tomorrow', dir: 'arrivals' },
+  { dayOffset: -1, label: 'yesterday', dir: 'departures' },
+  { dayOffset: -1, label: 'yesterday', dir: 'arrivals' },
 ] as const;
 
 type WarmTask = {
@@ -84,8 +84,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let warmed = 0;
   let failed = 0;
 
-  // Rotate through the full 3-day window to keep persistent snapshots populated
-  // without blowing through the 300s cron budget or hammering FR24.
+  // There are 54 total windows (9 hubs × 3 days × 2 directions).
+  // Keep the default conservative for FR24, and use the seed script for first-fill.
   const warmPlan = buildWarmPlan();
   for (let i = 0; i < warmPlan.length; i++) {
     const task = warmPlan[i];

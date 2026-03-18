@@ -16,4 +16,5 @@ CREATE INDEX idx_schedule_snapshots_lookup ON schedule_snapshots (hub, direction
 CREATE INDEX idx_schedule_snapshots_expires_at ON schedule_snapshots (expires_at);
 
 -- Server-side only table for resilient schedule fallbacks across deploys.
+-- Intentionally no anon/authenticated policies: only server-side secret/service-role access should touch this table.
 ALTER TABLE schedule_snapshots ENABLE ROW LEVEL SECURITY;

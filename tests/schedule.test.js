@@ -5,7 +5,12 @@ const scheduleSnapshotMocks = vi.hoisted(() => ({
   saveScheduleSnapshot: vi.fn(async () => {}),
 }));
 
+const vercelFunctionMocks = vi.hoisted(() => ({
+  waitUntil: vi.fn(),
+}));
+
 vi.mock('../api/_schedule-snapshots.js', () => scheduleSnapshotMocks);
+vi.mock('@vercel/functions', () => vercelFunctionMocks);
 
 import handler, { shouldAttemptOfficialFallback, recordFallback, resetFallbackBreaker } from '../api/schedule.js';
 import { getStartOfDayForHub } from '../api/irops.js';
@@ -40,6 +45,7 @@ describe('schedule API', () => {
     scheduleSnapshotMocks.saveScheduleSnapshot.mockReset();
     scheduleSnapshotMocks.loadScheduleSnapshot.mockResolvedValue(null);
     scheduleSnapshotMocks.saveScheduleSnapshot.mockResolvedValue(undefined);
+    vercelFunctionMocks.waitUntil.mockReset();
   });
 
   afterEach(() => {
@@ -644,6 +650,7 @@ describe('schedule API', () => {
     expect(res.body.meta.fallbackScope).toBe('persistent');
     expect(scheduleSnapshotMocks.loadScheduleSnapshot).toHaveBeenCalledWith(`agg:ORD:departures:${ts}`);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(vercelFunctionMocks.waitUntil).toHaveBeenCalledTimes(1);
   });
 
   it('persists complete aggregated results after a successful fetch', async () => {
