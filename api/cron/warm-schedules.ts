@@ -1,16 +1,56 @@
-// Vercel Cron Job: warms schedule CDN + in-memory cache for all UA hubs.
-// Runs every 15 minutes to ensure users always hit warm cache.
+// Vercel Cron Job: rotates through the 3-day schedule window (yesterday/today/tomorrow)
+// so exact hub/day/direction snapshots stay available across deploys and cold starts.
 // Config in vercel.json: { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" }
 
 import type { VercelRequest, VercelResponse } from '../types.js';
 import { getStartOfDayForHub } from '../irops.js';
 
 const HUBS = ['ORD', 'DEN', 'IAH', 'EWR', 'SFO', 'IAD', 'LAX', 'NRT', 'GUM'];
+const WARM_TASKS_PER_RUN = 4;
+const INTER_TASK_DELAY_MS = 3000;
 const BASE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
   : process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : 'https://theblueboard.co';
+
+const WINDOW_TASKS = [
+  { dayOffset: 0, label: 'today', dir: 'departures' },
+  { dayOffset: 0, label: 'today', dir: 'arrivals' },
+  { dayOffset: -1, label: 'yesterday', dir: 'departures' },
+  { dayOffset: -1, label: 'yesterday', dir: 'arrivals' },
+  { dayOffset: 1, label: 'tomorrow', dir: 'departures' },
+  { dayOffset: 1, label: 'tomorrow', dir: 'arrivals' },
+] as const;
+
+type WarmTask = {
+  hub: string;
+  dir: 'departures' | 'arrivals';
+  dayOffset: -1 | 0 | 1;
+  label: 'yesterday' | 'today' | 'tomorrow';
+};
+
+export function buildWarmPlan(nowMs = Date.now()): WarmTask[] {
+  const tasks: WarmTask[] = [];
+  for (const task of WINDOW_TASKS) {
+    for (const hub of HUBS) {
+      tasks.push({
+        hub,
+        dir: task.dir,
+        dayOffset: task.dayOffset,
+        label: task.label,
+      });
+    }
+  }
+
+  const slot = Math.floor(nowMs / (15 * 60 * 1000));
+  const start = (slot * WARM_TASKS_PER_RUN) % tasks.length;
+  const plan: WarmTask[] = [];
+  for (let i = 0; i < Math.min(WARM_TASKS_PER_RUN, tasks.length); i++) {
+    plan.push(tasks[(start + i) % tasks.length]);
+  }
+  return plan;
+}
 
 async function warmOne(hub: string, dir: string, timestamp: number, label: string): Promise<{ key: string; result: any }> {
   const key = `${hub}-${dir}-${label}`;
@@ -44,15 +84,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let warmed = 0;
   let failed = 0;
 
-  // Warm today departures for all hubs. Arrivals are less viewed and load on-demand.
-  // Tomorrow's data also loads on-demand — warming it here would exceed Vercel's 300s cron limit.
-  for (const hub of HUBS) {
-    const todayTs = getStartOfDayForHub(hub);
-    const { key, result } = await warmOne(hub, 'departures', todayTs, 'today');
+  // Rotate through the full 3-day window to keep persistent snapshots populated
+  // without blowing through the 300s cron budget or hammering FR24.
+  const warmPlan = buildWarmPlan();
+  for (let i = 0; i < warmPlan.length; i++) {
+    const task = warmPlan[i];
+    const ts = getStartOfDayForHub(task.hub) + (task.dayOffset * 86400);
+    const { key, result } = await warmOne(task.hub, task.dir, ts, task.label);
     results[key] = result;
     if (result.status === 'ok') warmed++; else failed++;
-    // Pause between hubs to avoid FR24 rate limiting
-    await new Promise(r => setTimeout(r, 12000));
+    if (i < warmPlan.length - 1) {
+      await new Promise(r => setTimeout(r, INTER_TASK_DELAY_MS));
+    }
   }
 
   // Phase 1.5: warm Starlink data cache (single fast request)
@@ -71,9 +114,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     failed++;
   }
 
-  // Tomorrow's data loads on-demand when users navigate to it.
-  // Warming it here would push cron runtime past Vercel's 300s limit.
-
-  console.log(`Cron warm-schedules: ${warmed} warmed, ${failed} failed`, results);
-  return res.status(200).json({ warmed, failed, results, timestamp: new Date().toISOString() });
+  console.log(`Cron warm-schedules: ${warmed} warmed, ${failed} failed`, { warmPlan, results });
+  return res.status(200).json({
+    warmed,
+    failed,
+    warmPlan,
+    results,
+    timestamp: new Date().toISOString()
+  });
 }

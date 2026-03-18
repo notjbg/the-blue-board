@@ -12,6 +12,7 @@
     "build": "vite build --config vite.dashboard.config.js && astro build && node scripts/stamp-seo-build-date.mjs",
     "build:dashboard": "vite build --config vite.dashboard.config.js",
     "preview": "astro preview",
+    "seed:schedules": "node scripts/seed-schedules.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "ui-audit": "node scripts/ui-audit.mjs"
