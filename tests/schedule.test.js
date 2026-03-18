@@ -890,6 +890,149 @@ describe('schedule API', () => {
     expect(res.body.meta.source).toBe('scraping');
   });
 
+  it('scrape-first: repeated later-page rate limits stop before scanning the tail', { timeout: 15000 }, async () => {
+    let pagesFetched = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      const pageMatch = urlStr.match(/page=(\d+)/);
+      const page = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+      pagesFetched.push(page);
+
+      if (page >= 2 && page <= 7) {
+        return { ok: false, status: 429, text: async () => 'Too Many Requests', headers: { get: () => '1' } };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: page, total: 10 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'UA' } },
+                          identification: { number: { default: `UA${page}50` } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'ORD' } },
+                            destination: { code: { iata: 'LAX' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = getStartOfDayForHub('ORD') - 86400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'ORD', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.partial).toBe(true);
+    expect(res.body.total).toBe(1);
+    expect(res.body.meta.partialReason).toBe('rate_limited');
+    expect(pagesFetched).toContain(7);
+    expect(pagesFetched).not.toContain(8);
+  });
+
+  it('scrape-first: heavy rate limiting uses official rescue on targeted windows', { timeout: 15000 }, async () => {
+    process.env.FR24_API_TOKEN = 'test-token-12345678';
+
+    let pagesFetched = [];
+    let officialCalls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const urlStr = String(url);
+      if (urlStr.includes('fr24api.flightradar24.com')) {
+        officialCalls++;
+        return {
+          ok: true,
+          json: async () => ({
+            data: [{
+              flight_icao: 'UAL777',
+              flight_iata: 'UA777',
+              status: 'scheduled',
+              orig_iata: 'DEN',
+              dest_iata: 'SFO',
+              scheduled_departure: 1741653600,
+              scheduled_arrival: 1741660800,
+            }]
+          }),
+        };
+      }
+
+      const pageMatch = urlStr.match(/page=(\d+)/);
+      const page = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+      pagesFetched.push(page);
+
+      if (page >= 2 && page <= 7) {
+        return { ok: false, status: 429, text: async () => 'Too Many Requests', headers: { get: () => '1' } };
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          result: {
+            response: {
+              airport: {
+                pluginData: {
+                  schedule: {
+                    departures: {
+                      page: { current: page, total: 10 },
+                      data: [{
+                        flight: {
+                          airline: { code: { iata: 'UA' } },
+                          identification: { number: { default: `UA${page}60` } },
+                          time: { scheduled: { departure: 1741653600, arrival: 1741660800 } },
+                          airport: {
+                            origin: { code: { iata: 'DEN' } },
+                            destination: { code: { iata: 'SFO' } }
+                          }
+                        }
+                      }]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }),
+      };
+    });
+
+    const ts = getStartOfDayForHub('DEN') + 86400;
+    const req = {
+      method: 'GET',
+      headers: { origin: 'http://localhost:3000' },
+      query: { hub: 'DEN', dir: 'departures', timestamp: String(ts) }
+    };
+    const res = createRes();
+
+    await handler(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.meta.source).toBe('official-api');
+    expect(res.body.meta.fallbackFrom).toBe('scraping');
+    expect(officialCalls).toBe(1);
+    expect(pagesFetched).toContain(7);
+    expect(pagesFetched).not.toContain(8);
+  });
+
   it('scrape-first: breaker tripped at end of scrape returns partial without fallback', async () => {
     process.env.FR24_API_TOKEN = 'test-token-12345678';
     // Trip the breaker

@@ -26,6 +26,11 @@ const TARGETED_OFFICIAL_RESCUE_HUBS = new Set(['ORD', 'DEN', 'IAH', 'EWR', 'SFO'
 
 // Busy hubs get more time to fetch all pages (capped at 55s for Vercel's 60s maxDuration)
 const HUB_TIMEOUT_MS: Record<string, number> = { ORD: 55000, EWR: 55000, IAH: 55000, SFO: 55000, LAX: 55000, DEN: 55000, IAD: 55000, NRT: 55000, GUM: 55000 };
+const MAX_FR24_RETRY_AFTER_MS = 3000;
+const MAX_RATE_LIMITED_PAGES_PER_SCRAPE = 6;
+const MAX_CONSECUTIVE_RATE_LIMIT_BATCHES = 2;
+const MIN_REMAINING_MS_TO_KEEP_PAGING = 8000;
+const MIN_REMAINING_MS_FOR_OFFICIAL_RESCUE = 6000;
 
 // Known United Airlines terminal assignments at each hub (used when API doesn't provide terminal data)
 const UNITED_HUB_TERMINALS: Record<string, { domestic: string; international: string }> = {
@@ -245,9 +250,14 @@ async function fetchOnePage(hub: string, dir: string, timestamp: number, page: n
         const retryAfter = resp.headers?.get?.('retry-after');
         const retryDelaySec = retryAfter ? parseInt(retryAfter, 10) : NaN;
         if (!isNaN(retryDelaySec) && retryDelaySec > 0 && retryDelaySec <= 30) {
+          const remainingMs = deadlineMs ? Math.max(0, deadlineMs - Date.now() - 1000) : MAX_FR24_RETRY_AFTER_MS;
+          const retryDelayMs = Math.min(retryDelaySec * 1000, MAX_FR24_RETRY_AFTER_MS, remainingMs);
+          if (retryDelayMs < 250) {
+            return { _rateLimited: true };
+          }
           releaseFR24Slot();
           slotReleased = true;
-          await new Promise(r => setTimeout(r, retryDelaySec * 1000));
+          await new Promise(r => setTimeout(r, retryDelayMs));
           continue;
         }
         // fall through to retry with default backoff
@@ -766,6 +776,8 @@ async function fetchAllPages(
   let pagesScanned = 0;
   const failedPages: number[] = [];
   const rateLimitedPages: number[] = [];
+  let consecutiveRateLimitedBatches = 0;
+  let stoppedForHeavyRateLimit = false;
   const BATCH_SIZE = 3;
   const MAX_PAGES = 50;
 
@@ -837,8 +849,21 @@ async function fetchAllPages(
       }
       if (hitRateLimit && batchDone) break;
       if (hitRateLimit) {
-        // Don't abort entire loop — pause and continue with remaining pages
+        consecutiveRateLimitedBatches++;
+        const remainingMs = deadline - Date.now();
+        const shouldStopForHeavyRateLimit =
+          rateLimitedPages.length >= MAX_RATE_LIMITED_PAGES_PER_SCRAPE ||
+          consecutiveRateLimitedBatches >= MAX_CONSECUTIVE_RATE_LIMIT_BATCHES ||
+          remainingMs < MIN_REMAINING_MS_TO_KEEP_PAGING;
+        if (shouldStopForHeavyRateLimit) {
+          stoppedForHeavyRateLimit = true;
+          partial = true;
+          break;
+        }
+        // Allow a single rate-limited batch to settle before continuing.
         await new Promise(r => setTimeout(r, 2000));
+      } else {
+        consecutiveRateLimitedBatches = 0;
       }
       if (batchDone) break;
 
@@ -929,8 +954,21 @@ async function fetchAllPages(
     }
   };
 
+  let attemptedOfficialRescue = false;
+  if (
+    srcPriority === 'scrape' &&
+    allowTargetedOfficialRescue &&
+    stoppedForHeavyRateLimit &&
+    Date.now() < deadline - MIN_REMAINING_MS_FOR_OFFICIAL_RESCUE
+  ) {
+    attemptedOfficialRescue = true;
+    console.log(`Scraping hit repeated FR24 rate limits for ${logHub} ${dir}, trying official API fallback`);
+    const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
+    if (fallback) return fallback;
+  }
+
   // Scrape-first fallback: if scraping failed completely, try official API (with circuit breaker)
-  if (srcPriority === 'scrape' && allowTargetedOfficialRescue && scrapeResult.total === 0 && scrapeResult.partial) {
+  if (!attemptedOfficialRescue && srcPriority === 'scrape' && allowTargetedOfficialRescue && scrapeResult.total === 0 && scrapeResult.partial) {
     console.log(`Scraping returned 0 flights for ${logHub} ${dir}, trying official API fallback`);
     const fallback = await tryOfficialFallback(logHub, dir, ts, effectiveDeadline);
     if (fallback) return fallback;
