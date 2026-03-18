@@ -566,10 +566,24 @@ switchToTab = function(tabId, updateHash) {
 
 // ═══ MOBILE TICKER ROTATION (Change 3) ═══
 (function(){
-  var isMobile = function() { return window.innerWidth <= 768; };
+  var mobileTickerQuery = window.matchMedia('(max-width: 768px)');
+  var isMobile = function() { return mobileTickerQuery.matches; };
   var rotateInterval = null;
   var fadeTimeout = null;
   var currentIndex = 0;
+
+  function clearMobileTickerState() {
+    if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
+    clearInterval(rotateInterval);
+    rotateInterval = null;
+
+    var ticker = document.getElementById('ticker');
+    if (!ticker) return;
+    var items = ticker.querySelectorAll('.ticker-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.remove('mobile-active', 'mobile-fade-out');
+    }
+  }
 
   function setupMobileTicker() {
     var ticker = document.getElementById('ticker');
@@ -577,18 +591,9 @@ switchToTab = function(tabId, updateHash) {
     var items = ticker.querySelectorAll('.ticker-item');
     // Only take unique items (ticker duplicates items for seamless scroll)
     var uniqueCount = Math.ceil(items.length / 2);
-    if (uniqueCount === 0) return;
+    clearMobileTickerState();
 
-    // Cancel any in-flight fade timeout to prevent stale currentIndex updates
-    if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
-    clearInterval(rotateInterval);
-
-    // Reset all
-    for (var i = 0; i < items.length; i++) {
-      items[i].classList.remove('mobile-active', 'mobile-fade-out');
-    }
-
-    if (!isMobile()) return;
+    if (!isMobile() || uniqueCount === 0) return;
 
     // Show first item
     currentIndex = 0;
@@ -622,18 +627,19 @@ switchToTab = function(tabId, updateHash) {
     var observer = new MutationObserver(function() { setTimeout(setupMobileTicker, 50); });
     observer.observe(tickerEl, { childList: true, subtree: true });
   }
-  window.addEventListener('resize', function() {
+
+  function handleTickerViewportChange() {
     if (isMobile()) setupMobileTicker();
-    else {
-      if (fadeTimeout) { clearTimeout(fadeTimeout); fadeTimeout = null; }
-      clearInterval(rotateInterval);
-      // Restore all items visibility for desktop
-      var items = (tickerEl || document.getElementById('ticker')).querySelectorAll('.ticker-item');
-      for (var i = 0; i < items.length; i++) {
-        items[i].classList.remove('mobile-active', 'mobile-fade-out');
-      }
-    }
-  });
+    else clearMobileTickerState();
+  }
+
+  // Mobile browsers emit resize events while their toolbar expands/collapses.
+  // Listen for breakpoint changes instead so the ticker does not keep resetting.
+  if (typeof mobileTickerQuery.addEventListener === 'function') {
+    mobileTickerQuery.addEventListener('change', handleTickerViewportChange);
+  } else if (typeof mobileTickerQuery.addListener === 'function') {
+    mobileTickerQuery.addListener(handleTickerViewportChange);
+  }
   setTimeout(setupMobileTicker, 1000);
 })();
 
