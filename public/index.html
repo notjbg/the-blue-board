@@ -33,25 +33,27 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Blue Board">
-<title>The Blue Board — United Flight Tracker | Live Status, AI Delay Prediction & Fleet</title>
-<meta name="description" content="Free United Airlines flight tracker with AI-powered delay predictions updated every 30 seconds. Track any UA flight live, get AI delay risk analysis, check delays at all 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM), track inbound aircraft, see which planes have Starlink WiFi, and monitor weather disruptions. Independent ops dashboard built for United flyers.">
-<meta name="keywords" content="United flight tracker, United Airlines flight status, UA flight status, United Airlines flight tracker, United Airlines delays today, UA flight tracker, United Airlines live map, United hub delays, United Starlink tracker, United Starlink WiFi, United Airlines ORD delays, United Airlines DEN delays, United Airlines EWR delays, United Airlines IAH delays, United Airlines SFO delays, United Airlines NRT delays, United Airlines GUM delays, is my United flight on time, United Airlines cancellations, United fleet tracker, United Airlines aircraft, United Airlines schedule, United Airlines weather delays, UA delays, United Airlines ground stops, United Airlines disruptions, UA flight tracking, United Airlines AI delay prediction, UA flight delay forecast, AI flight delay analysis, UA flight status check, check United flight status, United Airlines flight status today, is my United flight delayed today, United Airlines real time flight tracker, track United flight by number, United Airlines flight number lookup, UA flight delay check, United Airlines operations today, United Airlines IAD delays, United Airlines LAX delays">
+<meta name="application-name" content="The Blue Board">
+<title>The Blue Board | United Airlines Flight Tracker & Ops Dashboard</title>
+<meta name="description" content="The Blue Board is an independent United Airlines flight tracker and operations dashboard with live flight status, hub delays, fleet data, Starlink coverage, schedules, and weather.">
 <meta name="author" content="The Blue Board">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
-<meta property="og:title" content="The Blue Board — United Flight Tracker | Live Status, AI Delay Prediction & Fleet">
-<meta property="og:description" content="Free United Airlines flight tracker with AI-powered delay risk predictions. Track any UA flight live, get AI delay analysis, check all 9 hubs, Starlink WiFi status, and inbound aircraft tracking. Updated every 30 seconds.">
+<meta property="og:title" content="The Blue Board | United Airlines Flight Tracker & Ops Dashboard">
+<meta property="og:description" content="Independent United Airlines flight tracker with live status, hub delays, fleet data, Starlink coverage, schedules, and weather.">
 <meta property="og:url" content="https://theblueboard.co">
 <meta property="og:site_name" content="The Blue Board">
 <meta property="og:image" content="https://theblueboard.co/og-image.png">
+<meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The Blue Board — live United Airlines flight tracker showing 600+ flights on a dark operations map of the United States with hub delay status">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Blue Board — United Flight Tracker | Live Status, AI Delay Prediction & Fleet">
-<meta name="twitter:description" content="Free United Airlines flight tracker with AI-powered delay predictions. Track any UA flight live, get AI delay analysis, check hub delays, Starlink WiFi, and inbound aircraft tracking. Updated every 30 seconds.">
+<meta name="twitter:title" content="The Blue Board | United Airlines Flight Tracker & Ops Dashboard">
+<meta name="twitter:description" content="Independent United Airlines flight tracker with live status, hub delays, fleet data, Starlink coverage, schedules, and weather.">
 <meta name="twitter:image" content="https://theblueboard.co/og-image.png">
+<meta name="twitter:url" content="https://theblueboard.co">
 <meta name="twitter:site" content="@theblueboard">
 <meta name="twitter:creator" content="@theblueboard">
 <link rel="canonical" href="https://theblueboard.co">
@@ -136,7 +138,7 @@
 <p style="font-size:11px;color:#64748b">Built for the United community by <a href="https://github.com/notjbg" style="color:#8ab4f8">Jonah Berg</a>. Not affiliated with United Airlines, Inc. JavaScript is required for the live dashboard.</p>
 </div>
 </noscript>
-<div class="sr-only">The Blue Board is a free, independent United Airlines flight tracker and operations dashboard. Track every United flight in real time on a live map updated every 30 seconds. Check if your United flight is on time, delayed, or cancelled. Monitor delays and ground stops at all 9 United hubs: Chicago O'Hare ORD, Denver DEN, Houston IAH, Newark EWR, San Francisco SFO, Washington Dulles IAD, Los Angeles LAX, Tokyo Narita NRT, and Guam GUM. Search flights by number, tail number, or route. Check which United planes have Starlink WiFi. Browse the full fleet database of 1,078+ aircraft with seat configurations and IFE details. View departure and arrival schedules with on-time performance and equipment swap alerts. Weather radar, METAR conditions, and FAA delay alerts for all hub airports. Fleet utilization analytics, hub-to-hub route flow, and network health stats. Built for the United community. Not affiliated with United Airlines, Inc.</div>
+<div class="sr-only">The Blue Board is an independent United Airlines flight tracker and operations dashboard for United flyers. Use the live dashboard to check flight status, hub delays, fleet data, and Starlink availability.</div>
 <!-- TICKER -->
 <div class="ticker-wrap">
   <span class="ticker-label">▌ALERTS</span>
@@ -169,6 +171,14 @@
     <button id="home-hub-btn" data-action="cycle-home-hub" title="Home hub (click to change)" aria-label="Change home hub" style="font-size:10px;font-family:var(--font-ui);cursor:pointer;background:none;border:1px solid var(--ua-border);color:var(--ua-accent);padding:2px 6px;border-radius:3px">🏠 <span id="home-hub-display">—</span></button>
     <button id="onboarding-help" title="About this dashboard" aria-label="About this dashboard">?</button>
   </div>
+</div>
+<div id="brand-strip" aria-label="About The Blue Board">
+  <p><strong>The Blue Board</strong> is an independent United Airlines flight tracker and operations dashboard with live status, hub delays, fleet data, and Starlink coverage.</p>
+  <nav class="brand-links" aria-label="Primary site links">
+    <a href="/hubs">United Hub Pages</a>
+    <a href="/fleet">Fleet Database</a>
+    <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer">Follow @theblueboard</a>
+  </nav>
 </div>
 
 <!-- TAB BAR -->
@@ -688,15 +698,64 @@ if ('serviceWorker' in navigator) {
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://theblueboard.co/#organization",
+  "name": "The Blue Board",
+  "url": "https://theblueboard.co",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://theblueboard.co/icons/icon-512.png",
+    "width": 512,
+    "height": 512
+  },
+  "founder": {
+    "@type": "Person",
+    "name": "Jonah Berg",
+    "url": "https://github.com/notjbg"
+  },
+  "sameAs": [
+    "https://x.com/theblueboard",
+    "https://github.com/notjbg/the-blue-board",
+    "https://github.com/notjbg"
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "@id": "https://theblueboard.co/#webpage",
+  "url": "https://theblueboard.co",
+  "name": "The Blue Board | United Airlines Flight Tracker & Ops Dashboard",
+  "description": "The Blue Board is an independent United Airlines flight tracker and operations dashboard with live flight status, hub delays, fleet data, Starlink coverage, schedules, and weather.",
+  "isPartOf": {"@id": "https://theblueboard.co/#website"},
+  "about": {"@id": "https://theblueboard.co/#organization"},
+  "primaryImageOfPage": {
+    "@type": "ImageObject",
+    "url": "https://theblueboard.co/og-image.png",
+    "width": 1200,
+    "height": 630
+  },
+  "dateModified": "2026-03-17",
+  "inLanguage": "en-US"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
   "@type": "WebApplication",
+  "@id": "https://theblueboard.co/#webapplication",
   "name": "The Blue Board",
   "alternateName": ["United Flight Tracker", "United Airlines Flight Tracker", "UA Flight Status", "UA Flight Tracker", "United Starlink Tracker", "United Airlines Operations Dashboard"],
-  "description": "Track every United Airlines flight in real time. Live flight map updated every 30 seconds, delay and cancellation alerts across all 9 hubs (ORD, DEN, IAH, EWR, SFO, IAD, LAX, NRT, GUM), Starlink WiFi aircraft checker, full fleet database of 1,078+ aircraft, departure and arrival schedules, weather radar, and operational analytics. Free and independent — built for United flyers.",
+  "description": "Independent United Airlines flight tracker with live flight status, hub delays, fleet data, Starlink coverage, schedules, weather, and operational analytics.",
   "url": "https://theblueboard.co",
   "applicationCategory": "Transportation",
+  "applicationSubCategory": "Flight Tracking Dashboard",
   "operatingSystem": "Web",
   "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
   "creator": {"@type": "Person", "name": "Jonah Berg", "url": "https://github.com/notjbg", "sameAs": ["https://x.com/theblueboard", "https://github.com/notjbg"]},
+  "publisher": {"@id": "https://theblueboard.co/#organization"},
+  "isPartOf": {"@id": "https://theblueboard.co/#website"},
   "featureList": [
     "Real-time United Airlines flight tracking map with 600+ flights updated every 30 seconds",
     "Live delay and cancellation alerts for all 9 United hubs",
@@ -716,8 +775,7 @@ if ('serviceWorker' in navigator) {
   "isAccessibleForFree": true,
   "browserRequirements": "Requires JavaScript",
   "softwareVersion": "2.0",
-  "sameAs": ["https://x.com/theblueboard", "https://github.com/notjbg/the-blue-board"],
-  "sourceOrganization": {"@type": "Organization", "name": "The Blue Board", "url": "https://github.com/notjbg/the-blue-board"}
+  "sameAs": ["https://x.com/theblueboard", "https://github.com/notjbg/the-blue-board"]
 }
 </script>
 <script type="application/ld+json">
@@ -801,6 +859,7 @@ if ('serviceWorker' in navigator) {
   "url": "https://theblueboard.co",
   "license": "https://theblueboard.co",
   "creator": {"@type": "Person", "name": "Jonah Berg", "url": "https://github.com/notjbg"},
+  "dateModified": "2026-03-17",
   "keywords": ["United Airlines", "flight tracking", "flight delays", "on-time performance", "Starlink WiFi", "fleet data", "aviation", "airline operations"],
   "temporalCoverage": "2025/..",
   "spatialCoverage": {"@type": "Place", "name": "United States"},
@@ -821,9 +880,13 @@ if ('serviceWorker' in navigator) {
 {
   "@context": "https://schema.org",
   "@type": "WebSite",
+  "@id": "https://theblueboard.co/#website",
   "name": "The Blue Board",
   "alternateName": ["United Flight Tracker", "UA Flight Tracker"],
   "url": "https://theblueboard.co",
+  "description": "Independent United Airlines flight tracker with live status, hub delays, fleet data, Starlink coverage, schedules, and weather.",
+  "publisher": {"@id": "https://theblueboard.co/#organization"},
+  "inLanguage": "en-US",
   "potentialAction": {
     "@type": "SearchAction",
     "target": {

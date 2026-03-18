@@ -1,5 +1,15 @@
 {
   "cleanUrls": true,
+    "redirects": [
+        {
+            "source": "/:path*",
+            "has": [
+                { "type": "host", "value": "www.theblueboard.co" }
+            ],
+            "destination": "https://theblueboard.co/:path*",
+            "permanent": true
+        }
+    ],
     "functions": {
         "api/irops.ts": { "maxDuration": 90 },
         "api/schedule.ts": { "maxDuration": 60 },
