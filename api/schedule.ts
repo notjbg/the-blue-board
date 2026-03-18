@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
-import { HUB_TZ } from './irops.js';
 
 const isRateLimited = createRateLimiter('schedule', 30);
 
@@ -232,20 +231,6 @@ function formatForFR24(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
-function getEndOfTodayForHub(hub: string): Date {
-  const tz = HUB_TZ[hub.toUpperCase()] || 'America/New_York';
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-  }).formatToParts(now);
-  const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
-  const hour = get('hour'), minute = get('minute'), second = get('second');
-  const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
-  const startOfTodayUnix = Math.floor(now.getTime() / 1000) - secondsSinceMidnight;
-  return new Date((startOfTodayUnix + 86400 - 1) * 1000);
-}
-
 function icaoToIata(icao: string): string {
   if (!icao) return '';
   if (icao.length === 4 && icao.startsWith('K')) return icao.slice(1);
@@ -400,16 +385,7 @@ async function fetchViaOfficialAPI(hub: string, dir: string, ts: number, timeout
   const deadline = startTime + timeoutMs;
 
   const dayStart = new Date(ts * 1000);
-  let dayEnd = new Date((ts + 86400) * 1000);
-
-  const endOfToday = getEndOfTodayForHub(logHub);
-  if (dayStart > endOfToday) {
-    console.log(`Official FR24 API: skipping ${logHub} ${dir} — requested date is tomorrow (ts=${ts})`);
-    return null;
-  }
-  if (dayEnd > endOfToday) {
-    dayEnd = endOfToday;
-  }
+  const dayEnd = new Date((ts + 86400 - 1) * 1000);
 
   console.log(`Official FR24 API: fetching ${logHub} ${dir} (filter=${dir === 'departures' ? 'outbound' : 'inbound'}:${logHub}) from=${formatForFR24(dayStart)} to=${formatForFR24(dayEnd)} limit=${OFFICIAL_API_PAGE_SIZE}`);
 
