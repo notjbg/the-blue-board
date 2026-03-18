@@ -257,12 +257,14 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
     <div class="map-area">
       <div id="map"></div>
       <div id="controls">
-        <button class="ctrl-btn" id="mobile-ctrl-toggle" style="display:none" aria-label="Toggle map layers">☰</button>
-        <button class="ctrl-btn" data-action="toggle-hubs" id="btn-hubs">🏢 Hubs</button>
-        <button class="ctrl-btn" data-action="toggle-longhaul" id="btn-longhaul">🌍 Long-haul</button>
-        <button class="ctrl-btn" data-action="toggle-weather" id="btn-wx">🌧 Weather</button>
-        <button class="ctrl-btn" data-action="view-pacific" id="btn-pacific">🌏 Pacific</button>
-        <button class="ctrl-btn" data-action="refresh-flights" id="btn-refresh">🔄 Refresh</button>
+        <div id="ctrl-panel">
+          <button class="ctrl-btn" data-action="toggle-hubs" id="btn-hubs">🏢 Hubs</button>
+          <button class="ctrl-btn" data-action="toggle-longhaul" id="btn-longhaul">🌍 Long-haul</button>
+          <button class="ctrl-btn" data-action="toggle-weather" id="btn-wx">🌧 Weather</button>
+          <button class="ctrl-btn" data-action="view-pacific" id="btn-pacific">🌏 Pacific</button>
+          <button class="ctrl-btn" data-action="refresh-flights" id="btn-refresh">🔄 Refresh</button>
+        </div>
+        <button id="mobile-ctrl-toggle" aria-label="Map layers"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></svg></button>
       </div>
     </div>
   </div>
