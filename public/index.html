@@ -493,14 +493,27 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
     </div>
     <div class="wx-detail-panel" id="wx-detail-panel">
       <div id="irops-section">
-        <div id="irops-content" aria-live="polite"><div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div></div>
+        <div id="irops-content" aria-live="polite">
+          <div class="irops-bar">
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">Score</span></span>
+            <span class="irops-bar-sep">│</span>
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">Cancellations</span></span>
+            <span class="irops-bar-sep">│</span>
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">&gt;30m</span></span>
+            <span class="irops-bar-sep">│</span>
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">&gt;60m</span></span>
+            <span class="irops-bar-sep">│</span>
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">Diversions</span></span>
+            <span class="irops-bar-sep">│</span>
+            <span class="irops-bar-item"><span class="irops-bar-val">—</span><span class="irops-bar-label">Total Flights</span></span>
+          </div>
+        </div>
       </div>
       <div class="wx-panel-divider" id="wx-scroll-hint">
         <span>Hub Stations</span>
         <span class="scroll-hint-arrow">↓</span>
       </div>
       <div class="hub-cards" id="hub-cards"></div>
-      <div id="irops-worst-flights"></div>
     </div>
   </div>
 </div>
