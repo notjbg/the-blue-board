@@ -1971,12 +1971,14 @@ function renderFleetHealth() {
   const total = FLEET_DB.length;
   const nonActive = total - counts.active;
 
-  let html = '<div class="fleet-health-summary">';
-  html += '<div class="big-number">' + total + '</div>';
-  html += '<div><div class="big-number-label">Total Mainline Aircraft</div>';
-  html += '<div class="fleet-health-active-text">' + counts.active + ' active (' + (counts.active / total * 100).toFixed(1) + '%) · ' + nonActive + ' out of service</div></div>';
-  html += '</div>';
+  // Update hero count and subtitle
+  const heroCount = document.getElementById('fleet-hero-count');
+  const heroSubtitle = document.getElementById('fleet-hero-subtitle');
+  if (heroCount) heroCount.textContent = total;
+  if (heroSubtitle) heroSubtitle.textContent = counts.active + ' active (' + (counts.active / total * 100).toFixed(1) + '%) · ' + nonActive + ' out of service';
 
+  // Render compact health bars
+  let html = '';
   FLEET_HEALTH_CATEGORIES.forEach(cat => {
     const count = counts[cat.key] || 0;
     if (count === 0) return;
@@ -2949,40 +2951,22 @@ function updateLiveFleetPanel() {
 
   const totalAirborne = allFlights.filter(f => !f.onGround).length;
 
-  // Update Zone 1 left panel — airborne count
+  // Update compact airborne strip
+  const strip = document.getElementById('fleet-airborne-strip');
+  if (strip) strip.style.display = '';
+
   const countEl = document.getElementById('fleet-airborne-count');
   if (countEl) countEl.textContent = totalAirborne;
 
-  const subtitleEl = document.getElementById('fleet-pulse-subtitle');
-  if (subtitleEl) subtitleEl.textContent = matched + ' mainline matched · ' + unmatched + ' regional/partner';
-
-  // Fleet utilization percentage
-  const utilEl = document.getElementById('fleet-pulse-util');
-  if (utilEl && FLEET_DB.length > 0) {
+  const detailEl = document.getElementById('fleet-airborne-detail');
+  if (detailEl && FLEET_DB.length > 0) {
     const utilPct = Math.round(matched / FLEET_DB.length * 100);
-    utilEl.textContent = utilPct + '% fleet utilization (' + matched + '/' + FLEET_DB.length + ')';
-  }
-
-  // Per-type utilization bars
-  const utilBarsEl = document.getElementById('fleet-type-utilization');
-  if (utilBarsEl) {
-    let barsHtml = '';
-    typeOrder.forEach(t => {
-      const d = typeCounts[t];
-      if (!d.total || d.airborne === 0) return;
-      const pct = Math.round(d.airborne / d.total * 100);
-      barsHtml += '<div class="type-util-row">' +
-        '<span class="type-util-label">' + escapeHtml(t) + '</span>' +
-        '<div class="type-util-track"><div class="type-util-fill" style="width:' + pct + '%"></div></div>' +
-        '<span class="type-util-count">' + d.airborne + '/' + d.total + ' ' + pct + '%</span>' +
-      '</div>';
-    });
-    utilBarsEl.innerHTML = barsHtml;
+    detailEl.textContent = matched + ' mainline · ' + unmatched + ' regional · ' + utilPct + '% utilization';
   }
 
   // Update time
   const timeEl = document.getElementById('fleet-live-time');
-  if (timeEl) timeEl.textContent = 'Updated ' + new Date().toUTCString().slice(17, 25) + 'Z';
+  if (timeEl) timeEl.textContent = new Date().toUTCString().slice(17, 25) + 'Z';
 
   // Update sub-tab counts and re-render special aircraft (may have airborne status changes)
   updateFleetSubtabCounts();

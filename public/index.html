@@ -413,29 +413,17 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
     <p>Complete searchable database of all 1,078 United Airlines mainline aircraft across 19 types: Boeing 737-700 (40), 737-800 (141), 737-900 (12), 737-900ER (136), 737 MAX 8 (123), 737 MAX 9 (129), 757-200 (40), 757-300 (21), 767-300ER (37), 767-400ER (16), 777-200 (19), 777-200ER (55), 777-300ER (22), 787-8 (12), 787-9 (48), 787-10 (21), and Airbus A319 (76), A320 (68), A321neo (62). Includes registration, seat configuration, WiFi type, IFE system, delivery date, and operational status. 258 aircraft equipped with SpaceX Starlink satellite WiFi. Live fleet utilization updated every 30 seconds. <a href="/fleet">View full fleet database</a>.</p>
   </section>
 
-  <!-- ═══ ZONE 1: FLEET PULSE ═══ -->
-  <div class="fleet-pulse-zone" id="fleet-pulse-zone">
-    <div class="fleet-pulse-shimmer"></div>
-    <div class="fleet-pulse-header">
-      <h3 class="fleet-pulse-title">Live Fleet Status</h3>
-      <div class="fleet-pulse-badges">
-        <span class="live-badge"><span class="pulse-dot"></span> LIVE</span>
-        <span id="fleet-live-time" class="fleet-pulse-time"></span>
-      </div>
-    </div>
-    <div class="fleet-pulse-panels">
-      <div class="fleet-pulse-left" id="fleet-pulse-left">
-        <div class="fleet-pulse-hero">
-          <span class="pulse-dot"></span>
-          <span class="fleet-pulse-airborne-count" id="fleet-airborne-count">--</span>
-          <span class="fleet-pulse-airborne-label">AIRBORNE</span>
+  <!-- ═══ ZONE 1: FLEET HERO ═══ -->
+  <div class="fleet-hero-zone" id="fleet-hero-zone">
+    <div class="fleet-hero-top">
+      <div class="fleet-hero-identity">
+        <span class="fleet-hero-count" id="fleet-hero-count">1078</span>
+        <div class="fleet-hero-meta">
+          <span class="fleet-hero-label">TOTAL MAINLINE AIRCRAFT</span>
+          <span class="fleet-hero-subtitle" id="fleet-hero-subtitle">974 active (90.4%) · 104 out of service</span>
         </div>
-        <div class="fleet-pulse-subtitle" id="fleet-pulse-subtitle">Loading live flight data...</div>
-        <div class="fleet-pulse-util" id="fleet-pulse-util"></div>
-        <div class="fleet-type-utilization" id="fleet-type-utilization"></div>
       </div>
-      <div class="fleet-pulse-right" id="fleet-pulse-right">
-        <div id="fleet-health-content"><div class="fleet-loading-text">Loading fleet health data...</div></div>
+      <div class="fleet-hero-starlink">
         <div class="fleet-starlink-progress">
           <div class="fleet-starlink-track">
             <div class="fleet-starlink-fill" id="starlink-progress"></div>
@@ -446,6 +434,18 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
         <div class="fleet-starlink-stats" id="starlink-fleet-stats"></div>
       </div>
     </div>
+    <div class="fleet-health-bars" id="fleet-health-content">
+      <div class="fleet-loading-text">Loading fleet health data...</div>
+    </div>
+  </div>
+
+  <!-- Compact airborne strip -->
+  <div class="fleet-airborne-strip" id="fleet-airborne-strip" style="display:none">
+    <span class="pulse-dot"></span>
+    <span class="fleet-airborne-num" id="fleet-airborne-count">--</span>
+    <span class="fleet-airborne-text">airborne now</span>
+    <span class="fleet-airborne-detail" id="fleet-airborne-detail"></span>
+    <span class="fleet-airborne-live"><span class="live-badge"><span class="pulse-dot"></span> LIVE</span> <span id="fleet-live-time"></span></span>
   </div>
 
   <!-- ═══ ZONE 2: FLEET COMPOSITION ═══ -->
