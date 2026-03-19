@@ -4,6 +4,32 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-03-19
+
+### Added
+- United Airlines News Hub (`/news`) with curated article pages, SEO-optimized with NewsArticle structured data, BreadcrumbList schema, and OG/Twitter meta tags
+- Individual article pages (`/news/[slug]`) with source links, cross-links to related hub/fleet pages via tags, donation CTA, and Pro waitlist teaser
+- Google News sitemap (`/news-sitemap.xml`) for Google News indexing eligibility
+- Dynamic RSS feed (`/feed.xml`) now includes news articles with publication dates — replaces static feed
+- "Latest News" banner on dashboard (between header and tab bar) — dismissible, persists per-article via localStorage, tracks clicks via Vercel Analytics
+- Email digest endpoint (`/api/news-notify`) using Resend Broadcasts API — idempotent, auth-gated, tracks last-sent slug in Supabase
+- Shared `Footer.astro` component — extracted from hub and fleet layouts to eliminate DRY violation
+- `DESIGN.md` — formalized design system (color tokens, typography, layout, components, accessibility)
+- `TODOS.md` — deferred work tracking (auto-curated news aggregation)
+- News data validation at build time (slug format, required fields, duplicate detection, https-only sources)
+- Tag resolver for cross-linking articles to hub and fleet pages with build-time warnings for unknown tags
+- 20 new tests: 11 for news data model + tag resolver, 9 for news-notify endpoint (auth, idempotency, broadcast API)
+
+### Changed
+- Sitemap now includes `/news` index and all article pages
+- `llms.txt` and `llms-full.txt` updated with news hub documentation
+- Dashboard brand strip includes "News" link
+- `vercel.json` adds cache headers for `/news/*` and function config for `news-notify`
+- `buildMetadata.js` extended with news lastmod path helpers
+
+### Removed
+- Static `public/feed.xml` (replaced by Astro-generated dynamic feed at `src/pages/feed.xml.ts`)
+
 ## [1.3.8] - 2026-03-17
 
 ### Added
