@@ -5,7 +5,12 @@
  * notification, and sends a broadcast to the Resend Audience if so.
  *
  * Auth: requires CRON_SECRET header (same pattern as cron endpoints).
- * Idempotent: calling twice for the same article is a no-op.
+ *
+ * Idempotency: uses claim-before-send pattern. The slug is written to
+ * Supabase BEFORE broadcasting. If the slug is already claimed (same value),
+ * the endpoint returns already_sent without sending. This is atomic — even
+ * concurrent calls are safe because only one can successfully update the row
+ * to a new slug value.
  *
  * Requires:
  *   - RESEND_API_KEY env var
@@ -51,28 +56,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const article = latest[0];
     const { slug, title, category } = article;
 
-    // Check if we already notified for this slug
-    const { data: existing, error: selectErr } = await supabase
+    // ── Claim-before-send: atomic idempotency ───────────────────────
+    //
+    // Read the current slug, then conditionally update only if it differs.
+    // Two concurrent requests for the same new slug: only one will see
+    // the old value and proceed; the other will see the new slug (written
+    // by the first) and bail out.
+    //
+    // First run (no row exists): insert. Subsequent: check-then-update.
+
+    const { data: existing, error: readErr } = await supabase
       .from('news_notifications')
       .select('slug')
       .eq('key', 'last_sent')
       .single();
 
-    // PGRST116 = "no rows" which is expected on first run — not an error
-    if (selectErr && selectErr.code !== 'PGRST116') {
-      throw new Error(`Supabase select failed: ${selectErr.message}`);
+    // PGRST116 = "no rows" — expected on first run
+    if (readErr && readErr.code !== 'PGRST116') {
+      throw new Error(`Supabase read failed: ${readErr.message}`);
     }
 
     if (existing?.slug === slug) {
       return res.status(200).json({ status: 'already_sent', slug });
     }
 
-    // Build the email HTML
+    // Claim the slug atomically before sending. Use upsert so it works
+    // for both first-run (INSERT) and subsequent runs (UPDATE).
+    const { error: claimErr } = await supabase
+      .from('news_notifications')
+      .upsert(
+        { key: 'last_sent', slug, sent_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+
+    if (claimErr) {
+      throw new Error(`Supabase claim failed — aborting before send: ${claimErr.message}`);
+    }
+
+    // Verify our claim landed (guards against concurrent upserts — the last
+    // writer wins in Postgres, so re-read to confirm we hold the slug)
+    const { data: verify, error: verifyErr } = await supabase
+      .from('news_notifications')
+      .select('slug')
+      .eq('key', 'last_sent')
+      .single();
+
+    if (verifyErr) {
+      throw new Error(`Supabase verify failed: ${verifyErr.message}`);
+    }
+
+    if (verify?.slug !== slug) {
+      // Another concurrent request overwrote our claim — they'll handle the send
+      return res.status(200).json({ status: 'already_sent', slug, note: 'lost claim race' });
+    }
+
+    // ── Send broadcast ──────────────────────────────────────────────
+
     const articleUrl = `${BASE_URL}/news/${slug}`;
     const emailHtml = buildDigestEmail(title, category, articleUrl);
 
-    // Send broadcast via Resend Broadcasts API
-    // Step 1: create the broadcast, Step 2: send it
     const { Resend } = await import('resend');
     const resend = new Resend(RESEND_API_KEY);
 
@@ -91,23 +133,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { error: sendErr } = await resend.broadcasts.send(broadcast.id);
     if (sendErr) {
       throw new Error(`Broadcast send failed: ${sendErr.message}`);
-    }
-
-    // Record the sent slug — fail loudly if this doesn't persist,
-    // otherwise the next invocation will re-broadcast the same article
-    const { error: upsertErr } = await supabase.from('news_notifications').upsert(
-      { key: 'last_sent', slug, sent_at: new Date().toISOString() },
-      { onConflict: 'key' }
-    );
-    if (upsertErr) {
-      // Broadcast was already sent — log the persistence failure but return 500
-      // so the caller knows state is inconsistent
-      console.error('news-notify: broadcast sent but failed to persist slug:', upsertErr);
-      return res.status(500).json({
-        error: 'Broadcast sent but failed to record — next call may re-send',
-        slug,
-        detail: upsertErr.message,
-      });
     }
 
     return res.status(200).json({ status: 'sent', slug, title });

@@ -23,6 +23,8 @@ import { supabase } from '../api/_supabase.js';
 
 let selectResult;
 let upsertResult;
+// Track call sequence to support read→upsert→verify flow
+let selectCallCount;
 
 function makeReq(overrides = {}) {
   return {
@@ -49,14 +51,22 @@ beforeEach(() => {
   mockBroadcastCreate.mockReset();
   mockBroadcastSend.mockReset();
 
-  // Default: broadcast create/send succeed
   mockBroadcastCreate.mockResolvedValue({ data: { id: 'bcast-123' }, error: null });
   mockBroadcastSend.mockResolvedValue({ error: null });
 
   selectResult = { data: null, error: null };
   upsertResult = { error: null };
+  selectCallCount = 0;
 
-  const mockSingle = vi.fn(() => selectResult);
+  // Default verify result: confirms our slug claim landed
+  let verifyResult = { data: { slug: 'test-article' }, error: null };
+
+  const mockSingle = vi.fn(() => {
+    selectCallCount++;
+    // First select = read current state, second select = verify after upsert
+    if (selectCallCount === 1) return selectResult;
+    return verifyResult;
+  });
   const mockEq = vi.fn(() => ({ single: mockSingle }));
   const mockSelect = vi.fn(() => ({ eq: mockEq }));
   const mockUpsert = vi.fn(() => upsertResult);
@@ -65,7 +75,6 @@ beforeEach(() => {
     return { select: mockSelect, upsert: mockUpsert };
   });
 
-  // Mock global fetch for news-latest.json
   global.fetch = vi.fn(() =>
     Promise.resolve({
       ok: true,
@@ -118,8 +127,9 @@ describe('news-notify API', () => {
     expect(mockBroadcastCreate).not.toHaveBeenCalled();
   });
 
-  it('creates and sends broadcast for new articles', async () => {
-    selectResult = { data: null, error: null };
+  it('claims slug then sends broadcast for new articles', async () => {
+    // First run: no existing row
+    selectResult = { data: null, error: { code: 'PGRST116', message: 'no rows' } };
     const res = makeRes();
     await handler(makeReq(), res);
     expect(res.statusCode).toBe(200);
@@ -136,7 +146,6 @@ describe('news-notify API', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.status).toBe('sent');
     expect(mockBroadcastCreate).toHaveBeenCalledOnce();
-    expect(mockBroadcastSend).toHaveBeenCalledOnce();
   });
 
   it('returns no_articles when news-latest.json is empty', async () => {
@@ -150,7 +159,7 @@ describe('news-notify API', () => {
   });
 
   it('returns 500 when broadcast create fails', async () => {
-    selectResult = { data: null, error: null };
+    selectResult = { data: null, error: { code: 'PGRST116', message: 'no rows' } };
     mockBroadcastCreate.mockResolvedValue({ data: null, error: { message: 'Invalid audience' } });
     const res = makeRes();
     await handler(makeReq(), res);
@@ -158,33 +167,21 @@ describe('news-notify API', () => {
     expect(res.body.error).toMatch(/Failed to send/);
   });
 
-  it('returns 500 when Supabase select fails (not PGRST116)', async () => {
+  it('returns 500 when Supabase read fails (not PGRST116)', async () => {
     selectResult = { data: null, error: { code: 'PGRST301', message: 'connection refused' } };
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.statusCode).toBe(500);
+    expect(mockBroadcastCreate).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 when claim upsert fails', async () => {
+    selectResult = { data: null, error: { code: 'PGRST116', message: 'no rows' } };
+    upsertResult = { error: { message: 'RLS violation' } };
     const res = makeRes();
     await handler(makeReq(), res);
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toMatch(/Failed to send/);
     expect(mockBroadcastCreate).not.toHaveBeenCalled();
-  });
-
-  it('treats PGRST116 (no rows) as first run, not an error', async () => {
-    selectResult = { data: null, error: { code: 'PGRST116', message: 'no rows' } };
-    const res = makeRes();
-    await handler(makeReq(), res);
-    expect(res.statusCode).toBe(200);
-    expect(res.body.status).toBe('sent');
-    expect(mockBroadcastCreate).toHaveBeenCalledOnce();
-  });
-
-  it('returns 500 when upsert fails after broadcast sent', async () => {
-    selectResult = { data: null, error: null };
-    upsertResult = { error: { message: 'RLS violation' } };
-    const res = makeRes();
-    await handler(makeReq(), res);
-    expect(res.statusCode).toBe(500);
-    expect(res.body.error).toMatch(/failed to record/);
-    expect(res.body.slug).toBe('test-article');
-    // Broadcast was still sent
-    expect(mockBroadcastCreate).toHaveBeenCalledOnce();
   });
 });

@@ -12,7 +12,15 @@ function xmlEscape(s: string) {
 }
 
 export function GET() {
-  const entries = articles.map(
+  // Google News sitemaps must only include articles from the last 2 days
+  // https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap
+  const twoDaysAgo = new Date();
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const cutoff = twoDaysAgo.toISOString().slice(0, 10);
+
+  const recent = articles.filter((a) => a.date >= cutoff);
+
+  const entries = recent.map(
     (a) => `  <url>
     <loc>${xmlEscape(`${BASE_URL}/news/${a.slug}`)}</loc>
     <news:news>
