@@ -1,5 +1,6 @@
 import { fleetOrder, fleetTypes } from '../data/fleet/index.js';
 import { hubOrder } from '../data/hubs/index.js';
+import { articles } from '../data/news/index.js';
 import {
   fleetIndexLastmodPaths,
   getFleetRouteLastmodPaths,
@@ -7,6 +8,8 @@ import {
   getLastModified,
   homeLastmodPaths,
   hubIndexLastmodPaths,
+  newsIndexLastmodPaths,
+  getNewsRouteLastmodPaths,
   xmlEscape,
 } from '../lib/buildMetadata.js';
 
@@ -39,6 +42,10 @@ export function GET() {
     renderUrl('/hubs', getLastModified(hubIndexLastmodPaths), 'weekly', '0.9'),
     ...hubOrder.map((key) =>
       renderUrl(`/hubs/${key}`, getLastModified(getHubRouteLastmodPaths(key)), 'weekly', '0.8')
+    ),
+    renderUrl('/news', getLastModified(newsIndexLastmodPaths), 'daily', '0.9'),
+    ...articles.map((a) =>
+      renderUrl(`/news/${a.slug}`, getLastModified(getNewsRouteLastmodPaths(a.slug)), 'weekly', '0.7')
     ),
   ];
 
