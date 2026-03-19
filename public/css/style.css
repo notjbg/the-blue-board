@@ -361,7 +361,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #header{flex-direction:row;gap:0;padding:0 12px;height:44px;text-align:left;align-items:center}
   #header h1{font-size:14px;letter-spacing:1px;white-space:nowrap}
   #header h1 span[style]{display:none}
-  #brand-strip{flex-direction:column;align-items:flex-start;padding:8px 12px;font-size:9px}
+  #brand-strip{flex-direction:column;align-items:flex-start;padding:4px 12px;font-size:9px}
+  #brand-strip p{display:none}
   #global-search-wrap{position:absolute!important;top:44px;left:0;right:0;flex:none!important;order:0;display:none;padding:8px 12px;background:var(--ua-dark);border-bottom:1px solid var(--ua-border);z-index:999}
   #global-search-wrap.mobile-search-open{display:block!important}
   #header-right{font-size:14px;gap:8px;margin-left:auto}
