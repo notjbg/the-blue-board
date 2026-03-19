@@ -205,11 +205,6 @@ main{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
 #tab-fleet{padding:16px;flex:1;min-height:0;overflow-y:auto}
 .card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px}
 .card h3{font-size:11px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
-.fleet-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:14px}
-.fleet-chip{background:rgba(15,23,41,.8);border:1px solid var(--ua-border);border-radius:6px;padding:8px;text-align:center;cursor:pointer;transition:border-color .2s cubic-bezier(.4,0,.2,1),background-color .2s cubic-bezier(.4,0,.2,1)}
-.fleet-chip:hover,.fleet-chip.active{border-color:var(--ua-blue);background:rgba(0,93,170,.1)}
-.fleet-chip .count{font-size:20px;font-weight:700;color:var(--ua-blue)}
-.fleet-chip .label{font-size:9px;color:var(--ua-muted);margin-top:1px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:900px){.two-col{grid-template-columns:1fr}}
 .fleet-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
@@ -237,13 +232,116 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .refresh-btn{background:var(--ua-blue);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;font-family:var(--font-ui);font-size:10px;font-weight:600;transition:background-color .2s cubic-bezier(.4,0,.2,1),transform .15s cubic-bezier(.4,0,.2,1)}
 .refresh-btn:hover{background:#0070cc}
 
+/* ═══ ZONE 1: FLEET PULSE ═══ */
+.fleet-pulse-zone{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px;position:relative;flex-shrink:0}
+.fleet-pulse-shimmer{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ua-green),var(--ua-blue),var(--ua-green));background-size:200% 100%;animation:liveShimmer 2s linear infinite;z-index:1;border-radius:6px 6px 0 0}
+.fleet-pulse-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.fleet-pulse-title{font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0}
+.fleet-pulse-badges{display:flex;align-items:center;gap:8px}
+.fleet-pulse-time{font-size:9px;color:var(--ua-muted)}
+.fleet-pulse-panels{display:flex;gap:20px}
+.fleet-pulse-left{flex:1;min-width:0}
+.fleet-pulse-right{flex:1;min-width:0;border-left:1px solid var(--ua-border);padding-left:20px}
+.fleet-pulse-hero{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.fleet-pulse-airborne-count{font-size:36px;font-weight:700;color:var(--ua-blue);line-height:1;font-family:var(--font-mono)}
+.fleet-pulse-airborne-label{font-size:10px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px}
+.fleet-pulse-subtitle{font-size:10px;color:var(--ua-muted);margin-bottom:8px}
+.fleet-pulse-util{font-size:10px;color:var(--ua-green);margin-bottom:10px;font-weight:600}
+.fleet-type-utilization{display:flex;flex-direction:column;gap:3px}
+.type-util-row{display:flex;align-items:center;gap:6px;font-size:10px}
+.type-util-label{color:var(--ua-muted);min-width:70px;text-align:right;font-family:var(--font-mono);font-size:9px}
+.type-util-track{flex:1;height:6px;background:var(--ua-border);border-radius:3px;overflow:hidden}
+.type-util-fill{height:100%;background:var(--ua-green);border-radius:3px;transition:width .5s}
+.type-util-count{color:var(--ua-accent);min-width:55px;font-family:var(--font-mono);font-size:9px;font-weight:600}
+.fleet-loading-text{color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center}
+
 /* Fleet Health Dashboard */
 .fleet-health-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .fleet-health-bar .fh-label{font-size:10px;color:var(--ua-muted);min-width:110px;text-align:right;font-family:var(--font-ui)}
-.fleet-health-bar .fh-track{flex:1;height:16px;background:rgba(15,23,41,.8);border-radius:3px;overflow:hidden}
+.fleet-health-bar .fh-track{flex:1;height:14px;background:rgba(15,23,41,.8);border-radius:3px;overflow:hidden}
 .fleet-health-bar .fh-fill{height:100%;border-radius:3px;transition:width .5s}
 .fleet-health-bar .fh-count{font-size:10px;color:var(--ua-accent);font-weight:700;min-width:70px;text-align:right;font-family:var(--font-mono)}
 .fh-legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.fleet-health-summary{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.fleet-starlink-progress{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:10px;border-top:1px solid var(--ua-border)}
+.fleet-starlink-track{flex:1;height:4px;background:var(--ua-border);border-radius:2px;overflow:hidden}
+.fleet-starlink-fill{height:100%;background:var(--ua-green);border-radius:2px;transition:width .5s}
+.fleet-starlink-pct{font-size:10px;color:var(--ua-green);font-weight:700;font-family:var(--font-mono)}
+.fleet-starlink-label{font-size:9px;color:var(--ua-muted)}
+.fleet-starlink-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.fleet-starlink-stats:empty{display:none}
+.fleet-starlink-chip{display:inline-flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:4px;font-size:10px}
+.fleet-starlink-source{font-size:10px;color:var(--ua-muted);padding:8px 0;text-align:center}
+.fleet-starlink-updated{color:var(--ua-green)}
+.fleet-source-link{color:var(--ua-green);text-decoration:none}
+.fleet-source-link:hover{text-decoration:underline}
+
+/* ═══ ZONE 2: FLEET COMPOSITION ═══ */
+.fleet-composition-zone{margin-bottom:14px}
+.zone-title{font-size:11px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px}
+.fleet-families{margin-bottom:14px}
+.fleet-family{margin-bottom:16px}
+.fleet-family[role="group"]{outline:none}
+.fleet-family-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;border-bottom:1px solid var(--ua-border);padding-bottom:6px}
+.fleet-family-name{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ua-blue);font-weight:700}
+.fleet-family-count{font-size:11px;color:var(--ua-accent);font-family:var(--font-mono);font-weight:700}
+.fleet-family-role{font-size:9px;color:var(--ua-muted);margin-left:auto;font-style:italic}
+.fleet-family-route{font-size:9px;color:var(--ua-muted);font-style:italic;margin-top:2px;margin-bottom:6px}
+.fleet-family-body{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.fleet-subgroup{display:flex;align-items:flex-start;gap:6px}
+.fleet-subgroup-label{font-size:8px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px;writing-mode:vertical-rl;transform:rotate(180deg);align-self:center;padding:4px 0}
+.fleet-subgroup-cards{display:flex;gap:6px;flex-wrap:wrap}
+.fleet-subgroup-sep{width:1px;background:var(--ua-border);border-style:dotted;border-width:0 0 0 1px;align-self:stretch;margin:0 4px}
+.variant-card{background:rgba(15,23,41,.8);border:1px solid var(--ua-border);border-radius:6px;padding:10px;text-align:center;cursor:pointer;transition:border-color .2s cubic-bezier(.4,0,.2,1),background-color .2s cubic-bezier(.4,0,.2,1);min-width:80px;min-height:44px}
+.variant-card:hover{border-color:var(--ua-blue);background:rgba(0,93,170,.1)}
+.variant-card:focus-visible{outline:2px solid var(--ua-blue);outline-offset:2px}
+.variant-card.active{border-color:var(--ua-blue);background:rgba(0,93,170,.15);border-left:3px solid var(--ua-blue)}
+.variant-count{font-size:20px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono)}
+.variant-name{font-size:9px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
+.fleet-widebody-divider{display:flex;align-items:center;gap:12px;margin:16px 0 12px;font-size:9px;color:var(--ua-muted);letter-spacing:2px;text-transform:uppercase}
+.fleet-widebody-divider::before,.fleet-widebody-divider::after{content:'';flex:1;height:1px;background:var(--ua-border)}
+.fleet-age-subtitle{font-size:9px;color:var(--ua-muted);margin-bottom:4px}
+.fleet-age-chart{position:relative}
+.fleet-age-stats{font-size:10px;color:var(--ua-muted);margin-top:6px}
+
+/* Seat Config Empty State */
+.fleet-config-empty{text-align:center;padding:20px 10px;color:var(--ua-muted)}
+.fleet-config-empty-text{font-size:11px;margin-bottom:10px}
+.fleet-config-quick-links{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.fleet-config-quick{font-size:10px;color:var(--ua-accent);cursor:pointer;padding:4px 10px;border:1px solid var(--ua-border);border-radius:3px;font-family:var(--font-mono);transition:border-color .2s,background .2s}
+.fleet-config-quick:hover{border-color:var(--ua-blue);background:rgba(0,93,170,.1)}
+
+/* ═══ ZONE 3: AIRCRAFT LOOKUP ═══ */
+.fleet-lookup-zone{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px}
+.fleet-lookup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.fleet-data-source{font-size:10px;color:var(--ua-muted)}
+.fleet-subtab-bar{display:flex;gap:0;border-bottom:1px solid var(--ua-border);margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+.fleet-subtab-bar::-webkit-scrollbar{display:none}
+.fleet-subtab{background:none;border:none;border-bottom:2px solid transparent;color:var(--ua-muted);font-family:var(--font-ui);font-size:11px;padding:8px 14px;cursor:pointer;transition:color .2s,border-color .2s;white-space:nowrap}
+.fleet-subtab:hover{color:var(--ua-text)}
+.fleet-subtab.active{color:var(--ua-text);border-bottom-color:var(--ua-blue)}
+.fleet-subtab-count{font-family:var(--font-mono);font-size:10px;color:var(--ua-accent);margin-left:4px}
+.fleet-view-panel{display:none}
+.fleet-view-panel.active{display:block}
+.fleet-zero-results{text-align:center;padding:20px;font-size:11px;color:var(--ua-muted)}
+.fleet-clear-filters{background:none;border:1px solid var(--ua-blue);color:var(--ua-blue);padding:4px 12px;border-radius:3px;cursor:pointer;font-family:var(--font-ui);font-size:10px;margin-left:6px;transition:background .2s}
+.fleet-clear-filters:hover{background:rgba(0,93,170,.15)}
+.fleet-filtered-count{font-size:9px;color:var(--ua-muted);align-self:center}
+.fleet-lookup-seat-config{margin-bottom:10px}
+.fleet-lookup-seat-config:empty{display:none}
+
+/* Config Gallery (shared between Zone 2 and Zone 3) */
+.fleet-config-title{font-size:13px;font-weight:700;color:var(--ua-accent);margin-bottom:8px}
+.fleet-config-item{margin-bottom:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:4px}
+.fleet-config-name{font-size:10px;margin-bottom:4px}
+.fleet-config-meta{color:var(--ua-muted)}
+.fleet-health-active-text{font-size:10px;color:var(--ua-green);margin-top:2px}
+.fh-pct{font-size:9px;color:var(--ua-muted);font-weight:400}
+.fleet-td-reg{font-weight:700}
+.fleet-td-status{font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.sa-flight-info{font-size:9px;color:var(--ua-green);margin-top:2px}
+.fleet-starlink-chip-val{font-size:16px;font-weight:700}
+.fleet-starlink-chip-label{color:var(--ua-muted);font-size:10px}
 
 /* Special Aircraft Badge & Tracker */
 .special-badge{background:rgba(139,92,246,.2);color:#a78bfa;padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;font-family:var(--font-mono)}
@@ -317,20 +415,13 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .phase-row:hover{background:rgba(0,93,170,.1)}
 .phase-row.phase-selected{background:rgba(0,93,170,.2);border-left:2px solid var(--ua-accent)}
 
-/* Live Fleet Status */
-.live-fleet-panel{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:14px;margin-bottom:14px;position:relative;overflow:hidden}
-.live-fleet-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ua-green),var(--ua-blue),var(--ua-green));background-size:200% 100%;animation:liveShimmer 2s linear infinite}
+/* Live Fleet Status (legacy compat) */
 @keyframes liveShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .live-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.15);color:var(--ua-green);font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:1px}
 .pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--ua-green);animation:pulse 1.5s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{opacity:.7;box-shadow:0 0 0 6px rgba(34,197,94,0)}}
 .big-number{font-size:36px;font-weight:700;color:var(--ua-blue);line-height:1}
 .big-number-label{font-size:10px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:1px}
-.type-breakdown{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px;margin:10px 0}
-.type-bar{display:flex;justify-content:space-between;align-items:center;padding:3px 6px;background:rgba(0,0,0,.2);border-radius:3px;font-size:10px}
-.type-bar .airborne{color:var(--ua-green);font-weight:700}
-.type-bar .total{color:var(--ua-muted)}
-.live-table-wrap{max-height:350px;overflow-y:auto;border:1px solid var(--ua-border);border-radius:4px;margin-top:10px}
 
 /* Weather Explainer */
 .wx-explainer{background:rgba(0,93,170,.06);border:1px solid rgba(0,93,170,.15);border-radius:4px;padding:8px 10px;margin:4px 0 8px;font-size:10px;line-height:1.5;color:var(--ua-text)}
@@ -414,7 +505,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
   table{min-width:600px}
   /* Fleet tab mobile */
   #tab-fleet{padding:10px}
-  .fleet-chips{grid-template-columns:repeat(3,1fr)}
+  .fleet-pulse-panels{flex-direction:column}
+  .fleet-pulse-right{border-left:none;padding-left:0;border-top:1px solid var(--ua-border);padding-top:14px;margin-top:10px}
   .fleet-controls{flex-direction:column}
   .fleet-controls select,.fleet-controls input{width:100%;min-height:44px;font-size:14px}
   .two-col{grid-template-columns:1fr}
@@ -422,6 +514,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
   .fleet-health-bar .fh-count{min-width:55px;font-size:9px}
   .special-aircraft-grid{grid-template-columns:1fr}
   .special-aircraft-item{padding:10px 12px}
+  .variant-card{min-width:60px}
+  .fleet-subgroup-cards{flex-wrap:wrap}
+  .fleet-subtab-bar{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fleet-subtab{padding:8px 10px;font-size:10px}
   /* Weather tab mobile */
   .wx-layout{flex-direction:column}
   .wx-map-panel{flex:none}
@@ -610,11 +706,11 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #watch-notification .wn-dismiss{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-family:var(--font-ui);font-size:10px}
 
 /* ═══ HYBRID TYPOGRAPHY: Mono for data elements ═══ */
-table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irops-bar-val,.irops-score,.hh-hub,.fleet-chip .count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
+table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irops-bar-val,.irops-score,.hh-hub,.fleet-chip .count,.variant-count,.fleet-family-count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
 .onboarding-subtitle,.onboarding-desc,.onboarding-footer,.source-desc,.hub-explainer,.wx-explainer,.error-state,.empty-state,.hub-card-name,.stat-label,.metric-label,.big-number-label,.irops-bar-label,.hub-metric-label,.popup-field-label,.popup-route-est,.source-name,.source-link{font-family:var(--font-ui)}
 
 /* ═══ MICRO-INTERACTIONS: :active press feedback ═══ */
-.tab-btn:active,.ctrl-btn:active,.refresh-btn:active,.retry-btn:active,.sched-day-btn:active,.sched-load-more:active,#onboarding-dismiss:active,#onboarding-help:active,.watch-btn:active,.share-btn:active,#watch-header-btn:active,#mobile-bottom-nav button:active,.fleet-chip:active,.hub-nav a:active,.show-all-btn:active{transform:scale(.97)}
+.tab-btn:active,.ctrl-btn:active,.refresh-btn:active,.retry-btn:active,.sched-day-btn:active,.sched-load-more:active,#onboarding-dismiss:active,#onboarding-help:active,.watch-btn:active,.share-btn:active,#watch-header-btn:active,#mobile-bottom-nav button:active,.fleet-chip:active,.variant-card:active,.fleet-subtab:active,.hub-nav a:active,.show-all-btn:active{transform:scale(.97)}
 
 /* ═══ SKELETON SHIMMER loading states ═══ */
 @keyframes shimmerSlide{0%{background-position:-200% 0}100%{background-position:200% 0}}
