@@ -478,25 +478,30 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
 
 <!-- TAB 3: WEATHER -->
 <div class="tab-content" id="tab-weather" role="tabpanel" aria-label="Delays, weather, and hub status">
-  <div class="wx-hero">
-    <h3 id="radar-title">🌧 NEXRAD Radar</h3>
-    <div id="radar-map"></div>
-  </div>
-  <div class="wx-legend">
-    <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#22c55e"></span>VFR</div>
-    <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#eab308"></span>MVFR</div>
-    <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#ef4444"></span>IFR</div>
-    <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#c026d3"></span>LIFR</div>
-  </div>
-  <div class="wx-scroll-hint" id="wx-scroll-hint">
-    <span class="wx-section-header">Hub Weather Details</span>
-    <span class="scroll-hint-arrow">↓</span>
-  </div>
-  <div class="hub-cards" id="hub-cards"></div>
-  <!-- IROPS Monitor -->
-  <div id="irops-section">
-    <h3>⚠️ IROPS Monitor</h3>
-    <div id="irops-content" aria-live="polite"><div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div></div>
+  <div class="wx-layout">
+    <div class="wx-map-panel">
+      <div class="wx-hero">
+        <h3 id="radar-title">🌧 NEXRAD Radar</h3>
+        <div id="radar-map"></div>
+      </div>
+      <div class="wx-legend">
+        <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#22c55e"></span>VFR</div>
+        <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#eab308"></span>MVFR</div>
+        <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#ef4444"></span>IFR</div>
+        <div class="wx-legend-item"><span class="wx-legend-dot" style="background:#c026d3"></span>LIFR</div>
+      </div>
+    </div>
+    <div class="wx-detail-panel" id="wx-detail-panel">
+      <div id="irops-section">
+        <div id="irops-content" aria-live="polite"><div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div></div>
+      </div>
+      <div class="wx-panel-divider" id="wx-scroll-hint">
+        <span>Hub Stations</span>
+        <span class="scroll-hint-arrow">↓</span>
+      </div>
+      <div class="hub-cards" id="hub-cards"></div>
+      <div id="irops-worst-flights"></div>
+    </div>
   </div>
 </div>
 
