@@ -25,6 +25,11 @@ export const hubIndexLastmodPaths = [
   'src/data/hubs/index.js',
 ];
 
+export const newsIndexLastmodPaths = [
+  'src/pages/news/index.astro',
+  'src/data/news/index.js',
+];
+
 function normalizePaths(paths) {
   return Array.isArray(paths) ? paths : [paths];
 }
@@ -69,6 +74,14 @@ export function getHubRouteLastmodPaths(slug) {
     'src/layouts/HubLayout.astro',
     'src/data/hubs/index.js',
     `src/data/hubs/${slug}.js`,
+  ];
+}
+
+export function getNewsRouteLastmodPaths(slug) {
+  return [
+    'src/pages/news/[slug].astro',
+    'src/layouts/NewsLayout.astro',
+    'src/data/news/index.js',
   ];
 }
 

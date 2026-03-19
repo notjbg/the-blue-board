@@ -17,7 +17,8 @@
         "api/delay-explain.ts": { "maxDuration": 15 },
         "api/cron/sync-starlink.ts": { "maxDuration": 30 },
         "api/starlink-data.ts": { "maxDuration": 20 },
-        "api/predict-flight.ts": { "maxDuration": 15 }
+        "api/predict-flight.ts": { "maxDuration": 15 },
+        "api/news-notify.ts": { "maxDuration": 15 }
     },
     "crons": [
         { "path": "/api/cron/warm-schedules", "schedule": "*/15 * * * *" },
@@ -64,6 +65,12 @@
     },
     {
       "source": "/hubs/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=600" }
+      ]
+    },
+    {
+      "source": "/news/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=600" }
       ]

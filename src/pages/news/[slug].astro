@@ -1,0 +1,13 @@
+---
+import NewsLayout from '../../layouts/NewsLayout.astro';
+import { articles, newsMap } from '../../data/news/index.js';
+
+export function getStaticPaths() {
+  return articles.map((a) => ({ params: { slug: a.slug } }));
+}
+
+const { slug } = Astro.params;
+const article = newsMap[slug];
+if (!article) return Astro.redirect('/404');
+---
+<NewsLayout article={article} />

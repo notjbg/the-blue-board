@@ -1,8 +1,10 @@
--- Enable Row Level Security on waitlist table
--- Without RLS, anyone with the Supabase anon key can SELECT all rows
+-- Idempotent RLS setup for waitlist table
+-- Safe to run even if 001_waitlist.sql already enabled RLS and created the policy
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 
--- Allow anonymous inserts (for the waitlist signup flow)
+-- DROP + CREATE to avoid "policy already exists" error on fresh bootstrap
+-- (001_waitlist.sql may have already created this policy)
+DROP POLICY IF EXISTS "anon_insert_only" ON waitlist;
 CREATE POLICY "anon_insert_only" ON waitlist
   FOR INSERT TO anon
   WITH CHECK (true);

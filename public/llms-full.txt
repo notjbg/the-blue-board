@@ -66,6 +66,9 @@ Dedicated guides for each of United Airlines' 19 aircraft types:
 
 Each type page includes: fleet count, seat configuration tables, WiFi and IFE details, power outlets, routes and hubs, complete aircraft registry (every tail number), and FAQs. Data from fleet.json, updated daily.
 
+### News Hub (https://theblueboard.co/news)
+Curated United Airlines news: fleet deliveries, route changes, lounge updates, and operations news. Each article includes original commentary, links to official sources, and cross-links to relevant hub and fleet pages on The Blue Board. Individual article pages at https://theblueboard.co/news/{slug}.
+
 ### Hubs Overview (https://theblueboard.co/hubs)
 Index page listing all 9 United Airlines hub airports with key stats (daily departures, terminals, role in network). Links to individual hub status pages.
 

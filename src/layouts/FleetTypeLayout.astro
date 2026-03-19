@@ -1,5 +1,6 @@
 ---
 import { fleetOrder, fleetNavLabels } from '../data/fleet/index.js';
+import Footer from '../components/Footer.astro';
 import fleetDb from '../../public/data/fleet.json';
 
 const { data } = Astro.props;
@@ -280,15 +281,7 @@ a:hover{text-decoration:underline}
 
 </main>
 
-<!-- Footer -->
-<div style="background:var(--ua-panel);border-top:1px solid var(--ua-border);padding:8px 16px;font-size:9px;color:var(--ua-muted);text-align:center;line-height:1.8;margin-top:40px">
-  <div><a href="/" style="color:var(--ua-accent);text-decoration:none">The Blue Board</a> · Unofficial · Not affiliated with United Airlines, Inc. · Data may be delayed · <a href="/" style="color:var(--ua-accent);text-decoration:none">Open Dashboard &rarr;</a></div>
-  <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px 12px;margin-top:4px">
-    <span>Data: <a href="https://www.flightradar24.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FR24</a> · <a href="https://aviationweather.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">AWC</a> · <a href="https://nasstatus.faa.gov" target="_blank" rel="noopener noreferrer" style="color:var(--ua-muted);text-decoration:none">FAA</a></span>
-    <a href="https://buymeacoffee.com/notjbg" target="_blank" rel="noopener noreferrer" style="background:var(--ua-blue);color:white;padding:3px 10px;border-radius:3px;text-decoration:none;font-size:9px;font-family:var(--font-ui);white-space:nowrap">☕ Support Server Costs</a>
-    <span style="white-space:nowrap">Built by <a href="https://github.com/notjbg" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Jonah Berg</a> · <a href="https://x.com/theblueboard" target="_blank" rel="noopener noreferrer" style="color:var(--ua-accent);text-decoration:none">Follow @theblueboard</a></span>
-  </div>
-</div>
+<Footer />
 
 <!-- Scroll Hint Script -->
 <script is:inline>
