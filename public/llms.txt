@@ -112,6 +112,7 @@ The Blue Board is the only flight tracker built exclusively for United Airlines 
 - https://theblueboard.co/fleet/767-400er — Boeing 767-400ER fleet guide (16 aircraft, Polaris)
 - https://theblueboard.co/fleet/737-900 — Boeing 737-900 fleet guide (12 aircraft)
 - https://theblueboard.co/fleet/787-8-dreamliner — Boeing 787-8 Dreamliner fleet guide (12 aircraft, Polaris)
+- https://theblueboard.co/news — United Airlines news hub (curated fleet, route, and operations news)
 - https://theblueboard.co/hubs — All United hubs overview
 - https://theblueboard.co/hubs/ord — Chicago O'Hare hub status
 - https://theblueboard.co/hubs/den — Denver hub status
