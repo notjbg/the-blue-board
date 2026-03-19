@@ -52,11 +52,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { slug, title, category } = article;
 
     // Check if we already notified for this slug
-    const { data: existing } = await supabase
+    const { data: existing, error: selectErr } = await supabase
       .from('news_notifications')
       .select('slug')
       .eq('key', 'last_sent')
       .single();
+
+    // PGRST116 = "no rows" which is expected on first run — not an error
+    if (selectErr && selectErr.code !== 'PGRST116') {
+      throw new Error(`Supabase select failed: ${selectErr.message}`);
+    }
 
     if (existing?.slug === slug) {
       return res.status(200).json({ status: 'already_sent', slug });
@@ -88,11 +93,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error(`Broadcast send failed: ${sendErr.message}`);
     }
 
-    // Record the sent slug
-    await supabase.from('news_notifications').upsert(
+    // Record the sent slug — fail loudly if this doesn't persist,
+    // otherwise the next invocation will re-broadcast the same article
+    const { error: upsertErr } = await supabase.from('news_notifications').upsert(
       { key: 'last_sent', slug, sent_at: new Date().toISOString() },
       { onConflict: 'key' }
     );
+    if (upsertErr) {
+      // Broadcast was already sent — log the persistence failure but return 500
+      // so the caller knows state is inconsistent
+      console.error('news-notify: broadcast sent but failed to persist slug:', upsertErr);
+      return res.status(500).json({
+        error: 'Broadcast sent but failed to record — next call may re-send',
+        slug,
+        detail: upsertErr.message,
+      });
+    }
 
     return res.status(200).json({ status: 'sent', slug, title });
   } catch (err: any) {

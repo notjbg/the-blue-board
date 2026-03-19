@@ -157,4 +157,34 @@ describe('news-notify API', () => {
     expect(res.statusCode).toBe(500);
     expect(res.body.error).toMatch(/Failed to send/);
   });
+
+  it('returns 500 when Supabase select fails (not PGRST116)', async () => {
+    selectResult = { data: null, error: { code: 'PGRST301', message: 'connection refused' } };
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toMatch(/Failed to send/);
+    expect(mockBroadcastCreate).not.toHaveBeenCalled();
+  });
+
+  it('treats PGRST116 (no rows) as first run, not an error', async () => {
+    selectResult = { data: null, error: { code: 'PGRST116', message: 'no rows' } };
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.status).toBe('sent');
+    expect(mockBroadcastCreate).toHaveBeenCalledOnce();
+  });
+
+  it('returns 500 when upsert fails after broadcast sent', async () => {
+    selectResult = { data: null, error: null };
+    upsertResult = { error: { message: 'RLS violation' } };
+    const res = makeRes();
+    await handler(makeReq(), res);
+    expect(res.statusCode).toBe(500);
+    expect(res.body.error).toMatch(/failed to record/);
+    expect(res.body.slug).toBe('test-article');
+    // Broadcast was still sent
+    expect(mockBroadcastCreate).toHaveBeenCalledOnce();
+  });
 });
