@@ -1,4 +1,5 @@
 import { computeDelayRiskModel, HUB_COORDINATES, HUB_RISK_PROFILES } from '../lib/delay-risk.js';
+import { normalizeMetarPayload } from '../lib/metar.js';
 
 // ═══════════════════════════════════════════════
 // HUB LIST — CANONICAL REFERENCE
@@ -2257,9 +2258,48 @@ function computeOpsImpact(rawMetar, fltCat) {
   };
 }
 
-function parseMetarQuick(raw) {
-  const r = {temp:'--',wind:'Calm',vis:'--',clouds:'Clear'};
-  if (!raw) return r;
+function formatStructuredVisibility(visib) {
+  if (visib === null || visib === undefined || visib === '') return '--';
+  const value = String(visib).trim();
+  if (!value) return '--';
+  if (/SM$/i.test(value) || /m$/i.test(value)) return value;
+  if (/^\d+(\.\d+)?$/.test(value) && Number(value) > 50) return `${Math.round(Number(value))}m`;
+  return `${value} SM`;
+}
+
+function applyStructuredMetarFallback(parsed, metar) {
+  if (!metar || typeof metar !== 'object') return parsed;
+
+  if (parsed.temp === '--' && Number.isFinite(metar.temp)) {
+    parsed.temp = `${Math.round(metar.temp)}°C / ${Math.round((metar.temp * 9) / 5 + 32)}°F`;
+  }
+
+  if (parsed.wind === '--' && Number.isFinite(metar.wspd)) {
+    if (metar.wspd === 0) parsed.wind = 'Calm';
+    else if (Number.isFinite(metar.wdir)) parsed.wind = `${String(Math.round(metar.wdir)).padStart(3, '0')}° @ ${Math.round(metar.wspd)}kt`;
+    else parsed.wind = `${Math.round(metar.wspd)}kt`;
+  }
+
+  if (parsed.vis === '--') {
+    parsed.vis = formatStructuredVisibility(metar.visib);
+  }
+
+  if (parsed.clouds === '--') {
+    const cloudLayer = Array.isArray(metar.clouds) && metar.clouds.length ? metar.clouds[0] : null;
+    const cloudCover = cloudLayer?.cover || metar.cover || '';
+    const cloudBase = Number.isFinite(cloudLayer?.base) ? cloudLayer.base : null;
+    const cloudNames = {FEW:'Few',SCT:'Scattered',BKN:'Broken',OVC:'Overcast'};
+    if (cloudCover && cloudBase !== null) parsed.clouds = `${cloudNames[cloudCover] || cloudCover} ${cloudBase}ft`;
+    else if (cloudCover === 'CLR' || cloudCover === 'SKC') parsed.clouds = 'Clear';
+  }
+
+  return parsed;
+}
+
+function parseMetarQuick(metar) {
+  const raw = typeof metar === 'string' ? metar : (metar?.rawOb || '');
+  const r = {temp:'--',wind:'--',vis:'--',clouds:'--'};
+  if (!raw) return typeof metar === 'object' ? applyStructuredMetarFallback(r, metar) : r;
   const wm = raw.match(/\b(\d{3})(\d{2,3})(G(\d{2,3}))?KT\b/);
   if (wm) { r.wind = `${wm[1]}° @ ${wm[2]}kt${wm[4]?' G'+wm[4]:''}`;} else if(raw.includes('00000KT')){r.wind='Calm';}
   const vm = raw.match(/\b(\d+)\s*SM\b/) || raw.match(/\b(\d+\/\d+)SM\b/);
@@ -2269,7 +2309,25 @@ function parseMetarQuick(raw) {
   const cm = [...raw.matchAll(/(FEW|SCT|BKN|OVC)(\d{3})/g)];
   const cn = {FEW:'Few',SCT:'Scattered',BKN:'Broken',OVC:'Overcast'};
   if (cm.length) { const l=cm[0]; r.clouds=`${cn[l[1]]||l[1]} ${parseInt(l[2])*100}ft`;} else if(raw.includes('CLR')||raw.includes('SKC')){r.clouds='Clear';}
-  return r;
+  return typeof metar === 'object' ? applyStructuredMetarFallback(r, metar) : r;
+}
+
+function hasRenderableMetarData(metar) {
+  if (!metar || typeof metar !== 'object') return false;
+  return Boolean(
+    metar.rawOb ||
+    Number.isFinite(metar.temp) ||
+    Number.isFinite(metar.wspd) ||
+    (typeof metar.visib === 'string' && metar.visib.trim()) ||
+    (Array.isArray(metar.clouds) && metar.clouds.length) ||
+    metar.cover
+  );
+}
+
+async function fetchMetarBatch(allStations) {
+  const response = await fetch(`/api/metar?ids=${allStations}`);
+  if (!response.ok) throw new Error(`metar-${response.status}`);
+  return normalizeMetarPayload(await response.json());
 }
 
 async function initWeatherTab() {
@@ -2312,10 +2370,12 @@ async function initWeatherTab() {
 
   // Fetch ALL METARs in a single request + FAA in parallel (2 requests instead of 8)
   const allStations = Object.values(hubStations).join(',');
-  const [metarData, faaData] = await Promise.all([
-    fetch(`/api/metar?ids=${allStations}`).then(r=>r.json()).catch(()=>[]),
-    fetch('/api/faa').then(r=>r.json()).catch(()=>[])
+  const [metarResult, faaResult] = await Promise.allSettled([
+    fetchMetarBatch(allStations),
+    fetch('/api/faa').then(r => r.ok ? r.json() : Promise.reject(new Error(`faa-${r.status}`)))
   ]);
+  const metarData = metarResult.status === 'fulfilled' ? metarResult.value : [];
+  const faaData = faaResult.status === 'fulfilled' ? faaResult.value : [];
 
   // Index METAR results by station ID → hub
   const stationToHub = {};
@@ -2326,6 +2386,7 @@ async function initWeatherTab() {
     if (hub) metarByHub[hub] = m;
   });
   const metarResults = hubs.map(hub => ({hub, data: metarByHub[hub] || null}));
+  const loadedMetars = metarResults.filter(({ data }) => hasRenderableMetarData(data)).length;
 
   // Index FAA delays by airport code — merge multiple entries per airport
   const faaIndex = {};
@@ -2354,7 +2415,7 @@ async function initWeatherTab() {
     const catRank = {LIFR:0,IFR:1,MVFR:2,VFR:3,UNK:3};
     const cat = localCat && (catRank[localCat] ?? 3) < (catRank[apiCat] ?? 3) ? localCat : apiCat;
     const catColor = CAT_COLORS[cat] || '#64748b';
-    const m = parseMetarQuick(raw);
+    const m = parseMetarQuick(data || raw);
     const faa = faaIndex[hub];
     const hasDelay = faa && faa.delays && faa.delays.length > 0;
 
@@ -2381,8 +2442,12 @@ async function initWeatherTab() {
       faaLine = `<div class="hub-faa normal">✓ Normal Operations</div>`;
     }
 
-    const explainer = data ? explainMETAR(raw, hub, cat) : '';
+    const explainer = raw ? explainMETAR(raw, hub, cat) : '';
     const faaExplainer = faa ? explainFAAStatus(hub, faa.delays||[], faa) : '';
+    const unavailable = !hasRenderableMetarData(data);
+    const availabilityLine = unavailable
+      ? '<div class="hub-explainer">Current METAR observation unavailable. Retry in a moment.</div>'
+      : '';
 
     cardsHtml += `<div class="hub-card" data-hub="${hub}" style="border-top:3px solid ${borderColor}">
       <div class="hub-card-top"><span class="hub-card-code">${hub}</span><span class="cat-badge" style="background:${catColor};color:#000">${cat}</span></div>
@@ -2394,6 +2459,7 @@ async function initWeatherTab() {
         <div class="hub-metric"><div class="hub-metric-label">Ceiling</div><div class="hub-metric-val">${m.clouds}</div></div>
       </div>
       ${faaLine}
+      ${availabilityLine}
       ${explainer?`<div class="hub-explainer">${explainer}</div>`:''}
       ${faaExplainer?`<div class="hub-explainer">${faaExplainer}</div>`:''}
       ${raw?`<div class="hub-raw">${escapeHtml(raw)}</div>`:''}
@@ -2408,7 +2474,7 @@ async function initWeatherTab() {
     }
   });
 
-  if (!cardsHtml) {
+  if (!cardsHtml || loadedMetars === 0) {
     cardsHtml = '<div class="error-state" style="grid-column:1/-1"><div class="error-icon">🌦</div><div style="color:var(--ua-text)">Weather data unavailable</div><div style="color:var(--ua-muted);font-size:11px">Could not load METAR observations</div><button class="retry-btn" data-action="weather-retry">↻ Retry</button></div>';
   }
   document.getElementById('hub-cards').innerHTML = cardsHtml;
@@ -3862,13 +3928,13 @@ async function _doPreloadWeatherAndFAA() {
 
     const allStations = [...Object.values(hubStations), ...Object.values(extraStations)].join(',');
     const [metarResult, faaResult] = await Promise.allSettled([
-      fetch('/api/metar?ids=' + allStations).then(r => r.ok ? r.json() : Promise.reject(new Error('metar'))),
+      fetchMetarBatch(allStations),
       fetch('/api/faa').then(r => r.ok ? r.json() : Promise.reject(new Error('faa'))),
     ]);
 
     // Parse METAR and populate weatherOpsByHub (for hubs AND non-hub destinations)
     const metarByHub = {};
-    if (metarResult.status === 'fulfilled' && Array.isArray(metarResult.value)) {
+    if (metarResult.status === 'fulfilled') {
       metarResult.value.forEach(m => {
         const key = stationToHub[m.icaoId || m.stationId] || stationToHub[m.id];
         if (key) metarByHub[key] = m;

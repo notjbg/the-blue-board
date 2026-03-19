@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from './types.js';
 import { createRateLimiter } from './_rate-limit.js';
+import { normalizeMetarPayload } from '../src/lib/metar.js';
 
 const isRateLimited = createRateLimiter('metar', 60);
 
@@ -28,7 +29,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const upstream = await fetch(`https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(ids)}&format=json`, { signal: controller.signal });
     clearTimeout(timeout);
     if (!upstream.ok) return res.status(502).json({ error: 'Upstream service unavailable' });
-    const data = await upstream.json();
+    const data = normalizeMetarPayload(await upstream.json());
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     res.setHeader('Content-Type', 'application/json');
     return res.status(200).json(data);
