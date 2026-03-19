@@ -266,7 +266,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .wx-section-header{text-transform:uppercase;letter-spacing:.8px}
 .scroll-hint-arrow{animation:bounce 1.5s ease-in-out infinite;font-size:14px}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
-.hub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:16px;min-height:200px}
+.hub-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;padding:16px;min-height:200px;flex-shrink:0}
 .hub-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;overflow:hidden;transition:border-color .2s}
 .hub-card:hover{border-color:var(--ua-accent)}
 .hub-card-top{padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between}
@@ -550,7 +550,7 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .fleet-enrich-inline{font-size:9px;color:var(--ua-muted);margin-top:1px}
 
 /* IROPS Monitor */
-#irops-section{padding:16px;border-bottom:1px solid var(--ua-border)}
+#irops-section{padding:16px;border-bottom:1px solid var(--ua-border);flex-shrink:0}
 #irops-section h3{font-size:13px;color:#f59e0b;margin-bottom:12px}
 .irops-metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
 .irops-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:10px;text-align:center}
