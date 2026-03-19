@@ -2347,6 +2347,7 @@ async function initWeatherTab() {
   const radarMap = L.map('radar-map', {center:[39,-98],zoom:4,zoomControl:true,attributionControl:false});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,subdomains:'abcd',tileSize:256,detectRetina:true}).addTo(radarMap);
   L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',{opacity:0.6}).addTo(radarMap);
+  setTimeout(() => radarMap.invalidateSize(), 200);
   document.getElementById('radar-title').textContent = `🌧 NEXRAD Radar — ${new Date().toUTCString().slice(17,25)}Z`;
 
   // Place hub markers immediately with neutral color (updated after METAR loads)
@@ -2484,7 +2485,7 @@ async function initWeatherTab() {
   if (wxHint) {
     const observer = new IntersectionObserver(([entry]) => {
       wxHint.style.opacity = entry.isIntersecting ? '0' : '1';
-    }, {root: document.getElementById('tab-weather'), threshold: 0.1});
+    }, {root: document.getElementById('wx-detail-panel'), threshold: 0.1});
     observer.observe(document.getElementById('hub-cards'));
   }
 }
@@ -4023,13 +4024,14 @@ function updateIrops() {
   worstDelays.sort((a, b) => b.delay - a.delay);
   const top5 = worstDelays.slice(0, 5);
 
-  let html = `<div style="margin-bottom:10px"><span class="irops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
-  html += '<div class="irops-metrics">';
-  html += `<div class="irops-card"><div class="iv" style="color:#f59e0b">${delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#c026d3">${diversions}</div><div class="il">Diversions</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${groundStops}</div><div class="il">Ground Stops (FAA)</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:var(--ua-blue)">${totalFlights}</div><div class="il">Total Flights</div></div>`;
+  let html = '<div class="irops-compact">';
+  html += `<div class="irops-compact-header"><span class="irops-score ${scoreCls}">${score}</span><span class="irops-compact-label">${scoreLabel}</span></div>`;
+  html += '<div class="irops-compact-metrics">';
+  html += `<span><b style="color:#f59e0b">${delayed30}</b> &gt;30m</span>`;
+  html += `<span><b style="color:#ef4444">${delayed60}</b> &gt;60m</span>`;
+  html += `<span><b style="color:#c026d3">${diversions}</b> div</span>`;
+  if (groundStops) html += `<span><b style="color:#ef4444">${groundStops}</b> GS</span>`;
+  html += `<span><b style="color:var(--ua-accent)">${totalFlights}</b> flights</span>`;
   html += '</div>';
 
   // FAA alerts
@@ -4040,18 +4042,21 @@ function updateIrops() {
     }
   }
   if (faaAlerts.length) {
-    html += `<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:4px;padding:8px 10px;margin-bottom:10px;font-size:10px;color:#f59e0b"><strong>FAA Alerts:</strong> ${faaAlerts.map(a => escapeHtml(a)).join(' · ')}</div>`;
+    html += `<div class="irops-compact-faa">${faaAlerts.map(a => escapeHtml(a)).join(' · ')}</div>`;
   }
-
-  if (top5.length) {
-    html += '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
-    top5.forEach(f => {
-      html += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
-    });
-    html += '</div>';
-  }
-
+  html += '</div>';
   content.innerHTML = html;
+
+  // Most disrupted flights — bottom of detail panel
+  const worstEl = document.getElementById('irops-worst-flights');
+  if (worstEl && top5.length) {
+    let wh = '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
+    top5.forEach(f => {
+      wh += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
+    });
+    wh += '</div>';
+    worstEl.innerHTML = wh;
+  }
 }
 
 function autoLoadIrops() {
