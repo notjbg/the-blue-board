@@ -40,7 +40,18 @@ describe('metar API', () => {
   });
 
   it('returns weather data on success', async () => {
-    const mockData = [{ icaoId: 'KORD', temp: 15, wspd: 10 }];
+    const mockData = {
+      data: [{
+        station_id: 'kord',
+        raw_text: 'METAR KORD 182351Z 28005KT 10SM BKN250 06/M01 A3001',
+        flight_category: 'vfr',
+        visibility: '10+',
+        wind_dir_degrees: '280',
+        wind_speed_kt: '5',
+        temperature_c: '6.1',
+        sky_condition: [{ sky_cover: 'BKN', altitude_ft_agl: 25000 }],
+      }],
+    };
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       json: async () => mockData,
@@ -54,7 +65,18 @@ describe('metar API', () => {
     }, res);
 
     expect(res.statusCode).toBe(200);
-    expect(res.body).toEqual(mockData);
+    expect(res.body).toMatchObject([{
+      icaoId: 'KORD',
+      stationId: 'KORD',
+      id: 'KORD',
+      rawOb: 'METAR KORD 182351Z 28005KT 10SM BKN250 06/M01 A3001',
+      fltCat: 'VFR',
+      visib: '10+',
+      wdir: 280,
+      wspd: 5,
+      temp: 6.1,
+      clouds: [{ cover: 'BKN', base: 25000 }],
+    }]);
     expect(res.headers['Cache-Control']).toContain('s-maxage=300');
   });
 
