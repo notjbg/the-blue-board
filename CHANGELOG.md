@@ -7,23 +7,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versio
 ## [1.4.0] - 2026-03-19
 
 ### Added
-- United Airlines News Hub (`/news`) with curated article pages, SEO-optimized with NewsArticle structured data, BreadcrumbList schema, and OG/Twitter meta tags
-- Individual article pages (`/news/[slug]`) with source links, cross-links to related hub/fleet pages via tags, donation CTA, and Pro waitlist teaser
-- Google News sitemap (`/news-sitemap.xml`) for Google News indexing eligibility
-- Dynamic RSS feed (`/feed.xml`) now includes news articles with publication dates — replaces static feed
-- "Latest News" banner on dashboard (between header and tab bar) — dismissible, persists per-article via localStorage, tracks clicks via Vercel Analytics
-- Email digest endpoint (`/api/news-notify`) using Resend Broadcasts API — idempotent, auth-gated, tracks last-sent slug in Supabase
-- Shared `Footer.astro` component — extracted from hub and fleet layouts to eliminate DRY violation
+- **News Hub** (`/news`) — browse curated United Airlines articles with SEO-optimized pages, NewsArticle structured data, and OG/Twitter previews
+- **Individual article pages** (`/news/[slug]`) — each article links to its source, cross-links to related hub and fleet pages, and includes a donation CTA
+- **Google News sitemap** (`/news-sitemap.xml`) — makes articles eligible for Google News indexing
+- **Dynamic RSS feed** (`/feed.xml`) — now includes news articles with publication dates (replaces the old static feed)
+- **"Latest News" banner** on the dashboard — a dismissible banner between header and tab bar highlights the newest article, with per-article persistence via localStorage
+- **Email news digest** — waitlist subscribers receive a Resend-powered email when new articles are published, with idempotent delivery tracking
+- Dashboard navigation now includes a "News" link
+
+### For contributors
+- Shared `Footer.astro` component extracted from hub and fleet layouts
 - `DESIGN.md` — formalized design system (color tokens, typography, layout, components, accessibility)
-- `TODOS.md` — deferred work tracking (auto-curated news aggregation)
-- News data validation at build time (slug format, required fields, duplicate detection, https-only sources)
-- Tag resolver for cross-linking articles to hub and fleet pages with build-time warnings for unknown tags
+- News data validated at build time (slug format, required fields, duplicate detection, HTTPS-only sources)
+- Tag resolver cross-links articles to hub and fleet pages with build-time warnings for unknown tags
 - 20 new tests: 11 for news data model + tag resolver, 9 for news-notify endpoint (auth, idempotency, broadcast API)
 
 ### Changed
 - Sitemap now includes `/news` index and all article pages
 - `llms.txt` and `llms-full.txt` updated with news hub documentation
-- Dashboard brand strip includes "News" link
 - `vercel.json` adds cache headers for `/news/*` and function config for `news-notify`
 - `buildMetadata.js` extended with news lastmod path helpers
 
@@ -297,6 +298,15 @@ Initial public launch.
 - JSON-LD structured data, Open Graph metadata
 - Vercel hosting with edge caching
 
+[1.4.0]: https://github.com/notjbg/the-blue-board/compare/v1.3.8...v1.4.0
+[1.3.8]: https://github.com/notjbg/the-blue-board/compare/v1.3.7...v1.3.8
+[1.3.7]: https://github.com/notjbg/the-blue-board/compare/v1.3.6...v1.3.7
+[1.3.6]: https://github.com/notjbg/the-blue-board/compare/v1.3.5...v1.3.6
+[1.3.5]: https://github.com/notjbg/the-blue-board/compare/v1.3.4...v1.3.5
+[1.3.4]: https://github.com/notjbg/the-blue-board/compare/v1.3.3...v1.3.4
+[1.3.3]: https://github.com/notjbg/the-blue-board/compare/v1.3.2...v1.3.3
+[1.3.2]: https://github.com/notjbg/the-blue-board/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/notjbg/the-blue-board/compare/v1.3...v1.3.1
 [1.3]: https://github.com/notjbg/the-blue-board/compare/v1.2...v1.3
 [1.2]: https://github.com/notjbg/the-blue-board/compare/v1.1.1...v1.2
 [1.1.1]: https://github.com/notjbg/the-blue-board/compare/v1.1...v1.1.1
