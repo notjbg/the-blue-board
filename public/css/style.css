@@ -427,6 +427,10 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #radar-map{height:260px}
   .wx-detail-panel{flex:1;border-left:none;border-top:1px solid var(--ua-border)}
   .hub-cards{padding:10px}
+  .irops-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:4px 10px;gap:0}
+  .irops-bar::-webkit-scrollbar{display:none}
+  .irops-bar-sep{display:none}
+  .irops-bar-item{white-space:nowrap;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;padding:4px 10px;margin:2px 3px}
   /* Analytics mobile */
   .metric-row{flex-wrap:wrap;gap:0}
   .metric-card{min-width:45%}
@@ -556,23 +560,21 @@ tbody td{padding:5px 8px;white-space:nowrap}
 .fleet-enrich-detail.show{display:block}
 .fleet-enrich-inline{font-size:9px;color:var(--ua-muted);margin-top:1px}
 
-/* IROPS Monitor — compact side panel */
-#irops-section{padding:10px 14px;border-bottom:1px solid var(--ua-border);flex-shrink:0}
-.irops-compact{display:flex;flex-direction:column;gap:4px}
-.irops-compact-header{display:flex;align-items:center;gap:8px}
-.irops-compact-label{font-size:10px;color:var(--ua-muted)}
-.irops-compact-metrics{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:10px;color:var(--ua-muted)}
-.irops-compact-metrics b{font-family:var(--font-mono);font-size:11px}
-.irops-compact-time{font-size:8px;color:var(--ua-muted);text-align:right;margin-top:2px}
-.irops-compact-faa{font-size:9px;color:#f59e0b;margin-top:2px}
-.irops-score{display:inline-block;padding:3px 10px;border-radius:4px;font-size:14px;font-weight:700}
+/* IROPS Monitor — thin stats bar */
+#irops-section{padding:0;border-bottom:1px solid var(--ua-border);flex-shrink:0}
+.irops-bar{display:flex;align-items:center;padding:6px 14px;gap:4px;font-size:10px;flex-wrap:wrap}
+.irops-bar-item{display:flex;align-items:center;gap:4px}
+.irops-bar-val{font-family:var(--font-mono);font-weight:700;font-size:11px}
+.irops-bar-label{color:var(--ua-muted);font-family:var(--font-ui)}
+.irops-bar-sep{color:var(--ua-border);margin:0 4px}
+.irops-bar-faa{font-size:9px;color:#f59e0b;padding:2px 14px 6px;border-bottom:1px solid var(--ua-border)}
+.irops-score{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700}
 .irops-score.low{background:rgba(34,197,94,.15);color:#22c55e}
 .irops-score.med{background:rgba(245,158,11,.15);color:#f59e0b}
 .irops-score.high{background:rgba(239,68,68,.15);color:#ef4444}
-.irops-worst{padding:10px 14px;border-top:1px solid var(--ua-border)}
-.irops-worst h4{font-size:10px;color:var(--ua-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.irops-worst-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(30,41,59,.3);font-size:10px}
-.irops-empty{text-align:center;padding:20px;color:var(--ua-muted);font-size:10px}
+.irops-empty{text-align:center;padding:12px;color:var(--ua-muted);font-size:10px}
+.hub-cards{position:relative}
+.hub-cards::after{content:'';position:sticky;bottom:0;left:0;right:0;height:24px;background:linear-gradient(to bottom,transparent,var(--bg-body));pointer-events:none;display:block}
 
 /* FAA Delay Context */
 .faa-delay-context{font-size:9px;color:#f59e0b;font-style:italic;margin-top:2px;opacity:.85}
@@ -607,8 +609,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
 #watch-notification .wn-dismiss{background:none;border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:3px;cursor:pointer;font-family:var(--font-ui);font-size:10px}
 
 /* ═══ HYBRID TYPOGRAPHY: Mono for data elements ═══ */
-table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irops-card .iv,.irops-score,.hh-hub,.fleet-chip .count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
-.onboarding-subtitle,.onboarding-desc,.onboarding-footer,.source-desc,.hub-explainer,.wx-explainer,.error-state,.empty-state,.hub-card-name,.stat-label,.metric-label,.big-number-label,.irops-card .il,.hub-metric-label,.popup-field-label,.popup-route-est,.source-name,.source-link{font-family:var(--font-ui)}
+table,thead th,tbody td,.stat-val,.metric-val,.big-number,.ticker,.ticker-item,.hub-code,.hub-card-code,.popup-callsign,.popup-field-value,.popup-route,.hub-raw,.hub-tooltip,.sched-status,#countdown,#clock,.irops-bar-val,.irops-score,.hh-hub,.fleet-chip .count,.equip-change-badge,.cat-badge,.hub-metric-val,.starlink-badge,.popup-phase,.seat-block,.freshness,.squawk-alert{font-family:var(--font-mono)}
+.onboarding-subtitle,.onboarding-desc,.onboarding-footer,.source-desc,.hub-explainer,.wx-explainer,.error-state,.empty-state,.hub-card-name,.stat-label,.metric-label,.big-number-label,.irops-bar-label,.hub-metric-label,.popup-field-label,.popup-route-est,.source-name,.source-link{font-family:var(--font-ui)}
 
 /* ═══ MICRO-INTERACTIONS: :active press feedback ═══ */
 .tab-btn:active,.ctrl-btn:active,.refresh-btn:active,.retry-btn:active,.sched-day-btn:active,.sched-load-more:active,#onboarding-dismiss:active,#onboarding-help:active,.watch-btn:active,.share-btn:active,#watch-header-btn:active,#mobile-bottom-nav button:active,.fleet-chip:active,.hub-nav a:active,.show-all-btn:active{transform:scale(.97)}

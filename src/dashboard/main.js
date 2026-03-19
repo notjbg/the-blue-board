@@ -3985,7 +3985,7 @@ function updateIrops() {
   }
 
   if (allSchedFlts.length === 0) {
-    content.innerHTML = '<div class="irops-empty">Load schedule data from the Schedule tab to see IROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irops-load">📅 Load Schedule Data</button></div>';
+    content.innerHTML = '<div class="irops-bar"><span class="irops-bar-item"><span class="irops-bar-val" style="color:var(--ua-muted)">—</span><span class="irops-bar-label">Loading schedule data…</span></span></div>';
     return;
   }
 
@@ -4024,17 +4024,23 @@ function updateIrops() {
   worstDelays.sort((a, b) => b.delay - a.delay);
   const top5 = worstDelays.slice(0, 5);
 
-  let html = '<div class="irops-compact">';
-  html += `<div class="irops-compact-header"><span class="irops-score ${scoreCls}">${score}</span><span class="irops-compact-label">${scoreLabel}</span></div>`;
-  html += '<div class="irops-compact-metrics">';
-  html += `<span><b style="color:#f59e0b">${delayed30}</b> &gt;30m</span>`;
-  html += `<span><b style="color:#ef4444">${delayed60}</b> &gt;60m</span>`;
-  html += `<span><b style="color:#c026d3">${diversions}</b> div</span>`;
-  if (groundStops) html += `<span><b style="color:#ef4444">${groundStops}</b> GS</span>`;
-  html += `<span><b style="color:var(--ua-accent)">${totalFlights}</b> flights</span>`;
+  // NOTE: All values here are computed numbers/strings from internal schedule data,
+  // not user input. FAA alerts use escapeHtml() below.
+  let html = '<div class="irops-bar">';
+  html += `<span class="irops-bar-item"><span class="irops-score ${scoreCls}" style="font-size:12px;padding:2px 8px">${score}</span><span class="irops-bar-label">${scoreLabel}</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#ef4444">${cancellations}</span><span class="irops-bar-label">Cancellations</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#f59e0b">${delayed30}</span><span class="irops-bar-label">&gt;30m</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#ef4444">${delayed60}</span><span class="irops-bar-label">&gt;60m</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#c026d3">${diversions}</span><span class="irops-bar-label">Diversions</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:var(--ua-blue)">${totalFlights}</span><span class="irops-bar-label">Total Flights</span></span>`;
   html += '</div>';
 
-  // FAA alerts
+  // FAA alerts — separate line below bar (escapeHtml for safety)
   const faaAlerts = [];
   for (const [apt, data] of Object.entries(faaDelayIndex)) {
     if (data.delays && data.delays.length > 0) {
@@ -4042,21 +4048,9 @@ function updateIrops() {
     }
   }
   if (faaAlerts.length) {
-    html += `<div class="irops-compact-faa">${faaAlerts.map(a => escapeHtml(a)).join(' · ')}</div>`;
+    html += `<div class="irops-bar-faa">${faaAlerts.map(a => escapeHtml(a)).join(' · ')}</div>`;
   }
-  html += '</div>';
   content.innerHTML = html;
-
-  // Most disrupted flights — bottom of detail panel
-  const worstEl = document.getElementById('irops-worst-flights');
-  if (worstEl && top5.length) {
-    let wh = '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
-    top5.forEach(f => {
-      wh += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
-    });
-    wh += '</div>';
-    worstEl.innerHTML = wh;
-  }
 }
 
 function autoLoadIrops() {
@@ -4074,7 +4068,7 @@ function fetchIropsFromAPI() {
 }
 async function _doFetchIropsFromAPI() {
   const content = document.getElementById('irops-content');
-  if (content) content.innerHTML = '<div class="irops-empty" style="color:var(--ua-muted);font-size:10px">Loading IROPS data…</div>';
+  // Keep the default bar with — placeholders during load (already in HTML)
   try {
     const resp = await fetch('/api/irops');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -4082,7 +4076,7 @@ async function _doFetchIropsFromAPI() {
     renderIropsFromAPI(data);
   } catch (e) {
     console.error('IROPS API failed, falling back to manual:', e);
-    if (content) content.innerHTML = '<div class="irops-empty">Load schedule data from the Schedule tab to see IROPS metrics<br><button class="retry-btn" style="margin-top:8px" data-action="irops-load">📅 Load Schedule Data</button></div>';
+    if (content) content.innerHTML = '<div class="irops-bar"><span class="irops-bar-item"><span class="irops-bar-val" style="color:var(--ua-muted)">—</span><span class="irops-bar-label">IROPS unavailable</span></span></div>';
   }
 }
 
@@ -4122,29 +4116,20 @@ function renderIropsFromAPI(data) {
   const scoreCls = score < 5 ? 'low' : score < 15 ? 'med' : 'high';
   const scoreLabel = score < 5 ? 'Normal Ops' : score < 15 ? 'Minor Disruptions' : 'Significant IROPS';
 
-  let html = `<div style="margin-bottom:10px"><span class="irops-score ${scoreCls}">${score}</span> <span style="font-size:10px;color:var(--ua-muted)">${scoreLabel} · Disruption Score</span></div>`;
-  html += '<div class="irops-metrics">';
-  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${data.cancellations || '—'}</div><div class="il">Cancellations<span style="font-size:7px;display:block;color:var(--ua-muted)" title="FR24 schedule data does not reliably include cancelled flights">Limited data</span></div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#f59e0b">${data.delayed30}</div><div class="il">Delayed &gt;30m</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#ef4444">${data.delayed60}</div><div class="il">Delayed &gt;60m</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:#c026d3">${data.diversions}</div><div class="il">Diversions</div></div>`;
-  html += `<div class="irops-card"><div class="iv" style="color:var(--ua-blue)">${data.totalFlights}</div><div class="il">Total Flights</div></div>`;
+  // NOTE: All values here are from the IROPS API (internal, not user input).
+  let html = '<div class="irops-bar">';
+  html += `<span class="irops-bar-item"><span class="irops-score ${scoreCls}" style="font-size:12px;padding:2px 8px">${score}</span><span class="irops-bar-label">${scoreLabel}</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#ef4444">${data.cancellations || '—'}</span><span class="irops-bar-label">Cancellations</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#f59e0b">${data.delayed30}</span><span class="irops-bar-label">&gt;30m</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#ef4444">${data.delayed60}</span><span class="irops-bar-label">&gt;60m</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:#c026d3">${data.diversions}</span><span class="irops-bar-label">Diversions</span></span>`;
+  html += '<span class="irops-bar-sep">│</span>';
+  html += `<span class="irops-bar-item"><span class="irops-bar-val" style="color:var(--ua-blue)">${data.totalFlights}</span><span class="irops-bar-label">Total Flights</span></span>`;
   html += '</div>';
-
-  // Worst delays
-  if (data.worstDelays && data.worstDelays.length) {
-    html += '<div class="irops-worst"><h4>Most Disrupted Flights</h4>';
-    data.worstDelays.forEach(f => {
-      html += `<div class="irops-worst-row"><span style="color:var(--ua-accent);font-weight:600">${escapeHtml(f.ident)} <span style="color:var(--ua-muted);font-weight:400">${escapeHtml(f.route)}</span></span><span style="color:#ef4444;font-weight:700">+${f.delay}m</span></div>`;
-    });
-    html += '</div>';
-  }
-
-  // Timestamp
-  if (data.generatedAt) {
-    const ago = Math.round((Date.now() - new Date(data.generatedAt).getTime()) / 60000);
-    html += `<div style="text-align:right;font-size:8px;color:var(--ua-muted);margin-top:8px">${ago < 1 ? 'Just now' : ago + 'm ago'}${data.cached ? ' · cached' : ''}</div>`;
-  }
 
   content.innerHTML = html;
 }
