@@ -375,6 +375,20 @@ let activeHubFilter = null, activePhaseFilter = null;
 let refreshTimer = null, countdown = 30;
 let deepLinkHandled = false;
 
+function isSmallScreenViewport() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function getBasemapTileOptions() {
+  const smallScreen = isSmallScreenViewport();
+  return {
+    maxZoom: 18,
+    subdomains: smallScreen ? 'ab' : 'abcd',
+    tileSize: 256,
+    detectRetina: !smallScreen && window.devicePixelRatio > 1
+  };
+}
+
 // ═══ TAB SWITCHING ═══
 const TAB_HASHES = {'tab-myflight':'#myflight','tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#fleet','tab-weather':'#weather','tab-analytics':'#stats','tab-sources':'#sources'};
 const HASH_TABS = Object.fromEntries(Object.entries(TAB_HASHES).map(([k,v])=>[v,k]));
@@ -850,14 +864,13 @@ function initMap() {
   var homeAp = homeCode && AIRPORTS.find(a => a.iata === homeCode);
   var mapCenter = homeAp ? [homeAp.lat, homeAp.lon] : [39, -98];
   var mapZoom = homeAp ? 5 : 4;
+  var basemapTileOptions = getBasemapTileOptions();
   map = L.map('map', {
     center: mapCenter, zoom: mapZoom, zoomControl: false,
     attributionControl: false, worldCopyJump: true
   });
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 18, subdomains: 'abcd', tileSize: 256, detectRetina: true
-  }).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', basemapTileOptions).addTo(map);
 
   // Clear route on popup close and remove flight URL param
   map.on('popupclose', () => {
@@ -1701,19 +1714,7 @@ function initTickerAnimation(tickerEl) {
 
   // Wait two frames for layout to settle, then measure (avoids forced reflow)
   requestAnimationFrame(() => { requestAnimationFrame(() => {
-    const items = tickerEl.querySelectorAll('.ticker-item');
-    const halfCount = Math.ceil(items.length / 2);
-    if (halfCount === 0) return;
-
-    // Batch-read all widths first (no interleaved writes = single layout pass)
-    const widths = new Array(halfCount);
-    for (let i = 0; i < halfCount; i++) {
-      widths[i] = items[i].offsetWidth;
-    }
-    let contentWidth = 0;
-    for (let i = 0; i < halfCount; i++) {
-      contentWidth += widths[i];
-    }
+    const contentWidth = Math.round(tickerEl.scrollWidth / 2);
 
     if (contentWidth < 10) return; // no real content
 
@@ -2344,8 +2345,9 @@ async function initWeatherTab() {
   hubCardsEl.innerHTML = hubs.map(h => `<div class="hub-card" style="border-top:3px solid #334155;opacity:0.5"><div class="hub-card-top"><span class="hub-card-code">${escapeHtml(h)}</span><span class="cat-badge" style="background:#334155;color:#94a3b8">…</span></div><div class="hub-card-name">${escapeHtml(HUB_NAMES[h]||h)}</div><div style="padding:20px;text-align:center;color:var(--ua-muted);font-size:10px">Loading…</div></div>`).join('');
 
   // Initialize radar map IMMEDIATELY — don't wait for data fetches
+  const basemapTileOptions = getBasemapTileOptions();
   const radarMap = L.map('radar-map', {center:[39,-98],zoom:4,zoomControl:true,attributionControl:false});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18,subdomains:'abcd',tileSize:256,detectRetina:true}).addTo(radarMap);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', basemapTileOptions).addTo(radarMap);
   L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',{opacity:0.6}).addTo(radarMap);
   setTimeout(() => radarMap.invalidateSize(), 200);
   document.getElementById('radar-title').textContent = `🌧 NEXRAD Radar — ${new Date().toUTCString().slice(17,25)}Z`;
