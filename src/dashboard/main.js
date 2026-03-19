@@ -541,7 +541,7 @@ function applyFleetDeepLinkFilter(filter, { render = true } = {}) {
 const _origSwitchToTab = switchToTab;
 switchToTab = function(tabId, updateHash) {
   _origSwitchToTab(tabId, updateHash);
-  var overflowTabs = ['tab-weather','tab-analytics','tab-sources'];
+  var overflowTabs = ['tab-myflight','tab-analytics','tab-sources'];
   var moreBtn = document.getElementById('mobile-more-btn');
   document.querySelectorAll('#mobile-bottom-nav button[data-tab]:not(.bnav-overflow-item)').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tab === tabId);

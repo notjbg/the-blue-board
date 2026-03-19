@@ -361,7 +361,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
   #header{flex-direction:row;gap:0;padding:0 12px;height:44px;text-align:left;align-items:center}
   #header h1{font-size:14px;letter-spacing:1px;white-space:nowrap}
   #header h1 span[style]{display:none}
-  #brand-strip{flex-direction:column;align-items:flex-start;padding:8px 12px;font-size:9px}
+  #brand-strip{flex-direction:column;align-items:flex-start;padding:4px 12px;font-size:9px}
+  #brand-strip p{display:none}
   #global-search-wrap{position:absolute!important;top:44px;left:0;right:0;flex:none!important;order:0;display:none;padding:8px 12px;background:var(--ua-dark);border-bottom:1px solid var(--ua-border);z-index:999}
   #global-search-wrap.mobile-search-open{display:block!important}
   #header-right{font-size:14px;gap:8px;margin-left:auto}
@@ -451,7 +452,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
   /* ── Hub health bar: compact pill grid on mobile (Change 5) ── */
   #hub-health-bar{display:flex!important;flex-wrap:wrap;justify-content:center;padding:4px 8px;gap:0}
   #hub-health-bar .hh-label,#hub-health-bar .hh-explainer,#hub-health-bar .hh-info,#hub-health-bar .hh-sep,#hub-health-bar .hh-avg{display:none!important}
-  #hub-health-bar .hh-hub{padding:3px 8px;font-size:10px;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px;min-height:auto}
+  #hub-health-bar .hh-hub{padding:6px 10px;font-size:11px;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px;min-height:32px;display:inline-flex;align-items:center}
+  #hub-health-bar .hh-hub a{min-height:32px;display:inline-flex;align-items:center}
   #tip-strip{display:none!important}
   /* ── Footer: condensed single line (Change 6) ── */
   .footer-hub-links,.footer-data-sources{display:none!important}
