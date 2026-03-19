@@ -233,7 +233,7 @@ This project is free, ad-free, and open source. It costs real money to keep runn
 
 If The Blue Board has saved you a trip to the gate screen or helped you spot an equipment swap before boarding, consider supporting the project:
 
-### **[→ Donate Here](https://buymeacoffee.com/notjbg)**
+### **[→ Donate](https://buymeacoffee.com/notjbg)**
 
 Every donation helps cover server costs and keeps the dashboard free for everyone. You can also suggest a feature with your coffee — I read every one.
 
