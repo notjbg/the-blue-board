@@ -1,5 +1,6 @@
 import { computeDelayRiskModel, HUB_COORDINATES, HUB_RISK_PROFILES } from '../lib/delay-risk.js';
 import { normalizeMetarPayload } from '../lib/metar.js';
+import { categorizeFleetStatus, FLEET_HEALTH_CATEGORIES, FLEET_FAMILIES, normalizeWifi, WIFI_DISPLAY, sortFleetData, filterFleetData, parseFleetDeepLink, TAB_MAP, VALID_FLEET_VIEWS } from '../lib/fleet-utils.js';
 
 // ═══════════════════════════════════════════════
 // HUB LIST — CANONICAL REFERENCE
@@ -85,33 +86,7 @@ async function loadFleetData() {
   buildSpecialAircraftIndex();
 }
 
-// ═══ FLEET HEALTH CATEGORIZATION ═══
-const FLEET_HEALTH_CATEGORIES = [
-  { key: 'active',          label: 'Active',          color: '#22c55e' },
-  { key: 'maintenance',     label: 'Maintenance',     color: '#eab308' },
-  { key: 'stored',          label: 'Stored',           color: '#ef4444' },
-  { key: 'next_retrofit',   label: 'NEXT Retrofit',    color: '#8b5cf6' },
-  { key: 'painting',        label: 'Painting',         color: '#06b6d4' },
-  { key: 'starlink_install',label: 'Starlink Install', color: '#10b981' },
-  { key: 'future_gum',      label: 'Future GUM',       color: '#f97316' }
-];
-
-function categorizeFleetStatus(s) {
-  if (!s) return 'active';
-  if (s.startsWith('*')) return 'active';
-  if (/100 Year Sticker|Eco Demonstrator/i.test(s)) return 'active';
-  if (/stored/i.test(s)) return 'stored';
-  if (/\bpaint\b/i.test(s)) return 'painting';
-  if (/starlink/i.test(s)) return 'starlink_install';
-  if (/\bmod\s*next\b/i.test(s)) return 'next_retrofit';
-  if (/future\s*gum/i.test(s)) return 'future_gum';
-  if (/maint|induction/i.test(s)) return 'maintenance';
-  // Notes about NEXT status (Partial NEXT, NEXT???, Confirmed w.o NEXT) — aircraft is active
-  if (/next/i.test(s)) return 'active';
-  // Remaining non-empty statuses are likely maintenance at MRO locations
-  if (s.trim()) return 'maintenance';
-  return 'active';
-}
+// FLEET_HEALTH_CATEGORIES and categorizeFleetStatus imported from ../lib/fleet-utils.js
 
 // ═══ SPECIAL AIRCRAFT DETECTION ═══
 const SPECIAL_AIRCRAFT = {};
@@ -479,6 +454,21 @@ document.getElementById('tab-bar')?.addEventListener('keydown', function(e) {
       if (tab === 'fleet' && fleetFilter) {
         pendingFleetDeepLinkFilter = fleetFilter;
         applyFleetDeepLinkFilter(fleetFilter, { render: FLEET_DB.length > 0 });
+      }
+
+      // Fleet tab: support sub-tab deep links via ?view=starlink|airborne|special
+      if (tab === 'fleet') {
+        const viewParam = params.get('view');
+        if (viewParam && ['starlink','airborne','special'].includes(viewParam)) {
+          // Defer to after fleet data loads
+          const waitForFleet = setInterval(() => {
+            if (typeof switchFleetView === 'function' && FLEET_DB.length > 0) {
+              clearInterval(waitForFleet);
+              switchFleetView(viewParam);
+            }
+          }, 200);
+          setTimeout(() => clearInterval(waitForFleet), 10000);
+        }
       }
 
       // Schedule tab: filter by hub airport
@@ -1753,41 +1743,40 @@ function initTickerAnimation(tickerEl) {
 }
 
 // ═══ FLEET TAB ═══
+// FLEET_FAMILIES imported from ../lib/fleet-utils.js
+
+let activeFleetType = '';
+let activeFleetView = 'all';
+
 function initFleetTab() {
   // Set dynamic fleet count in title
-  document.getElementById('fleet-overview-title').textContent = `Fleet Overview — ${FLEET_DB.length} Mainline Aircraft`;
+  document.getElementById('fleet-overview-title').textContent = 'Fleet Overview — ' + FLEET_DB.length + ' Mainline Aircraft';
 
-  // Type chips
   const typeCounts = {};
   FLEET_DB.forEach(a => { typeCounts[a.t] = (typeCounts[a.t] || 0) + 1; });
   const typeOrder = ["A319","A320","A321neo","737-700","737-800","737-900","737-900ER","737 MAX 8","737 MAX 9","757-200","757-300","767-300ER","767-400ER","777-200","777-200ER","777-300ER","787-8","787-9","787-10"];
-  const icons = {'A319':'🔹','A320':'🔹','737-700':'🔸','737-800':'🔸','737-900':'🔸','737 MAX':'⭐','757':'🔷','767':'🔷','777':'💎','777-200':'💎','787-8':'🌟','777-300ER':'👑'};
-
-  document.getElementById('fleet-chips').innerHTML = typeOrder.map(t =>
-    `<div class="fleet-chip" data-action="filter-fleet-type" data-type="${t}">
-      <div style="font-size:14px">${icons[t]||'✈️'}</div>
-      <div class="count">${typeCounts[t]||0}</div>
-      <div class="label">${t}</div>
-    </div>`
-  ).join('');
 
   // Starlink progress — use live fleet stats if available
   const mainlineStarlink = STARLINK_FLEET_STATS ? STARLINK_FLEET_STATS.mainline : STARLINK_DB.filter(s => s.fleet === 'Mainline').length;
-  document.getElementById('starlink-progress').style.width = (mainlineStarlink / FLEET_DB.length * 100) + '%';
-  document.getElementById('starlink-pct').textContent = Math.round(mainlineStarlink / FLEET_DB.length * 100) + '% (' + mainlineStarlink + '/' + FLEET_DB.length + ')';
+  if (FLEET_DB.length > 0) {
+    document.getElementById('starlink-progress').style.width = (mainlineStarlink / FLEET_DB.length * 100) + '%';
+    document.getElementById('starlink-pct').textContent = Math.round(mainlineStarlink / FLEET_DB.length * 100) + '% (' + mainlineStarlink + '/' + FLEET_DB.length + ')';
+  }
 
   // Render fleet stats chips if live data available
   if (STARLINK_FLEET_STATS) {
     const statsEl = document.getElementById('starlink-fleet-stats');
     if (statsEl) {
       const fs = STARLINK_FLEET_STATS;
-      const chipStyle = 'display:inline-flex;flex-direction:column;align-items:center;padding:6px 12px;border-radius:4px;font-size:10px';
-      statsEl.style.display = 'flex';
-      statsEl.innerHTML =
-        `<div style="${chipStyle};background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)"><span style="font-size:16px;font-weight:700;color:var(--ua-green)">${fs.total}</span><span style="color:var(--ua-muted)">Total</span></div>` +
-        `<div style="${chipStyle};background:rgba(0,93,170,.1);border:1px solid rgba(0,93,170,.2)"><span style="font-size:16px;font-weight:700;color:var(--ua-accent)">${fs.mainline}</span><span style="color:var(--ua-muted)">Mainline</span></div>` +
-        `<div style="${chipStyle};background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2)"><span style="font-size:16px;font-weight:700;color:#a855f7">${fs.express}</span><span style="color:var(--ua-muted)">Express</span></div>` +
-        (fs.mainlineTotal ? `<div style="${chipStyle};background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15)"><span style="font-size:16px;font-weight:700;color:var(--ua-text)">${Math.round(fs.mainline / fs.mainlineTotal * 100)}%</span><span style="color:var(--ua-muted)">Mainline Fleet</span></div>` : '');
+      // Note: all values are pre-sanitized integers from our own API
+      let chipsHtml = '';
+      chipsHtml += '<div class="fleet-starlink-chip" style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2)"><span class="fleet-starlink-chip-val" style="color:var(--ua-green)">' + fs.total + '</span><span class="fleet-starlink-chip-label">Total</span></div>';
+      chipsHtml += '<div class="fleet-starlink-chip" style="background:rgba(0,93,170,.1);border:1px solid rgba(0,93,170,.2)"><span class="fleet-starlink-chip-val" style="color:var(--ua-accent)">' + fs.mainline + '</span><span class="fleet-starlink-chip-label">Mainline</span></div>';
+      chipsHtml += '<div class="fleet-starlink-chip" style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2)"><span class="fleet-starlink-chip-val" style="color:#a855f7">' + fs.express + '</span><span class="fleet-starlink-chip-label">Express</span></div>';
+      if (fs.mainlineTotal) {
+        chipsHtml += '<div class="fleet-starlink-chip" style="background:rgba(100,116,139,.08);border:1px solid rgba(100,116,139,.15)"><span class="fleet-starlink-chip-val" style="color:var(--ua-text)">' + Math.round(fs.mainline / fs.mainlineTotal * 100) + '%</span><span class="fleet-starlink-chip-label">Mainline Fleet</span></div>';
+      }
+      statsEl.innerHTML = chipsHtml;
     }
   }
 
@@ -1796,35 +1785,114 @@ function initFleetTab() {
     const updatedEl = document.getElementById('starlink-updated');
     if (updatedEl) {
       const ago = Math.round((Date.now() - new Date(STARLINK_LAST_UPDATED).getTime()) / 60000);
-      updatedEl.textContent = ago < 60 ? `Updated ${ago}m ago` : ago < 1440 ? `Updated ${Math.round(ago/60)}h ago` : `Updated ${Math.round(ago/1440)}d ago`;
+      updatedEl.textContent = ago < 60 ? ('Updated ' + ago + 'm ago') : ago < 1440 ? ('Updated ' + Math.round(ago/60) + 'h ago') : ('Updated ' + Math.round(ago/1440) + 'd ago');
     }
   }
 
   // Populate filters
   const wifiTypes = [...new Set(FLEET_DB.map(a => normalizeWifi(a.w)).filter(Boolean))].sort();
-  document.getElementById('fleet-filter-type').innerHTML = '<option value="">All Types</option>' +
-    typeOrder.map(t => `<option value="${t}">${t} (${typeCounts[t]||0})</option>`).join('');
-  document.getElementById('fleet-filter-wifi').innerHTML = '<option value="">All WiFi</option>' +
-    wifiTypes.map(w => `<option value="${w}">${w}</option>`).join('');
+  const typeOptHtml = '<option value="">All Types</option>' +
+    typeOrder.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + ' (' + (typeCounts[t]||0) + ')</option>').join('');
+  document.getElementById('fleet-filter-type').innerHTML = typeOptHtml;
+  const wifiOptHtml = '<option value="">All WiFi</option>' +
+    wifiTypes.map(w => '<option value="' + escapeHtml(w) + '">' + escapeHtml(w) + '</option>').join('');
+  document.getElementById('fleet-filter-wifi').innerHTML = wifiOptHtml;
 
   if (pendingFleetDeepLinkFilter) {
     applyFleetDeepLinkFilter(pendingFleetDeepLinkFilter, { render: false });
     pendingFleetDeepLinkFilter = null;
   }
 
+  renderFleetComposition();
   renderFleetTable();
   renderAgeChart();
   renderStarlinkTable();
   initStarlinkFilters();
   renderFleetHealth();
   renderSpecialAircraftPanel();
+  updateFleetSubtabCounts();
 
-  // Filter listeners
-  const debouncedFleetRender = debounce(renderFleetTable, 120);
+  // Filter listeners — sync variant cards + config when type dropdown changes
+  function onFleetFilterChange() {
+    renderFleetTable();
+    // Sync variant card highlight and config panel with type dropdown
+    const typeVal = document.getElementById('fleet-filter-type').value;
+    if (typeVal !== activeFleetType) {
+      // Deselect old card
+      document.querySelectorAll('.variant-card.active').forEach(c => c.classList.remove('active'));
+      activeFleetType = typeVal || null;
+      // Highlight new card if a type is selected
+      if (activeFleetType) {
+        document.querySelectorAll('.variant-card').forEach(c => {
+          if (c.dataset.type === activeFleetType) c.classList.add('active');
+        });
+        showConfigGallery(activeFleetType);
+      } else {
+        showConfigEmpty();
+      }
+    }
+  }
+  const debouncedFleetRender = debounce(onFleetFilterChange, 120);
   ['fleet-filter-type','fleet-filter-wifi','fleet-filter-status','fleet-search'].forEach(id => {
     document.getElementById(id).addEventListener('input', debouncedFleetRender);
     document.getElementById(id).addEventListener('change', debouncedFleetRender);
   });
+}
+
+// ═══ ZONE 2: FLEET COMPOSITION ═══
+function renderFleetComposition() {
+  const typeCounts = {};
+  FLEET_DB.forEach(a => { typeCounts[a.t] = (typeCounts[a.t] || 0) + 1; });
+
+  let html = '';
+  let widebodyDividerShown = false;
+
+  FLEET_FAMILIES.forEach(family => {
+    // Show widebody divider before first widebody family
+    if (family.widebody && !widebodyDividerShown) {
+      html += '<div class="fleet-widebody-divider">WIDEBODY · POLARIS</div>';
+      widebodyDividerShown = true;
+    }
+
+    // Count total aircraft in this family
+    let familyTotal = 0;
+    family.subgroups.forEach(sg => sg.types.forEach(t => { familyTotal += typeCounts[t] || 0; }));
+
+    html += '<div class="fleet-family" role="group" aria-label="' + escapeHtml(family.name) + ' family" id="family-' + family.id + '">';
+    html += '<div class="fleet-family-header">';
+    html += '<span class="fleet-family-name">' + escapeHtml(family.name) + '</span>';
+    html += '<span class="fleet-family-count">' + familyTotal + ' aircraft</span>';
+    html += '<span class="fleet-family-role">' + escapeHtml(family.role) + '</span>';
+    html += '</div>';
+
+    if (family.routeCallout) {
+      html += '<div class="fleet-family-route">' + escapeHtml(family.routeCallout) + '</div>';
+    }
+
+    html += '<div class="fleet-family-body">';
+    family.subgroups.forEach((sg, sgIdx) => {
+      if (sgIdx > 0) {
+        html += '<div class="fleet-subgroup-sep"></div>';
+      }
+      html += '<div class="fleet-subgroup">';
+      if (sg.label) {
+        html += '<div class="fleet-subgroup-label">' + escapeHtml(sg.label) + '</div>';
+      }
+      html += '<div class="fleet-subgroup-cards">';
+      sg.types.forEach(type => {
+        const count = typeCounts[type] || 0;
+        const isActive = activeFleetType === type;
+        html += '<div class="variant-card' + (isActive ? ' active' : '') + '" data-action="filter-fleet-type" data-type="' + escapeHtml(type) + '" tabindex="0" role="button" aria-pressed="' + isActive + '">';
+        html += '<div class="variant-count">' + count + '</div>';
+        html += '<div class="variant-name">' + escapeHtml(type) + '</div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  });
+
+  document.getElementById('fleet-families').innerHTML = html;
 }
 
 let fleetSortCol = 'r', fleetSortAsc = true;
@@ -1853,31 +1921,45 @@ function renderFleetTable() {
     return fleetSortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
   });
 
-  document.getElementById('fleet-tbody').innerHTML = data.map(a => {
+  const zeroEl = document.getElementById('fleet-zero-results');
+  if (data.length === 0 && (typeF || wifiF || statusF || searchF)) {
+    zeroEl.style.display = '';
+  } else {
+    zeroEl.style.display = 'none';
+  }
+
+  // Build rows using escapeHtml for all user-sourced data
+  const rows = data.map(a => {
     const isSL = STARLINK_TAILS.has(a.r);
     const special = isSpecialAircraft(a.r);
     const rowCls = a.s ? (a.s.toLowerCase().includes('stored') ? 'row-stored' : (special ? '' : 'row-maint')) : '';
-    return `<tr class="${rowCls}">
-      <td style="font-weight:700"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(a.r)}">${escapeHtml(a.r)}</span>${special ? ' <span class="special-badge">⭐ ' + escapeHtml(special.name) + '</span>' : ''}</td>
-      <td>${escapeHtml(a.t)}</td><td>${escapeHtml(a.a)}</td><td>${escapeHtml(a.c)}</td>
-      <td>${escapeHtml(a.tot || '')}</td><td>${escapeHtml(normalizeWifi(a.w))}</td><td>${escapeHtml(a.i)}</td><td>${escapeHtml(a.d)}</td>
-      <td style="font-size:9px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(a.s)}</td>
-      <td>${isSL ? '<span class="starlink-badge">⚡</span>' : ''}</td>
-    </tr>`;
-  }).join('');
+    return '<tr class="' + rowCls + '">' +
+      '<td class="fleet-td-reg"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="' + escapeHtml(a.r) + '">' + escapeHtml(a.r) + '</span>' + (special ? ' <span class="special-badge">' + escapeHtml(special.name) + '</span>' : '') + '</td>' +
+      '<td>' + escapeHtml(a.t) + '</td><td>' + escapeHtml(a.a) + '</td><td>' + escapeHtml(a.c) + '</td>' +
+      '<td>' + escapeHtml(a.tot || '') + '</td><td>' + escapeHtml(normalizeWifi(a.w)) + '</td><td>' + escapeHtml(a.i) + '</td><td>' + escapeHtml(a.d) + '</td>' +
+      '<td class="fleet-td-status">' + escapeHtml(a.s) + '</td>' +
+      '<td>' + (isSL ? '<span class="starlink-badge">SL</span>' : '') + '</td>' +
+    '</tr>';
+  });
+  document.getElementById('fleet-tbody').innerHTML = rows.join('');
+
+  updateFleetSubtabCounts();
 }
 
-// Sort handler
+// Sort handler for fleet table
 document.querySelectorAll('#fleet-table thead th[data-sort]').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.sort;
     if (fleetSortCol === col) fleetSortAsc = !fleetSortAsc;
     else { fleetSortCol = col; fleetSortAsc = true; }
+    // Update aria-sort attributes
+    document.querySelectorAll('#fleet-table thead th[data-sort]').forEach(h => h.setAttribute('aria-sort', 'none'));
+    th.setAttribute('aria-sort', fleetSortAsc ? 'ascending' : 'descending');
     renderFleetTable();
   });
 });
 
-// ═══ FLEET HEALTH DASHBOARD ═══
+// ═══ FLEET HEALTH DASHBOARD (Zone 1 Right Panel) ═══
 function renderFleetHealth() {
   if (!FLEET_DB.length) return;
   const counts = {};
@@ -1889,34 +1971,34 @@ function renderFleetHealth() {
   const total = FLEET_DB.length;
   const nonActive = total - counts.active;
 
-  let html = `<div style="display:flex;align-items:center;gap:16px;margin-bottom:14px">`;
-  html += `<div class="big-number">${total}</div>`;
-  html += `<div><div class="big-number-label">Total Mainline Aircraft</div>`;
-  html += `<div style="font-size:10px;color:var(--ua-green);margin-top:2px">${counts.active} active (${(counts.active / total * 100).toFixed(1)}%) · ${nonActive} out of service</div></div>`;
-  html += `</div>`;
+  let html = '<div class="fleet-health-summary">';
+  html += '<div class="big-number">' + total + '</div>';
+  html += '<div><div class="big-number-label">Total Mainline Aircraft</div>';
+  html += '<div class="fleet-health-active-text">' + counts.active + ' active (' + (counts.active / total * 100).toFixed(1) + '%) · ' + nonActive + ' out of service</div></div>';
+  html += '</div>';
 
   FLEET_HEALTH_CATEGORIES.forEach(cat => {
     const count = counts[cat.key] || 0;
     if (count === 0) return;
     const pct = (count / total * 100).toFixed(1);
     const barWidth = total > 0 ? (count / total * 100) : 0;
-    html += `<div class="fleet-health-bar">`;
-    html += `<span class="fh-label"><span class="fh-legend-dot" style="background:${cat.color}"></span>${escapeHtml(cat.label)}</span>`;
-    html += `<div class="fh-track"><div class="fh-fill" style="width:${barWidth}%;background:${cat.color}"></div></div>`;
-    html += `<span class="fh-count">${count} <span style="font-size:9px;color:var(--ua-muted);font-weight:400">(${pct}%)</span></span>`;
-    html += `</div>`;
+    html += '<div class="fleet-health-bar" aria-label="' + escapeHtml(cat.label) + ': ' + count + ' of ' + total + ', ' + pct + '%">';
+    html += '<span class="fh-label"><span class="fh-legend-dot" style="background:' + cat.color + '"></span>' + escapeHtml(cat.label) + '</span>';
+    html += '<div class="fh-track"><div class="fh-fill" style="width:' + barWidth + '%;background:' + cat.color + '"></div></div>';
+    html += '<span class="fh-count">' + count + ' <span class="fh-pct">(' + pct + '%)</span></span>';
+    html += '</div>';
   });
 
   document.getElementById('fleet-health-content').innerHTML = html;
 }
 
-// ═══ SPECIAL AIRCRAFT TRACKER ═══
+// ═══ SPECIAL AIRCRAFT (Zone 3 - Special sub-tab) ═══
 function renderSpecialAircraftPanel() {
   if (!FLEET_DB.length) return;
   const specialRegs = Object.keys(SPECIAL_AIRCRAFT);
   if (!specialRegs.length) {
     document.getElementById('special-aircraft-content').innerHTML =
-      '<div style="color:var(--ua-muted);font-size:11px;text-align:center;padding:10px 0">No special aircraft found</div>';
+      '<div class="fleet-loading-text">No special aircraft found</div>';
     return;
   }
 
@@ -1929,44 +2011,191 @@ function renderSpecialAircraftPanel() {
       if (reg && SPECIAL_AIRCRAFT[reg]) {
         airborneSpecial[reg] = {
           flight: f.flightIATA || f.callsign || '',
-          route: (f.origin || '???') + '→' + (f.dest || '???')
+          route: (f.origin || '???') + ' > ' + (f.dest || '???')
         };
       }
     });
   }
 
-  let html = '<div class="special-aircraft-grid">';
+  let gridHtml = '<div class="special-aircraft-grid">';
   specialRegs.forEach(reg => {
     const special = SPECIAL_AIRCRAFT[reg];
     const ac = FLEET_BY_REG[reg];
     if (!ac) return;
     const airborne = airborneSpecial[reg];
 
-    html += `<div class="special-aircraft-item">`;
-    html += `<div>`;
-    html += `<div class="sa-name">${escapeHtml(special.name)}</div>`;
-    html += `<div><span class="sa-reg ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(reg)}">${escapeHtml(reg)}</span> <span class="sa-type">${escapeHtml(ac.t)} · Del ${escapeHtml(ac.d || '?')}</span></div>`;
-    html += `</div>`;
-    html += `<div class="sa-status">`;
+    gridHtml += '<div class="special-aircraft-item">';
+    gridHtml += '<div>';
+    gridHtml += '<div class="sa-name">' + escapeHtml(special.name) + '</div>';
+    gridHtml += '<div><span class="sa-reg ac-reg-link" data-action="aircraft-detail" data-reg="' + escapeHtml(reg) + '">' + escapeHtml(reg) + '</span> <span class="sa-type">' + escapeHtml(ac.t) + ' · Del ' + escapeHtml(ac.d || '?') + '</span></div>';
+    gridHtml += '</div>';
+    gridHtml += '<div class="sa-status">';
     if (airborne) {
-      html += `<span class="special-airborne-badge"><span class="pulse-dot" style="width:6px;height:6px;display:inline-block;margin-right:3px"></span>AIRBORNE</span>`;
-      html += `<div style="font-size:9px;color:var(--ua-green);margin-top:2px">${escapeHtml(airborne.flight)} ${escapeHtml(airborne.route)}</div>`;
+      gridHtml += '<span class="special-airborne-badge"><span class="pulse-dot"></span>AIRBORNE</span>';
+      gridHtml += '<div class="sa-flight-info">' + escapeHtml(airborne.flight) + ' ' + escapeHtml(airborne.route) + '</div>';
     } else {
-      html += `<span class="special-badge">${special.type === 'named' ? '★ NAMED' : '✦ LIVERY'}</span>`;
+      gridHtml += '<span class="special-badge">' + (special.type === 'named' ? 'NAMED' : 'LIVERY') + '</span>';
     }
-    html += `</div>`;
-    html += `</div>`;
+    gridHtml += '</div>';
+    gridHtml += '</div>';
   });
-  html += '</div>';
+  gridHtml += '</div>';
 
-  document.getElementById('special-aircraft-content').innerHTML = html;
+  document.getElementById('special-aircraft-content').innerHTML = gridHtml;
 }
 
+// ═══ ZONE 3: AIRBORNE TABLE ═══
+let airborneSortCol = 'type', airborneSortAsc = true;
+function renderAirborneTable() {
+  if (!allFlights.length) {
+    document.getElementById('airborne-tbody').innerHTML = '<tr><td colspan="8" class="fleet-loading-text">Loading live flight data...</td></tr>';
+    return;
+  }
+  const typeF = document.getElementById('fleet-filter-type').value;
+  const searchF = document.getElementById('fleet-search').value.toUpperCase();
+
+  const airborne = [];
+  allFlights.forEach(f => {
+    if (f.onGround) return;
+    const ac = matchAircraft(f);
+    if (!ac) return;
+    if (typeF && ac.t !== typeF) return;
+    if (searchF && !ac.r.toUpperCase().includes(searchF) && !ac.t.toUpperCase().includes(searchF)) return;
+    const routeStr = (f.origin || '???') + ' > ' + (f.dest || '???');
+    const phase = getPhase(f.alt, f.vr, f.spd);
+    const isStar = STARLINK_TAILS.has(ac.r) || STARLINK_TAILS.has(f.reg);
+    airborne.push({
+      reg: ac.r, type: ac.t,
+      flight: f.flightIATA || f.callsign,
+      route: routeStr,
+      alt: f.alt ? Math.round(f.alt * 3.28084).toLocaleString() + 'ft' : '--',
+      altRaw: f.alt || 0,
+      phase: phase.phase,
+      starlink: isStar,
+      special: isSpecialAircraft(ac.r)
+    });
+  });
+
+  airborne.sort((a, b) => {
+    let va, vb;
+    if (airborneSortCol === 'alt') { va = a.altRaw; vb = b.altRaw; }
+    else { va = a[airborneSortCol] || ''; vb = b[airborneSortCol] || ''; }
+    return airborneSortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+
+  const rowsHtml = airborne.map(a => {
+    return '<tr>' +
+      '<td class="fleet-td-reg"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="' + escapeHtml(a.reg) + '">' + escapeHtml(a.reg) + '</span></td>' +
+      '<td>' + escapeHtml(a.type) + '</td><td>' + escapeHtml(a.flight) + '</td><td>' + escapeHtml(a.route) + '</td>' +
+      '<td>' + escapeHtml(a.alt) + '</td><td>' + escapeHtml(a.phase) + '</td>' +
+      '<td>' + (a.starlink ? '<span class="starlink-badge">SL</span>' : '') + '</td>' +
+      '<td>' + (a.special ? '<span class="special-badge">' + escapeHtml(a.special.name) + '</span>' : '') + '</td>' +
+    '</tr>';
+  });
+  document.getElementById('airborne-tbody').innerHTML = rowsHtml.join('');
+}
+
+// Sort handler for airborne table
+document.querySelectorAll('#airborne-table thead th[data-airborne-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.getAttribute('data-airborne-sort');
+    if (airborneSortCol === col) airborneSortAsc = !airborneSortAsc;
+    else { airborneSortCol = col; airborneSortAsc = true; }
+    renderAirborneTable();
+  });
+});
+
+// ═══ FLEET SUB-TABS ═══
+function switchFleetView(view) {
+  activeFleetView = view;
+  // Update sub-tab buttons
+  document.querySelectorAll('.fleet-subtab').forEach(btn => {
+    const isActive = btn.dataset.view === view;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  // Show/hide panels
+  document.querySelectorAll('.fleet-view-panel').forEach(panel => {
+    panel.classList.remove('active');
+    panel.style.display = 'none';
+  });
+  const activePanel = document.getElementById('fleet-view-' + view);
+  if (activePanel) {
+    activePanel.classList.add('active');
+    activePanel.style.display = '';
+  }
+  // Show/hide appropriate controls
+  const mainControls = document.getElementById('fleet-controls');
+  const starlinkControls = document.getElementById('fleet-controls-starlink');
+  const starlinkSource = document.getElementById('fleet-starlink-source');
+  if (view === 'starlink') {
+    mainControls.style.display = 'none';
+    starlinkControls.style.display = '';
+    if (starlinkSource) starlinkSource.style.display = '';
+  } else {
+    mainControls.style.display = '';
+    starlinkControls.style.display = 'none';
+    if (starlinkSource) starlinkSource.style.display = 'none';
+  }
+  // Render the active view
+  if (view === 'airborne') renderAirborneTable();
+  else if (view === 'starlink') renderStarlinkTable();
+  else if (view === 'special') renderSpecialAircraftPanel();
+  else renderFleetTable();
+}
+
+function updateFleetSubtabCounts() {
+  // All Aircraft count
+  const allCount = FLEET_DB.length;
+  const allEl = document.getElementById('fleet-subtab-count-all');
+  if (allEl) allEl.textContent = '(' + allCount + ')';
+
+  // Airborne count
+  const airborneCount = allFlights.filter(f => !f.onGround && matchAircraft(f)).length;
+  const airEl = document.getElementById('fleet-subtab-count-airborne');
+  if (airEl) airEl.textContent = '(' + airborneCount + ')';
+
+  // Starlink count
+  const slEl = document.getElementById('fleet-subtab-count-starlink');
+  if (slEl) slEl.textContent = '(' + STARLINK_DB.length + ')';
+
+  // Special count
+  const spEl = document.getElementById('fleet-subtab-count-special');
+  if (spEl) spEl.textContent = '(' + Object.keys(SPECIAL_AIRCRAFT).length + ')';
+}
+
+// ═══ CROSS-ZONE INTERACTION ═══
 function filterFleetType(type) {
-  document.getElementById('fleet-filter-type').value = type;
-  document.querySelectorAll('.fleet-chip').forEach(c => c.classList.toggle('active', c.dataset.type === type));
+  // Toggle: clicking the same type again deselects
+  if (activeFleetType === type) {
+    activeFleetType = '';
+    document.getElementById('fleet-filter-type').value = '';
+  } else {
+    activeFleetType = type;
+    document.getElementById('fleet-filter-type').value = type;
+  }
+
+  // Update variant card active states
+  document.querySelectorAll('.variant-card').forEach(c => {
+    const isActive = c.dataset.type === activeFleetType && activeFleetType !== '';
+    c.classList.toggle('active', isActive);
+    c.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+
   renderFleetTable();
-  showConfigGallery(type);
+
+  // Show config or reset to empty state
+  if (activeFleetType) {
+    showConfigGallery(activeFleetType);
+    // Smooth scroll to Zone 3
+    const lookupZone = document.getElementById('fleet-lookup-zone');
+    if (lookupZone) lookupZone.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    showConfigEmpty();
+  }
+
+  // Also re-render active sub-tab if it's airborne
+  if (activeFleetView === 'airborne') renderAirborneTable();
 }
 
 function showConfigGallery(type) {
@@ -1979,20 +2208,50 @@ function showConfigGallery(type) {
   });
 
   const colors = { J: '#2563eb', PP: '#0d9488', PE: '#0d9488', F: '#7c3aed', 'E+': '#16a34a', Y: '#475569', Domestic: '#6366f1' };
-  let html = `<div style="font-size:13px;font-weight:700;color:var(--ua-accent);margin-bottom:8px">${type} Configurations</div>`;
+  let html = '<div class="fleet-config-title">' + escapeHtml(type) + ' Configurations</div>';
 
   for (const [cfg, data] of Object.entries(configs)) {
-    html += `<div style="margin-bottom:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:4px">`;
-    html += `<div style="font-size:10px;margin-bottom:4px"><strong>${cfg}</strong> <span style="color:var(--ua-muted)">(${data.count} aircraft, ${data.total} seats)</span></div>`;
-    html += `<div class="config-gallery">`;
-    for (const [cls, cnt] of Object.entries(data.seats)) {
-      const w = Math.max(30, cnt / 2);
-      html += `<div class="config-block" style="background:${colors[cls]||'#475569'};width:${w}px">${cnt}${cls}</div>`;
+    html += '<div class="fleet-config-item">';
+    html += '<div class="fleet-config-name"><strong>' + escapeHtml(cfg) + '</strong> <span class="fleet-config-meta">(' + data.count + ' aircraft, ' + (data.total || '?') + ' seats)</span></div>';
+    html += '<div class="config-gallery">';
+    if (data.seats) {
+      for (const [cls, cnt] of Object.entries(data.seats)) {
+        const w = Math.max(30, cnt / 2);
+        html += '<div class="config-block" style="background:' + (colors[cls]||'#475569') + ';width:' + w + 'px">' + cnt + cls + '</div>';
+      }
     }
-    html += `</div></div>`;
+    html += '</div></div>';
   }
 
   document.getElementById('config-display').innerHTML = html;
+  // Also show in Zone 3 seat config panel
+  document.getElementById('fleet-lookup-seat-config').innerHTML = html;
+}
+
+function showConfigEmpty() {
+  const emptyHtml = '<div class="fleet-config-empty" id="fleet-config-empty">' +
+    '<div class="fleet-config-empty-text">Select an aircraft type above to see cabin layout</div>' +
+    '<div class="fleet-config-quick-links">' +
+      '<span class="fleet-config-quick" data-action="filter-fleet-type" data-type="737-800">737-800</span>' +
+      '<span class="fleet-config-quick" data-action="filter-fleet-type" data-type="A321neo">A321neo</span>' +
+      '<span class="fleet-config-quick" data-action="filter-fleet-type" data-type="777-300ER">777-300ER</span>' +
+    '</div></div>';
+  document.getElementById('config-display').innerHTML = emptyHtml;
+  document.getElementById('fleet-lookup-seat-config').innerHTML = '';
+}
+
+function clearFleetFilters() {
+  document.getElementById('fleet-filter-type').value = '';
+  document.getElementById('fleet-filter-wifi').value = '';
+  document.getElementById('fleet-filter-status').value = '';
+  document.getElementById('fleet-search').value = '';
+  activeFleetType = '';
+  document.querySelectorAll('.variant-card').forEach(c => {
+    c.classList.remove('active');
+    c.setAttribute('aria-pressed', 'false');
+  });
+  showConfigEmpty();
+  renderFleetTable();
 }
 
 function renderAgeChart() {
@@ -2675,7 +2934,6 @@ function updateAnalytics() {
 // ═══ LIVE FLEET PANEL ═══
 function updateLiveFleetPanel() {
   if (!allFlights.length) return;
-  const airborne = [];
   const typeOrder = ["A319","A320","A321neo","737-700","737-800","737-900","737-900ER","737 MAX 8","737 MAX 9","757-200","757-300","767-300ER","767-400ER","777-200","777-200ER","777-300ER","787-8","787-9","787-10"];
   const typeCounts = {}; typeOrder.forEach(t => typeCounts[t] = { airborne: 0, total: 0 });
   FLEET_DB.forEach(a => { if (typeCounts[a.t]) typeCounts[a.t].total++; });
@@ -2687,50 +2945,51 @@ function updateLiveFleetPanel() {
     if (!ac) { unmatched++; return; }
     matched++;
     if (typeCounts[ac.t]) typeCounts[ac.t].airborne++;
-    // Use FR24's real route data
-    const routeStr = (f.origin || '???') + '→' + (f.dest || '???');
-    const phase = getPhase(f.alt, f.vr, f.spd);
-    const isStar = STARLINK_TAILS.has(ac.r) || STARLINK_TAILS.has(f.reg);
-    airborne.push({
-      reg: ac.r, type: ac.t,
-      flight: f.flightIATA || f.callsign,
-      route: routeStr,
-      alt: f.alt ? Math.round(f.alt * 3.28084).toLocaleString() + 'ft' : '--',
-      phase: phase.phase,
-      starlink: isStar
-    });
   });
-
-  airborne.sort((a, b) => a.type.localeCompare(b.type) || a.reg.localeCompare(b.reg));
 
   const totalAirborne = allFlights.filter(f => !f.onGround).length;
-  let html = `<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">`;
-  html += `<div><div class="big-number" style="display:flex;align-items:center;gap:8px"><span class="pulse-dot"></span>${totalAirborne}</div>`;
-  html += `<div class="big-number-label">${matched} matched to fleet DB · ${unmatched} regional/partner</div></div>`;
-  html += `</div>`;
 
-  html += `<div class="type-breakdown">`;
-  typeOrder.forEach(t => {
-    const d = typeCounts[t];
-    if (!d.total) return;
-    const pct = d.total > 0 ? Math.round(d.airborne / d.total * 100) : 0;
-    html += `<div class="type-bar"><span>${t}</span><span><span class="airborne">${d.airborne}</span><span class="total">/${d.total}</span> <span style="color:var(--ua-muted);font-size:9px">${pct}%</span></span></div>`;
-  });
-  html += `</div>`;
+  // Update Zone 1 left panel — airborne count
+  const countEl = document.getElementById('fleet-airborne-count');
+  if (countEl) countEl.textContent = totalAirborne;
 
-  if (airborne.length) {
-    html += `<div class="live-table-wrap"><table><thead><tr><th>Reg</th><th>Type</th><th>Flight</th><th>Route</th><th>Alt</th><th>Phase</th><th></th></tr></thead><tbody>`;
-    airborne.forEach(a => {
-      const sp = isSpecialAircraft(a.reg);
-      html += `<tr><td style="font-weight:700"><span class="ac-reg-link" data-action="aircraft-detail" data-reg="${escapeHtml(a.reg)}">${escapeHtml(a.reg)}</span>${sp ? ' <span class="special-badge">⭐</span>' : ''}</td><td>${escapeHtml(a.type)}</td><td>${escapeHtml(a.flight)}</td><td>${escapeHtml(a.route)}</td><td>${escapeHtml(a.alt)}</td><td>${escapeHtml(a.phase)}</td><td>${a.starlink ? '⚡' : ''}</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
+  const subtitleEl = document.getElementById('fleet-pulse-subtitle');
+  if (subtitleEl) subtitleEl.textContent = matched + ' mainline matched · ' + unmatched + ' regional/partner';
+
+  // Fleet utilization percentage
+  const utilEl = document.getElementById('fleet-pulse-util');
+  if (utilEl && FLEET_DB.length > 0) {
+    const utilPct = Math.round(matched / FLEET_DB.length * 100);
+    utilEl.textContent = utilPct + '% fleet utilization (' + matched + '/' + FLEET_DB.length + ')';
   }
 
-  document.getElementById('fleet-live-content').innerHTML = html;
-  document.getElementById('fleet-live-time').textContent = 'Updated ' + new Date().toUTCString().slice(17, 25) + 'Z';
-  document.getElementById('live-fleet-panel').style.display = '';
+  // Per-type utilization bars
+  const utilBarsEl = document.getElementById('fleet-type-utilization');
+  if (utilBarsEl) {
+    let barsHtml = '';
+    typeOrder.forEach(t => {
+      const d = typeCounts[t];
+      if (!d.total || d.airborne === 0) return;
+      const pct = Math.round(d.airborne / d.total * 100);
+      barsHtml += '<div class="type-util-row">' +
+        '<span class="type-util-label">' + escapeHtml(t) + '</span>' +
+        '<div class="type-util-track"><div class="type-util-fill" style="width:' + pct + '%"></div></div>' +
+        '<span class="type-util-count">' + d.airborne + '/' + d.total + ' ' + pct + '%</span>' +
+      '</div>';
+    });
+    utilBarsEl.innerHTML = barsHtml;
+  }
+
+  // Update time
+  const timeEl = document.getElementById('fleet-live-time');
+  if (timeEl) timeEl.textContent = 'Updated ' + new Date().toUTCString().slice(17, 25) + 'Z';
+
+  // Update sub-tab counts and re-render special aircraft (may have airborne status changes)
+  updateFleetSubtabCounts();
   renderSpecialAircraftPanel();
+
+  // If currently viewing airborne tab, re-render it
+  if (activeFleetView === 'airborne') renderAirborneTable();
 }
 
 // ═══ WEATHER EXPLAINERS ═══
@@ -3621,14 +3880,7 @@ const ICAO_TO_FLEET_TYPE = {
 const CABIN_RANK = { 'J': 4, 'F': 3, 'PP': 2, 'PE': 2, 'E+': 1, 'Y': 0 };
 
 // WiFi display name normalization (raw data → clean labels)
-const WIFI_DISPLAY = {
-  'Sat KA': 'Satellite Ka', 'Satl Ka': 'Satellite Ka',
-  'Satl Ka US': 'Satellite Ka (US)',
-  'Satl KU': 'Satellite Ku', 'Satl Ku': 'Satellite Ku',
-  'ViaSatKA': 'ViaSat Ka',
-  'Starlink': 'Starlink', 'NO': 'NO'
-};
-function normalizeWifi(raw) { return WIFI_DISPLAY[raw] || raw; }
+// WIFI_DISPLAY and normalizeWifi imported from ../lib/fleet-utils.js
 
 // WiFi quality ranking: higher = better (uses normalized names)
 const WIFI_RANK = { 'Starlink': 3, 'ViaSat Ka': 2, 'Satellite Ka': 1, 'Satellite Ka (US)': 1, 'Satellite Ku': 1, 'NO': 0 };
@@ -5184,6 +5436,12 @@ document.addEventListener('click', function(e) {
     case 'filter-fleet-type':
       filterFleetType(actionEl.dataset.type);
       break;
+    case 'fleet-subtab':
+      switchFleetView(actionEl.dataset.view);
+      break;
+    case 'fleet-clear-filters':
+      clearFleetFilters();
+      break;
     case 'switch-tab':
       switchToTab(actionEl.dataset.tab);
       if (actionEl.dataset.closeGlobal) hideGlobalSearchResults();
@@ -5435,7 +5693,9 @@ async function initApp() {
     initFleetTab();
     var onboardingEl = document.getElementById('onboarding-overlay');
     if (acDeepLink && FLEET_DB.length > 0 && (!onboardingEl || onboardingEl.style.display === 'none')) setTimeout(function() { showAircraftDetail(acDeepLink); }, 500);
-    showConfigGallery('737-800');
+    // Show config for deep-linked type, otherwise show empty state
+    if (activeFleetType) showConfigGallery(activeFleetType);
+    else showConfigEmpty();
   };
   if (acDeepLink) {
     // Deep link needs fleet data now

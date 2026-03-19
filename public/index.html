@@ -412,78 +412,123 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
     <h2>United Airlines Fleet Database — 1,078 Aircraft</h2>
     <p>Complete searchable database of all 1,078 United Airlines mainline aircraft across 19 types: Boeing 737-700 (40), 737-800 (141), 737-900 (12), 737-900ER (136), 737 MAX 8 (123), 737 MAX 9 (129), 757-200 (40), 757-300 (21), 767-300ER (37), 767-400ER (16), 777-200 (19), 777-200ER (55), 777-300ER (22), 787-8 (12), 787-9 (48), 787-10 (21), and Airbus A319 (76), A320 (68), A321neo (62). Includes registration, seat configuration, WiFi type, IFE system, delivery date, and operational status. 258 aircraft equipped with SpaceX Starlink satellite WiFi. Live fleet utilization updated every 30 seconds. <a href="/fleet">View full fleet database</a>.</p>
   </section>
-  <div class="live-fleet-panel" id="live-fleet-panel" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <h3 style="font-size:10px;color:var(--ua-blue);text-transform:uppercase;letter-spacing:1.5px;margin:0">🛩 Live Fleet Status</h3>
-      <div style="display:flex;align-items:center;gap:8px"><span class="live-badge"><span class="pulse-dot"></span> LIVE</span><span id="fleet-live-time" style="font-size:9px;color:var(--ua-muted)"></span></div>
-    </div>
-    <div id="fleet-live-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading live fleet data...<br><button class="retry-btn" data-action="refresh-flights" style="margin-top:8px">⏳ Load Now</button></div></div>
-  </div>
-  <div class="card" id="fleet-health-card">
-    <h3>🏥 Fleet Health</h3>
-    <div id="fleet-health-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading fleet health data...</div></div>
-  </div>
-  <div class="card">
-    <h3 id="fleet-overview-title">Fleet Overview</h3>
-    <div class="fleet-chips" id="fleet-chips"></div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-      <div style="flex:1;background:var(--ua-border);height:4px;border-radius:2px;overflow:hidden">
-        <div id="starlink-progress" style="height:100%;background:var(--ua-green);border-radius:2px;transition:width .5s"></div>
+
+  <!-- ═══ ZONE 1: FLEET PULSE ═══ -->
+  <div class="fleet-pulse-zone" id="fleet-pulse-zone">
+    <div class="fleet-pulse-shimmer"></div>
+    <div class="fleet-pulse-header">
+      <h3 class="fleet-pulse-title">Live Fleet Status</h3>
+      <div class="fleet-pulse-badges">
+        <span class="live-badge"><span class="pulse-dot"></span> LIVE</span>
+        <span id="fleet-live-time" class="fleet-pulse-time"></span>
       </div>
-      <span id="starlink-pct" style="font-size:10px;color:var(--ua-green);font-weight:700"></span>
-      <span style="font-size:9px;color:var(--ua-muted)">Starlink Equipped</span>
+    </div>
+    <div class="fleet-pulse-panels">
+      <div class="fleet-pulse-left" id="fleet-pulse-left">
+        <div class="fleet-pulse-hero">
+          <span class="pulse-dot"></span>
+          <span class="fleet-pulse-airborne-count" id="fleet-airborne-count">--</span>
+          <span class="fleet-pulse-airborne-label">AIRBORNE</span>
+        </div>
+        <div class="fleet-pulse-subtitle" id="fleet-pulse-subtitle">Loading live flight data...</div>
+        <div class="fleet-pulse-util" id="fleet-pulse-util"></div>
+        <div class="fleet-type-utilization" id="fleet-type-utilization"></div>
+      </div>
+      <div class="fleet-pulse-right" id="fleet-pulse-right">
+        <div id="fleet-health-content"><div class="fleet-loading-text">Loading fleet health data...</div></div>
+        <div class="fleet-starlink-progress">
+          <div class="fleet-starlink-track">
+            <div class="fleet-starlink-fill" id="starlink-progress"></div>
+          </div>
+          <span class="fleet-starlink-pct" id="starlink-pct"></span>
+          <span class="fleet-starlink-label">Starlink Equipped</span>
+        </div>
+        <div class="fleet-starlink-stats" id="starlink-fleet-stats"></div>
+      </div>
     </div>
   </div>
-  <div class="two-col">
-    <div class="card">
-      <h3>Fleet Delivery Timeline</h3>
-      <div style="font-size:9px;color:var(--ua-muted);margin-bottom:4px">Aircraft deliveries by year · colored by family</div>
-      <div id="age-chart" style="position:relative"></div>
-      <div id="age-stats" style="font-size:10px;color:var(--ua-muted);margin-top:6px"></div>
-    </div>
-    <div class="card">
-      <h3>Seat Configuration</h3>
-      <div id="config-display"></div>
+
+  <!-- ═══ ZONE 2: FLEET COMPOSITION ═══ -->
+  <div class="fleet-composition-zone" id="fleet-composition-zone">
+    <h3 class="zone-title" id="fleet-overview-title">Fleet Overview</h3>
+    <div class="fleet-families" id="fleet-families"></div>
+    <div class="two-col">
+      <div class="card">
+        <h3>Fleet Delivery Timeline</h3>
+        <div class="fleet-age-subtitle">Aircraft deliveries by year, colored by family</div>
+        <div id="age-chart" class="fleet-age-chart"></div>
+        <div id="age-stats" class="fleet-age-stats"></div>
+      </div>
+      <div class="card">
+        <h3>Seat Configuration</h3>
+        <div id="config-display">
+          <div class="fleet-config-empty" id="fleet-config-empty">
+            <div class="fleet-config-empty-text">Select an aircraft type above to see cabin layout</div>
+            <div class="fleet-config-quick-links">
+              <span class="fleet-config-quick" data-action="filter-fleet-type" data-type="737-800">737-800</span>
+              <span class="fleet-config-quick" data-action="filter-fleet-type" data-type="A321neo">A321neo</span>
+              <span class="fleet-config-quick" data-action="filter-fleet-type" data-type="777-300ER">777-300ER</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="card">
-    <h3>Aircraft Database</h3>
-    <div style="font-size:10px;color:var(--ua-muted);margin-bottom:8px">Fleet data via <a href="https://sites.google.com/site/unitedfleetsite/mainline-fleet-tracking" target="_blank" rel="noopener noreferrer" style="color:var(--ua-green)">United Fleet Site</a>, updated daily</div>
-    <div class="fleet-controls">
+
+  <!-- ═══ ZONE 3: AIRCRAFT LOOKUP ═══ -->
+  <div class="fleet-lookup-zone" id="fleet-lookup-zone">
+    <div class="fleet-lookup-header">
+      <h3 class="zone-title">Aircraft Lookup</h3>
+      <div class="fleet-data-source">Fleet data via <a href="https://sites.google.com/site/unitedfleetsite/mainline-fleet-tracking" target="_blank" rel="noopener noreferrer" class="fleet-source-link">United Fleet Site</a>, updated daily</div>
+    </div>
+    <div class="fleet-subtab-bar" id="fleet-subtab-bar" role="tablist" aria-label="Aircraft lookup views">
+      <button class="fleet-subtab active" role="tab" aria-selected="true" data-action="fleet-subtab" data-view="all" id="fleet-subtab-all">All Aircraft <span class="fleet-subtab-count" id="fleet-subtab-count-all"></span></button>
+      <button class="fleet-subtab" role="tab" aria-selected="false" data-action="fleet-subtab" data-view="airborne" id="fleet-subtab-airborne">Airborne Now <span class="fleet-subtab-count" id="fleet-subtab-count-airborne"></span></button>
+      <button class="fleet-subtab" role="tab" aria-selected="false" data-action="fleet-subtab" data-view="starlink" id="fleet-subtab-starlink">Starlink <span class="fleet-subtab-count" id="fleet-subtab-count-starlink"></span></button>
+      <button class="fleet-subtab" role="tab" aria-selected="false" data-action="fleet-subtab" data-view="special" id="fleet-subtab-special">Special <span class="fleet-subtab-count" id="fleet-subtab-count-special"></span></button>
+    </div>
+    <div class="fleet-lookup-seat-config" id="fleet-lookup-seat-config"></div>
+    <div class="fleet-controls" id="fleet-controls">
+      <input type="text" id="fleet-search" aria-label="Fleet search" placeholder="Search reg, config...">
       <select id="fleet-filter-type" aria-label="Fleet type filter"><option value="">All Types</option></select>
       <select id="fleet-filter-wifi" aria-label="Fleet WiFi filter"><option value="">All WiFi</option></select>
-      <select id="fleet-filter-status" aria-label="Fleet status filter"><option value="">All Status</option><option value="active">Active</option><option value="stored">Stored/Maint</option><option value="starlink">⚡ Starlink</option><option value="special">⭐ Special/Named</option></select>
-      <input type="text" id="fleet-search" aria-label="Fleet search" placeholder="Search reg, config...">
-      <button class="refresh-btn" data-action="refresh-fleet-data">↻ Refresh Fleet Data</button>
+      <select id="fleet-filter-status" aria-label="Fleet status filter"><option value="">All Status</option><option value="active">Active</option><option value="stored">Stored/Maint</option><option value="starlink">Starlink</option><option value="special">Special/Named</option></select>
+      <button class="refresh-btn" data-action="refresh-fleet-data">Refresh</button>
     </div>
-    <div class="fleet-table-wrap">
-      <table id="fleet-table">
-        <thead><tr><th data-sort="r">Reg ↕</th><th data-sort="t">Type ↕</th><th data-sort="a">AC# ↕</th><th data-sort="c">Config</th><th data-sort="tot">Seats ↕</th><th data-sort="w">WiFi</th><th data-sort="i">IFE</th><th data-sort="d">Del ↕</th><th data-sort="s">Status</th><th>⚡</th></tr></thead>
+    <div class="fleet-controls fleet-controls-starlink" id="fleet-controls-starlink" style="display:none">
+      <input type="text" id="starlink-search" aria-label="Search Starlink aircraft" placeholder="Search tail...">
+      <select id="starlink-filter-fleet" aria-label="Starlink fleet filter"><option value="">All Fleets</option><option value="Mainline">Mainline</option><option value="Express">Express</option></select>
+      <select id="starlink-filter-type" aria-label="Starlink type filter"><option value="">All Types</option></select>
+      <select id="starlink-filter-operator" aria-label="Starlink operator filter"><option value="">All Operators</option></select>
+      <span id="starlink-filtered-count" class="fleet-filtered-count"></span>
+    </div>
+    <!-- All Aircraft table -->
+    <div class="fleet-table-wrap fleet-view-panel active" id="fleet-view-all">
+      <table id="fleet-table" aria-label="United Airlines fleet database">
+        <thead><tr><th data-sort="r" aria-sort="none">Reg</th><th data-sort="t" aria-sort="none">Type</th><th data-sort="a" aria-sort="none">AC#</th><th data-sort="c">Config</th><th data-sort="tot" aria-sort="none">Seats</th><th data-sort="w">WiFi</th><th data-sort="i">IFE</th><th data-sort="d" aria-sort="none">Del</th><th data-sort="s">Status</th><th>SL</th></tr></thead>
         <tbody id="fleet-tbody"></tbody>
       </table>
+      <div class="fleet-zero-results" id="fleet-zero-results" style="display:none">No aircraft match your filters. <button class="fleet-clear-filters" data-action="fleet-clear-filters">Clear Filters</button></div>
     </div>
-  </div>
-  <div class="card" id="special-aircraft-card">
-    <h3>⭐ Special &amp; Named Aircraft</h3>
-    <div id="special-aircraft-content"><div style="color:var(--ua-muted);font-size:11px;padding:20px 0;text-align:center">Loading special aircraft...</div></div>
-  </div>
-  <div class="card">
-    <h3>⚡ Starlink Tracker — <span id="starlink-count">258</span> Aircraft</h3>
-    <div style="font-size:10px;color:var(--ua-muted);margin-bottom:8px">Starlink data via <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer" style="color:var(--ua-green)">unitedstarlinktracker.com</a> · <span id="starlink-updated" style="color:var(--ua-green)">live</span></div>
-    <div id="starlink-fleet-stats" style="display:none;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-      <input type="text" id="starlink-search" aria-label="Search Starlink aircraft" placeholder="Search tail..." style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 8px;font-family:var(--mono);font-size:10px;border-radius:3px;width:120px">
-      <select id="starlink-filter-fleet" aria-label="Starlink fleet filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 6px;font-family:var(--mono);font-size:10px;border-radius:3px"><option value="">All Fleets</option><option value="Mainline">Mainline</option><option value="Express">Express</option></select>
-      <select id="starlink-filter-type" aria-label="Starlink type filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 6px;font-family:var(--mono);font-size:10px;border-radius:3px"><option value="">All Types</option></select>
-      <select id="starlink-filter-operator" aria-label="Starlink operator filter" style="background:var(--bg-card);color:var(--ua-text);border:1px solid var(--ua-border);padding:4px 6px;font-family:var(--mono);font-size:10px;border-radius:3px"><option value="">All Operators</option></select>
-      <span id="starlink-filtered-count" style="font-size:9px;color:var(--ua-muted);align-self:center"></span>
+    <!-- Airborne Now table -->
+    <div class="fleet-table-wrap fleet-view-panel" id="fleet-view-airborne" style="display:none">
+      <table id="airborne-table" aria-label="Currently airborne United aircraft">
+        <thead><tr><th data-airborne-sort="reg">Reg</th><th data-airborne-sort="type">Type</th><th data-airborne-sort="flight">Flight</th><th>Route</th><th data-airborne-sort="alt">Alt</th><th data-airborne-sort="phase">Phase</th><th>SL</th><th></th></tr></thead>
+        <tbody id="airborne-tbody"></tbody>
+      </table>
     </div>
-    <div class="fleet-table-wrap" style="max-height:400px">
-      <table id="starlink-table">
-        <thead><tr><th data-starlink-sort="tail" style="cursor:pointer">Tail ↕</th><th data-starlink-sort="fleet" style="cursor:pointer">Fleet ↕</th><th data-starlink-sort="type" style="cursor:pointer">Type ↕</th><th data-starlink-sort="operator" style="cursor:pointer">Operator ↕</th><th id="starlink-next-flight-th" style="display:none">Next Flight</th></tr></thead>
+    <!-- Starlink table -->
+    <div class="fleet-table-wrap fleet-view-panel" id="fleet-view-starlink" style="display:none">
+      <table id="starlink-table" aria-label="Starlink-equipped aircraft">
+        <thead><tr><th data-starlink-sort="tail">Tail</th><th data-starlink-sort="fleet">Fleet</th><th data-starlink-sort="type">Type</th><th data-starlink-sort="operator">Operator</th><th id="starlink-next-flight-th" style="display:none">Next Flight</th></tr></thead>
         <tbody id="starlink-tbody"></tbody>
       </table>
     </div>
+    <!-- Special Aircraft table -->
+    <div class="fleet-table-wrap fleet-view-panel" id="fleet-view-special" style="display:none">
+      <div id="special-aircraft-content"><div class="fleet-loading-text">Loading special aircraft...</div></div>
+    </div>
+    <div class="fleet-starlink-source" id="fleet-starlink-source" style="display:none">Starlink data via <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener noreferrer" class="fleet-source-link">unitedstarlinktracker.com</a> · <span id="starlink-updated" class="fleet-starlink-updated">live</span> · <span id="starlink-count">258</span> aircraft</div>
   </div>
 </div>
 
