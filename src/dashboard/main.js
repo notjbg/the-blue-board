@@ -5745,6 +5745,11 @@ function hideDisclaimer() {
     }, 3000);
   };
 
+  // Trigger 4: ?waitlist=1 deep link (from news articles, external links)
+  if (new URLSearchParams(location.search).get('waitlist') === '1') {
+    showWaitlistModal();
+  }
+
   var visited=localStorage.getItem('bb-visited');
   if(!visited){localStorage.setItem('bb-visited','1')}
   else if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
