@@ -451,7 +451,8 @@ tbody td{padding:5px 8px;white-space:nowrap}
   /* ── Hub health bar: compact pill grid on mobile (Change 5) ── */
   #hub-health-bar{display:flex!important;flex-wrap:wrap;justify-content:center;padding:4px 8px;gap:0}
   #hub-health-bar .hh-label,#hub-health-bar .hh-explainer,#hub-health-bar .hh-info,#hub-health-bar .hh-sep,#hub-health-bar .hh-avg{display:none!important}
-  #hub-health-bar .hh-hub{padding:3px 8px;font-size:10px;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px;min-height:auto}
+  #hub-health-bar .hh-hub{padding:6px 10px;font-size:11px;flex-shrink:0;background:rgba(30,41,59,.4);border-radius:12px;margin:2px 3px;min-height:32px;display:inline-flex;align-items:center}
+  #hub-health-bar .hh-hub a{min-height:32px;display:inline-flex;align-items:center}
   #tip-strip{display:none!important}
   /* ── Footer: condensed single line (Change 6) ── */
   .footer-hub-links,.footer-data-sources{display:none!important}
