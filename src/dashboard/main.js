@@ -1692,7 +1692,7 @@ function updateTicker() {
 
   const tickerHtml = items.map(i => `<span class="ticker-item ${escapeHtml(i.cls)}">${escapeHtml(i.text)}</span>`).join('');
   const tickerEl = document.getElementById('ticker');
-  tickerEl.innerHTML = tickerHtml + tickerHtml; // duplicate for seamless scroll
+  tickerEl.innerHTML = `<div class="ticker-cycle">${tickerHtml}</div><div class="ticker-cycle" aria-hidden="true">${tickerHtml}</div>`;
   initTickerAnimation(tickerEl);
 }
 
@@ -1712,9 +1712,11 @@ function initTickerAnimation(tickerEl) {
   tickerEl.style.animation = 'none';
   tickerEl.style.transform = '';
 
-  // Wait two frames for layout to settle, then measure (avoids forced reflow)
+  // Measure a single ticker cycle directly so short content is not clamped to container width.
   requestAnimationFrame(() => { requestAnimationFrame(() => {
-    const contentWidth = Math.round(tickerEl.scrollWidth / 2);
+    const firstCycle = tickerEl.querySelector('.ticker-cycle');
+    if (!firstCycle) return;
+    const contentWidth = Math.round(firstCycle.getBoundingClientRect().width);
 
     if (contentWidth < 10) return; // no real content
 
