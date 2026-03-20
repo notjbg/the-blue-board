@@ -5786,24 +5786,34 @@ function hideDisclaimer() {
   var overlay=document.getElementById('onboarding-overlay');
   var btn=document.getElementById('onboarding-dismiss');
   var helpBtn=document.getElementById('onboarding-help');
-  function hideOverlay(){var hubSel=document.getElementById('onboarding-home-hub');if(hubSel&&hubSel.value){setHomeAirport(hubSel.value)}overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');setTimeout(function(){overlay.style.display='none'},300)}
+  function hideOverlay(){var hubSel=document.getElementById('onboarding-home-hub');if(hubSel&&hubSel.value){setHomeAirport(hubSel.value)}overlay.classList.add('ob-hidden');localStorage.setItem('bb-onboarded','1');try{localStorage.setItem('bb_onboarding_dismissed',String(Date.now()))}catch(e){}setTimeout(function(){overlay.style.display='none'},300)}
   function showOverlay(){overlay.style.display='flex';overlay.classList.remove('ob-hidden');overlay.style.animation='none';requestAnimationFrame(function(){requestAnimationFrame(function(){overlay.style.animation='obFadeIn .4s ease forwards'})})}
 
   // ═══ WAITLIST / ENGAGEMENT MODAL ═══
+  var DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
   var waitlistShownThisSession = false;
   var waitlistSubmitted = false;
   try { waitlistSubmitted = localStorage.getItem('bb_waitlist_submitted') === 'true'; } catch(e) {}
   var engagementInteractions = 0;
 
+  function isDismissedRecently(key) {
+    try {
+      var ts = parseInt(localStorage.getItem(key), 10);
+      return ts > 0 && (Date.now() - ts) < DISMISS_TTL_MS;
+    } catch(e) { return false; }
+  }
+
   function closeWaitlistModal() {
     var modal = document.getElementById('waitlist-modal');
     if (modal) modal.style.display = 'none';
     waitlistShownThisSession = true;
+    try { localStorage.setItem('bb_waitlist_dismissed', String(Date.now())); } catch(e) {}
   }
 
-  function showWaitlistModal() {
-    if (waitlistShownThisSession) return;
+  function showWaitlistModal(force) {
     if (waitlistSubmitted) return;
+    if (!force && waitlistShownThisSession) return;
+    if (!force && isDismissedRecently('bb_waitlist_dismissed')) return;
     if (document.getElementById('waitlist-modal')) {
       document.getElementById('waitlist-modal').style.display = 'flex';
       waitlistShownThisSession = true;
@@ -5992,10 +6002,10 @@ function hideDisclaimer() {
     }
   }, 5 * 60 * 1000);
 
-  // Trigger 2: After 10+ meaningful interactions (tab switches, searches, flight clicks)
+  // Trigger 2: After 30+ interactions (tab switches, searches, flight clicks)
   document.addEventListener('click', function() {
     engagementInteractions++;
-    if (engagementInteractions === 10 && !waitlistShownThisSession && !waitlistSubmitted) {
+    if (engagementInteractions === 30 && !waitlistShownThisSession && !waitlistSubmitted) {
       showWaitlistModal();
     }
   });
@@ -6004,19 +6014,19 @@ function hideDisclaimer() {
   window.showBmacLandingToast = function() {
     if (waitlistSubmitted) return;
     setTimeout(function() {
-      waitlistShownThisSession = false;
       showWaitlistModal();
     }, 3000);
   };
 
   // Trigger 4: ?waitlist=1 deep link (from news articles, external links)
+  // Force-open: intentional user action bypasses passive guards (session + TTL)
   if (new URLSearchParams(location.search).get('waitlist') === '1') {
-    showWaitlistModal();
+    showWaitlistModal(true);
   }
 
   var visited=localStorage.getItem('bb-visited');
-  if(!visited){localStorage.setItem('bb-visited','1')}
-  else if(localStorage.getItem('bb-onboarded')){overlay.style.display='none'}
+  if(!visited){localStorage.setItem('bb-visited','1');if(isDismissedRecently('bb_onboarding_dismissed')){overlay.style.display='none'}}
+  else if(localStorage.getItem('bb-onboarded')||isDismissedRecently('bb_onboarding_dismissed')){overlay.style.display='none'}
   btn.addEventListener('click',hideOverlay);
   overlay.addEventListener('click',function(e){if(e.target===overlay)hideOverlay()});
   helpBtn.addEventListener('click',showOverlay);
