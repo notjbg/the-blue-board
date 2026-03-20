@@ -86,6 +86,23 @@ export function resolveTag(tag) {
 
 export const articles = [
   {
+    slug: 'united-opens-tickets-for-787-9-elevated-interior',
+    title: 'United\'s First 787-9 with Polaris Studio Suites Enters Fleet April 22',
+    date: '2026-03-19',
+    category: 'Fleet',
+    sources: [
+      { name: 'PR Newswire (United Airlines)', url: 'https://www.prnewswire.com/news-releases/tickets-on-sale-today-for-uniteds-first-boeing-787-9-dreamliner-with-elevated-interior-flights-302407000.html' },
+    ],
+    summary: 'United begins selling tickets for its redesigned 787-9 Dreamliner featuring new Polaris Studio suites, 4K OLED screens at every seat, and Bluetooth connectivity throughout — inaugural SFO–Singapore flight departs April 22.',
+    body: `<p>United's long-teased "Elevated" interior is finally bookable. Starting today, travelers can purchase seats on the airline's redesigned 787-9 Dreamliner — the most premium-dense international aircraft in United's fleet, with 99 of 222 seats in premium cabins.</p>
+
+<p>The headliner is the new United Polaris Studio℠ suite: eight lie-flat, all-aisle-access seats that are 25% larger than standard Polaris seats, with privacy doors, a companion ottoman, wireless charging, and a massive 27-inch 4K OLED screen — the largest seatback display among U.S. carriers. Even Economy gets a meaningful upgrade: 13-inch 4K OLED screens with Bluetooth at every seat and larger overhead bins.</p>
+
+<p>The inaugural international flight, UA1, departs San Francisco for Singapore on April 22, with SFO–London following on April 30. United plans to have at least 30 Elevated 787-9s flying by the end of 2027 — a significant fleet-wide transformation for long-haul travelers.</p>`,
+    tags: ['sfo', '787-9-dreamliner'],
+    ogImage: null,
+  },
+  {
     slug: 'united-delivers-first-737-max-to-guam',
     title: 'United Delivers First 737 MAX to Guam Fleet',
     date: '2026-03-19',
