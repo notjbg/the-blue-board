@@ -10,22 +10,23 @@ const typeCode = data.typeCode;
 // Filter fleet.json for this aircraft type at build time
 const typeAircraft = (fleetDb as any[]).filter((a: any) => a.t === typeCode);
 
-// Build Product schema
-const productSchema = {
+// Keep these pages classified as informational guides rather than product listings.
+const aircraftGuideSchema = {
   "@context": "https://schema.org",
-  "@type": "Product",
-  "name": `United Airlines ${data.displayName}`,
+  "@type": "AboutPage",
+  "name": data.title,
   "description": data.description,
-  "brand": { "@type": "Brand", "name": "United Airlines" },
-  "manufacturer": { "@type": "Organization", "name": data.aircraftSchema.manufacturer },
-  "category": "Commercial Aircraft",
-  "additionalProperty": [
-    { "@type": "PropertyValue", "name": "Fleet Count", "value": String(data.count) },
-    { "@type": "PropertyValue", "name": "Seat Capacity", "value": data.seatConfig.total },
-    { "@type": "PropertyValue", "name": "Body Type", "value": data.bodyType === 'widebody' ? 'Wide-body' : 'Narrow-body' },
-    { "@type": "PropertyValue", "name": "Delivery Period", "value": data.deliveryRange },
-    { "@type": "PropertyValue", "name": "Range", "value": data.aircraftSchema.range },
-  ]
+  "url": `https://theblueboard.co/fleet/${slug}`,
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "The Blue Board",
+    "url": "https://theblueboard.co"
+  },
+  "about": {
+    "@type": "Thing",
+    "name": `United Airlines ${data.displayName}`,
+    "description": `${data.displayName} guide with fleet count, seat configuration, WiFi, delivery period, and aircraft registry details.`,
+  }
 };
 ---
 <!DOCTYPE html>
@@ -78,8 +79,8 @@ const productSchema = {
     }
   }))
 })} />
-<!-- Schema: Product -->
-<script type="application/ld+json" set:html={JSON.stringify(productSchema)} />
+<!-- Schema: Guide Page -->
+<script type="application/ld+json" set:html={JSON.stringify(aircraftGuideSchema)} />
 
 <link rel="preload" href="/fonts/satoshi-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
