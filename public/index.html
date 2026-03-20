@@ -26,7 +26,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0a0e14">
+<meta name="theme-color" content="#0B1018">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Crect%20width%3D%2764%27%20height%3D%2764%27%20rx%3D%2712%27%20fill%3D%27%230a0e14%27/%3E%3Ctext%20x%3D%2732%27%20y%3D%2742%27%20font-size%3D%2736%27%20text-anchor%3D%27middle%27%20fill%3D%27%23005DAA%27%20font-family%3D%27Arial%2C%20sans-serif%27%3EB%3C/text%3E%3C/svg%3E">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
@@ -69,7 +69,8 @@
 <!-- CSP enforced via vercel.json headers -->
 <!-- JSON-LD structured data moved to end of body to unblock resource discovery -->
 <!-- Self-hosted fonts: eliminates Google Fonts waterfall (CSS→font file) that caused FOUT -->
-<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/satoshi-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/></noscript>
@@ -78,9 +79,10 @@
 <link rel="preload" href="/css/style.css?v=1" as="style">
 <link rel="stylesheet" href="/css/style.css?v=1">
 <style>
-@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Satoshi';font-style:normal;font-weight:300 900;font-display:swap;src:url(/fonts/satoshi-latin.woff2) format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/dm-sans-latin.woff2) format('woff2')}
 @font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url(/fonts/jetbrains-mono-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inter',system-ui,-apple-system,sans-serif}
+body{background:#0B1018;color:#e2e8f0;margin:0;overflow:hidden;font-family:'DM Sans',system-ui,-apple-system,sans-serif}
 </style>
 </head>
 <body>
@@ -123,22 +125,22 @@ body{background:#0a0f1a;color:#e2e8f0;margin:0;overflow:hidden;font-family:'Inte
 <p>Track every United Airlines flight in real time with The Blue Board — a free, independent operations dashboard built for United frequent flyers, 1K members, and AvGeeks. See live flight positions on an interactive map updated every 30 seconds. Check delays, cancellations, and ground stops at all 9 United hubs. Look up any flight by number to see status, aircraft type, and route. Browse the full United fleet database of 1,078+ aircraft and check which planes have Starlink WiFi. View departure and arrival schedules with on-time performance stats and equipment swap alerts. Monitor weather conditions with radar, METAR observations, and FAA NAS alerts. Explore fleet utilization, route analytics, and hub-to-hub traffic patterns.</p>
 <h3 style="margin:20px 0 10px">United Airlines Hub Status Pages</h3>
 <nav style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
-<a href="/hubs/ord" style="color:#8ab4f8">United at Chicago O'Hare (ORD)</a> ·
-<a href="/hubs/den" style="color:#8ab4f8">United at Denver (DEN)</a> ·
-<a href="/hubs/iah" style="color:#8ab4f8">United at Houston (IAH)</a> ·
-<a href="/hubs/ewr" style="color:#8ab4f8">United at Newark (EWR)</a> ·
-<a href="/hubs/sfo" style="color:#8ab4f8">United at San Francisco (SFO)</a> ·
-<a href="/hubs/iad" style="color:#8ab4f8">United at Washington Dulles (IAD)</a> ·
-<a href="/hubs/lax" style="color:#8ab4f8">United at Los Angeles (LAX)</a> ·
-<a href="/hubs/nrt" style="color:#8ab4f8">United at Tokyo Narita (NRT)</a> ·
-<a href="/hubs/gum" style="color:#8ab4f8">United at Guam (GUM)</a>
+<a href="/hubs/ord" style="color:#6BAAED">United at Chicago O'Hare (ORD)</a> ·
+<a href="/hubs/den" style="color:#6BAAED">United at Denver (DEN)</a> ·
+<a href="/hubs/iah" style="color:#6BAAED">United at Houston (IAH)</a> ·
+<a href="/hubs/ewr" style="color:#6BAAED">United at Newark (EWR)</a> ·
+<a href="/hubs/sfo" style="color:#6BAAED">United at San Francisco (SFO)</a> ·
+<a href="/hubs/iad" style="color:#6BAAED">United at Washington Dulles (IAD)</a> ·
+<a href="/hubs/lax" style="color:#6BAAED">United at Los Angeles (LAX)</a> ·
+<a href="/hubs/nrt" style="color:#6BAAED">United at Tokyo Narita (NRT)</a> ·
+<a href="/hubs/gum" style="color:#6BAAED">United at Guam (GUM)</a>
 </nav>
 <h3 style="margin-bottom:10px">More Resources</h3>
 <nav style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
-<a href="/fleet" style="color:#8ab4f8">United Airlines Fleet Database (1,078 Aircraft)</a> ·
-<a href="/hubs" style="color:#8ab4f8">All United Airlines Hubs</a>
+<a href="/fleet" style="color:#6BAAED">United Airlines Fleet Database (1,078 Aircraft)</a> ·
+<a href="/hubs" style="color:#6BAAED">All United Airlines Hubs</a>
 </nav>
-<p style="font-size:11px;color:#64748b">Built for the United community by <a href="https://github.com/notjbg" style="color:#8ab4f8">Jonah Berg</a>. Not affiliated with United Airlines, Inc. JavaScript is required for the live dashboard.</p>
+<p style="font-size:11px;color:#64748b">Built for the United community by <a href="https://github.com/notjbg" style="color:#6BAAED">Jonah Berg</a>. Not affiliated with United Airlines, Inc. JavaScript is required for the live dashboard.</p>
 </div>
 </noscript>
 <div class="sr-only">The Blue Board is an independent United Airlines flight tracker and operations dashboard for United flyers. Use the live dashboard to check flight status, hub delays, fleet data, and Starlink availability.</div>
