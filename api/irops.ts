@@ -134,14 +134,33 @@ export function computeMetrics(flightsByHub: Record<string, any[]>) {
 export function getStartOfDayForHub(hub: string): number {
   const tz = HUB_TZ[hub] || 'America/New_York';
   const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-US', {
+  const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-  }).formatToParts(now);
+  });
+  const parts = fmt.formatToParts(now);
   const get = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0');
   const hour = get('hour'), minute = get('minute'), second = get('second');
-  const secondsSinceMidnight = hour * 3600 + minute * 60 + second;
-  const startOfToday = Math.floor((now.getTime() / 1000) - secondsSinceMidnight);
+
+  // DST-safe midnight calculation: compute an approximate midnight, then verify
+  // and adjust. The naive formula (now - localSecondsSinceMidnight) can be off by
+  // ±1 hour across DST transitions because the UTC offset at midnight may differ
+  // from the current offset.
+  const localSecsSinceMidnight = hour * 3600 + minute * 60 + second;
+  const approxMidnight = Math.floor(now.getTime() / 1000) - localSecsSinceMidnight;
+
+  // Verify: what local time does our guess correspond to?
+  const verifyParts = fmt.formatToParts(new Date(approxMidnight * 1000));
+  const vH = parseInt(verifyParts.find(p => p.type === 'hour')?.value || '0');
+  const vM = parseInt(verifyParts.find(p => p.type === 'minute')?.value || '0');
+  const vS = parseInt(verifyParts.find(p => p.type === 'second')?.value || '0');
+  const drift = vH * 3600 + vM * 60 + vS;
+
+  // Correct for DST drift (typically ±3600s on transition days)
+  const startOfToday = drift > 43200
+    ? approxMidnight + (86400 - drift)  // Went past midnight into previous day
+    : approxMidnight - drift;            // Fine-tune forward to exact midnight
+
   // Before 6 AM local: no flights have departed yet, show yesterday's data
   if (hour < 6) return startOfToday - 86400;
   return startOfToday;

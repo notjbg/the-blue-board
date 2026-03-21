@@ -24,6 +24,23 @@ import { supabase } from './_supabase.js';
 const FROM_ADDRESS = 'Jonah @ The Blue Board <hello@theblueboard.co>';
 const BASE_URL = 'https://theblueboard.co';
 
+/** Rollback a claimed slug to the previous value so future attempts can retry */
+async function rollbackClaim(previousSlug: string | undefined) {
+  try {
+    if (previousSlug) {
+      await supabase
+        .from('news_notifications')
+        .update({ slug: previousSlug, sent_at: new Date().toISOString() })
+        .eq('key', 'last_sent');
+    } else {
+      // First-run case: delete the row so the next attempt starts fresh
+      await supabase.from('news_notifications').delete().eq('key', 'last_sent');
+    }
+  } catch (e) {
+    console.error('news-notify: rollback failed (manual intervention may be needed):', e);
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -127,11 +144,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     if (createErr || !broadcast?.id) {
+      // Rollback claim so future attempts can retry
+      await rollbackClaim(existing?.slug);
       throw new Error(`Broadcast create failed: ${createErr?.message || 'no broadcast ID returned'}`);
     }
 
     const { error: sendErr } = await resend.broadcasts.send(broadcast.id);
     if (sendErr) {
+      // Rollback claim so future attempts can retry
+      await rollbackClaim(existing?.slug);
       throw new Error(`Broadcast send failed: ${sendErr.message}`);
     }
 
