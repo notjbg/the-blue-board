@@ -27,6 +27,29 @@ const fleetFamilies = [
 for (const fam of fleetFamilies) {
   fam.count = fam.types.reduce((sum, key) => sum + fleetTypes[key].count, 0);
 }
+
+// Compute fleet-wide stats
+const totalAircraft = fleetOrder.reduce((sum, key) => sum + fleetTypes[key].count, 0);
+const polarisAircraft = fleetOrder.reduce((sum, key) => sum + (fleetTypes[key].seatConfig.hasPolaris ? fleetTypes[key].count : 0), 0);
+const widebodyAircraft = fleetOrder.reduce((sum, key) => sum + (fleetTypes[key].bodyType === 'widebody' ? fleetTypes[key].count : 0), 0);
+const starlinkEquipped = 258; // from unitedstarlinktracker.com, updated manually
+
+// Seat config table order: widebody (Polaris) first, then narrowbody
+const seatConfigOrder = [
+  '777-300er', '777-200er', '787-10-dreamliner', '787-9-dreamliner', '787-8-dreamliner',
+  '767-300er', '767-400er', '777-200',
+  '757-300', '757-200', 'a321neo',
+  '737-max-9', '737-max-8', '737-900er', '737-800', 'a320', 'a319', '737-700', '737-900',
+];
+
+// Short cabin label map
+const cabinShortLabel: Record<string, string> = {
+  'Polaris Business': 'Polaris',
+  'Premium Plus': 'Prem+',
+  'Economy Plus': 'E+',
+  'Economy': 'Y',
+  'First': 'First',
+};
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -225,6 +248,9 @@ p{margin-bottom:12px}
 .cabin-polaris{background:rgba(0,93,170,.2);color:var(--ua-accent)}
 .cabin-pp{background:rgba(234,179,8,.15);color:var(--ua-yellow)}
 .cabin-ep{background:rgba(34,197,94,.15);color:var(--ua-green)}
+.cabin-first{background:rgba(196,163,90,.15);color:var(--ua-amber)}
+.cabin-y{background:rgba(148,163,184,.1);color:var(--ua-muted)}
+.cabin-seat-count{font-family:var(--font-mono);font-size:10px;font-weight:600;margin-left:2px}
 
 /* Fleet grid */
 .fleet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:16px 0}
@@ -283,17 +309,16 @@ p{margin-bottom:12px}
     <p class="tagline">1,078 mainline aircraft · 19 types · seat configs · WiFi · Starlink · updated daily</p>
     <div class="cta-row">
       <a class="cta" href="/?tab=fleet">Explore Interactive Fleet Database &rarr;</a>
-      <a class="cta cta-secondary" href="/">Live Flight Tracker &rarr;</a>
     </div>
     <p class="hint">Search by registration, filter by aircraft type, seat configuration, WiFi system, Starlink status — all in one interactive dashboard.</p>
   </div>
 
   <!-- QUICK STATS -->
   <div class="stat-row">
-    <div class="stat-card"><div class="val">1,078</div><div class="label">Mainline Aircraft</div></div>
-    <div class="stat-card"><div class="val">19</div><div class="label">Aircraft Types</div></div>
-    <div class="stat-card"><div class="val">258</div><div class="label">Starlink Equipped</div></div>
-    <div class="stat-card"><div class="val">96</div><div class="label">Widebody Aircraft</div></div>
+    <div class="stat-card"><div class="val">{totalAircraft.toLocaleString()}</div><div class="label">Mainline Aircraft</div></div>
+    <div class="stat-card"><div class="val">{polarisAircraft}</div><div class="label">Polaris Aircraft</div></div>
+    <div class="stat-card"><div class="val">{starlinkEquipped}</div><div class="label">Starlink Equipped</div></div>
+    <div class="stat-card"><div class="val">{widebodyAircraft}</div><div class="label">Widebody Aircraft</div></div>
   </div>
 
   <!-- FLEET OVERVIEW -->
@@ -348,25 +373,25 @@ p{margin-bottom:12px}
 
   <div class="card">
     <table class="config-table">
-      <thead><tr><th>Aircraft</th><th>Count</th><th>Cabins</th><th>Total Seats</th><th>Notes</th></tr></thead>
+      <thead><tr><th>Aircraft</th><th>Count</th><th>Cabin Configuration</th><th>Total</th></tr></thead>
       <tbody>
-        <tr><td class="type-name"><a href="/fleet/777-300er">777-300ER</a></td><td>22</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>350</td><td>Largest aircraft; flagship international</td></tr>
-        <tr><td class="type-name"><a href="/fleet/777-200er">777-200ER</a></td><td>55</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>276</td><td>Multiple configs; workhorse widebody</td></tr>
-        <tr><td class="type-name"><a href="/fleet/787-10-dreamliner">787-10</a></td><td>21</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>318</td><td>Longest Dreamliner variant</td></tr>
-        <tr><td class="type-name"><a href="/fleet/787-9-dreamliner">787-9</a></td><td>48</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>257</td><td>Core long-haul Dreamliner</td></tr>
-        <tr><td class="type-name"><a href="/fleet/787-8-dreamliner">787-8</a></td><td>12</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>243</td><td>Smallest Dreamliner</td></tr>
-        <tr><td class="type-name"><a href="/fleet/767-300er">767-300ER</a></td><td>37</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>167–214</td><td>Transatlantic; being retired</td></tr>
-        <tr><td class="type-name"><a href="/fleet/767-400er">767-400ER</a></td><td>16</td><td><span class="cabin-tag cabin-polaris">Polaris</span><span class="cabin-tag cabin-pp">Prem+</span><span class="cabin-tag cabin-ep">E+</span> Y</td><td>231</td><td>Stretch 767; premium routes</td></tr>
-        <tr><td class="type-name"><a href="/fleet/757-300">757-300</a></td><td>21</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>234</td><td>High-density domestic/Hawaii</td></tr>
-        <tr><td class="type-name"><a href="/fleet/757-200">757-200</a></td><td>40</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>176</td><td>Transcon/Hawaii; some lie-flat</td></tr>
-        <tr><td class="type-name"><a href="/fleet/a321neo">A321neo</a></td><td>62</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>200</td><td>Newest narrowbody; fuel efficient</td></tr>
-        <tr><td class="type-name"><a href="/fleet/737-max-9">737 MAX 9</a></td><td>129</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>179</td><td>Next-gen narrowbody</td></tr>
-        <tr><td class="type-name"><a href="/fleet/737-max-8">737 MAX 8</a></td><td>123</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>166</td><td>Next-gen narrowbody</td></tr>
-        <tr><td class="type-name"><a href="/fleet/737-900er">737-900ER</a></td><td>136</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>179</td><td>Largest NG narrowbody</td></tr>
-        <tr><td class="type-name"><a href="/fleet/737-800">737-800</a></td><td>141</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>166</td><td>Most numerous type in fleet</td></tr>
-        <tr><td class="type-name"><a href="/fleet/a320">A320</a></td><td>68</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>150</td><td>Domestic workhorse</td></tr>
-        <tr><td class="type-name"><a href="/fleet/a319">A319</a></td><td>76</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>128</td><td>Short-haul; smaller markets</td></tr>
-        <tr><td class="type-name"><a href="/fleet/737-700">737-700</a></td><td>40</td><td>First <span class="cabin-tag cabin-ep">E+</span> Y</td><td>126</td><td>Smallest mainline narrowbody</td></tr>
+        {seatConfigOrder.map((key) => {
+          const t = fleetTypes[key];
+          return (
+            <tr>
+              <td class="type-name"><a href={`/fleet/${t.slug}`}>{t.typeCode}</a></td>
+              <td>{t.count}</td>
+              <td>
+                {t.seatConfig.cabins.map((cab) => (
+                  <span class={`cabin-tag ${cab.cssClass}`}>
+                    {cabinShortLabel[cab.name] || cab.name}<span class="cabin-seat-count"> {cab.seats}</span>
+                  </span>
+                ))}
+              </td>
+              <td>{t.seatConfig.total}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   </div>
