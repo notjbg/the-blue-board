@@ -2751,6 +2751,67 @@ async function initWeatherTab() {
     }, {root: document.getElementById('wx-detail-panel'), threshold: 0.1});
     observer.observe(document.getElementById('hub-cards'));
   }
+
+  // Refresh weather + FAA data every 5 minutes so the tab stays current
+  setInterval(async () => {
+    try {
+      const [newMetar, newFaa] = await Promise.allSettled([
+        fetchMetarBatch(allStations),
+        fetch('/api/faa').then(r => r.ok ? r.json() : Promise.reject(new Error(`faa-${r.status}`)))
+      ]);
+      const freshMetar = newMetar.status === 'fulfilled' ? newMetar.value : [];
+      const freshFaa = newFaa.status === 'fulfilled' ? newFaa.value : [];
+      if (!Array.isArray(freshMetar) || freshMetar.length === 0) return;
+
+      // Rebuild METAR index
+      const freshMetarByHub = {};
+      freshMetar.forEach(m => {
+        const h = stationToHub[m.icaoId || m.stationId] || stationToHub[m.id];
+        if (h) freshMetarByHub[h] = m;
+      });
+
+      // Rebuild FAA index
+      const freshFaaIndex = {};
+      if (Array.isArray(freshFaa)) freshFaa.forEach(d => {
+        const code = d.airportCode || d.airport;
+        if (!code) return;
+        if (!freshFaaIndex[code]) freshFaaIndex[code] = { delays: [] };
+        freshFaaIndex[code].delays.push(...(d.delays || []));
+        if (d.type === 'ground_stop') freshFaaIndex[code].groundStop = true;
+        else if (d.type === 'ground_delay') { freshFaaIndex[code].groundDelay = true; freshFaaIndex[code].avgDelay = d.avgDelay; }
+        else if (d.type === 'departure_delay') { freshFaaIndex[code].departureDelay = true; freshFaaIndex[code].minDelay = d.minDelay; freshFaaIndex[code].maxDelay = d.maxDelay; }
+        else if (d.type === 'arrival_delay') { freshFaaIndex[code].arrivalDelay = true; }
+        else if (d.type === 'closure') freshFaaIndex[code].closure = true;
+      });
+      faaDelayIndex = freshFaaIndex;
+
+      // Update weatherOpsByHub + hub card colors/statuses
+      hubs.forEach(hub => {
+        const data = freshMetarByHub[hub];
+        if (!data) return;
+        const raw = data.rawOb || '';
+        const apiCat = data.fltCat || data.fltcat || 'UNK';
+        const localCat = computeFlightCategory(raw);
+        const catRank = {LIFR:0,IFR:1,MVFR:2,VFR:3,UNK:3};
+        const cat = localCat && (catRank[localCat] ?? 3) < (catRank[apiCat] ?? 3) ? localCat : apiCat;
+        const ops = computeOpsImpact(raw, cat);
+        weatherOpsByHub[hub] = { level: ops.level, reasons: ops.reasons, fltCat: cat,
+          hasThunderstorms: ops.hasThunderstorms, hasFreezingPrecip: ops.hasFreezingPrecip,
+          hasSnow: ops.hasSnow, hasFog: ops.hasFog, gustKt: ops.gustKt || 0, tempC: ops.tempC };
+        // Update radar hub marker color
+        if (radarHubMarkers[hub]) {
+          const catColor = CAT_COLORS[cat] || '#64748b';
+          const borderColor = ops.level !== 'normal' ? ops.color : catColor;
+          radarHubMarkers[hub].setStyle({color: borderColor, fillColor: borderColor});
+        }
+      });
+      // Update radar timestamp
+      const radarTitle = document.getElementById('radar-title');
+      if (radarTitle) radarTitle.textContent = `🌧 NEXRAD Radar — ${new Date().toUTCString().slice(17,25)}Z`;
+    } catch (e) {
+      console.warn('Weather refresh failed:', e);
+    }
+  }, 5 * 60 * 1000);
 }
 
 // ═══ ANALYTICS TAB ═══
@@ -3503,10 +3564,11 @@ function getFilteredScheduleFlights() {
     if (riskFilter) {
       const status = classifySchedStatus(fl);
       if (['scheduled', 'estimated', 'delayed'].includes(status.key)) {
-        const risk = computeDelayRisk(fl, schedCurrentHub);
-        if (riskFilter === 'high' && risk.label !== 'HIGH') return false;
-        if (riskFilter === 'moderate' && risk.label === 'LOW') return false;
-        if (riskFilter === 'low' && risk.label !== 'LOW') return false;
+        const risk = computeDelayRiskForScheduleFlight(fl, schedCurrentHub);
+        const riskLabel = risk ? risk.label : 'LOW';
+        if (riskFilter === 'high' && riskLabel !== 'HIGH') return false;
+        if (riskFilter === 'moderate' && riskLabel === 'LOW') return false;
+        if (riskFilter === 'low' && riskLabel !== 'LOW') return false;
       } else if (riskFilter === 'high' || riskFilter === 'moderate') {
         return false;
       }

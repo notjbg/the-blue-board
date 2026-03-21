@@ -41,7 +41,7 @@ function sanitize(val: string | undefined, maxLen: number): string {
 function getCacheKey(ctx: DelayContext): string {
   const inboundKey = ctx.inbound ? ctx.inbound.slice(0, 100) : '';
   const weatherKey = (ctx.weather || '').slice(0, 40) + '|' + (ctx.destWeather || '').slice(0, 40);
-  return `${ctx.flight}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${inboundKey}:${weatherKey}`;
+  return `${ctx.flight}:${ctx.route || ''}:${ctx.status || ''}:${ctx.riskScore}:${(ctx.factors || []).join(',')}:${ctx.otp || ''}:${ctx.hub || ''}:${ctx.irops || ''}:${inboundKey}:${weatherKey}`;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -50,7 +50,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const origin = req.headers?.origin || '';
-  if (origin && origin !== 'https://theblueboard.co' && !/^http:\/\/localhost(:\d+)?$/.test(origin)) {
+  const referer = req.headers?.referer || '';
+  // Require a valid origin or referer — blocks direct curl/non-browser abuse
+  const isAllowedOrigin = origin === 'https://theblueboard.co' || /^http:\/\/localhost(:\d+)?$/.test(origin);
+  const isAllowedReferer = referer.startsWith('https://theblueboard.co/') || /^http:\/\/localhost(:\d+)?\//.test(referer);
+  if (!isAllowedOrigin && !isAllowedReferer) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
