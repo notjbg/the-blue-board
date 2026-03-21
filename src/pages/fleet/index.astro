@@ -14,6 +14,19 @@ for (const key of fleetOrder) {
     slug: t.slug,
   };
 }
+
+// Family groupings for organized display
+const fleetFamilies = [
+  { name: 'Boeing 737 Family', types: ['737-800', '737-900er', '737-max-9', '737-max-8', '737-700', '737-900'], role: 'Domestic / Short-haul', count: 0 },
+  { name: 'Airbus A320 Family', types: ['a319', 'a320', 'a321neo'], role: 'Domestic / Medium-haul', count: 0 },
+  { name: 'Boeing 777', types: ['777-200er', '777-300er', '777-200'], role: 'Long-haul International', count: 0 },
+  { name: 'Boeing 787 Dreamliner', types: ['787-9-dreamliner', '787-10-dreamliner', '787-8-dreamliner'], role: 'Long-haul International', count: 0 },
+  { name: 'Boeing 757', types: ['757-200', '757-300'], role: 'Transcon / Hawaii', count: 0 },
+  { name: 'Boeing 767', types: ['767-300er', '767-400er'], role: 'Transatlantic / Medium-haul', count: 0 },
+];
+for (const fam of fleetFamilies) {
+  fam.count = fam.types.reduce((sum, key) => sum + fleetTypes[key].count, 0);
+}
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -182,8 +195,15 @@ h3{font-size:14px;font-weight:600;color:var(--ua-blue);margin:28px 0 12px;text-t
 .card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:6px;padding:16px;margin-bottom:16px}
 p{margin-bottom:12px}
 
+/* Family sections */
+.family-section{margin-bottom:28px}
+.family-header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--ua-border)}
+.family-header h3{margin:0;text-transform:none;letter-spacing:0;font-size:16px}
+.family-header .family-count{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--ua-amber);letter-spacing:.5px}
+.family-header .family-role{font-size:10px;color:var(--ua-dim);text-transform:uppercase;letter-spacing:.5px;margin-left:auto}
+
 /* Type Grid */
-.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:32px}
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:16px}
 .type-card{background:var(--ua-panel);border:1px solid var(--ua-border);border-radius:8px;padding:16px;transition:border-color .2s,transform .2s}
 .type-card:hover{border-color:var(--ua-blue);transform:translateY(-2px)}
 .type-card .type-count{font-size:28px;font-weight:700;color:var(--ua-blue);font-family:var(--font-mono);letter-spacing:1px}
@@ -276,27 +296,51 @@ p{margin-bottom:12px}
     <div class="stat-card"><div class="val">96</div><div class="label">Widebody Aircraft</div></div>
   </div>
 
-  <!-- AIRCRAFT TYPE GUIDES -->
-  <h3>Aircraft Type Guides</h3>
-  <p>Select an aircraft type to see the complete guide — seat configurations, WiFi, IFE, routes, and the full aircraft registry for that type.</p>
-  <div class="type-grid">
-    {fleetOrder.map((key) => {
-      const t = typeSummaries[key];
-      return (
-        <div class="type-card">
-          <div class="type-count">{t.count}</div>
-          <div class="type-name">{t.displayName}</div>
-          <div class="type-info">
-            <span class={`type-badge ${t.bodyType === 'widebody' ? 'badge-wide' : 'badge-narrow'}`}>
-              {t.bodyType === 'widebody' ? 'Widebody' : 'Narrowbody'}
-            </span>
-            {t.seatTotal} seats · {t.role}
-          </div>
-          <a class="type-link" href={`/fleet/${t.slug}`}>View {t.displayName} &rarr;</a>
-        </div>
-      );
-    })}
+  <!-- FLEET OVERVIEW -->
+  <h3>Fleet Overview</h3>
+  <p>United Airlines operates one of the world's largest and most diverse fleets, with 1,078 mainline aircraft spanning narrowbody and widebody types from Boeing and Airbus.</p>
+  <div class="card">
+    <table class="fleet-table">
+      <thead><tr><th>Family</th><th>Types</th><th>Aircraft</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 737</td><td><a href="/fleet/737-700">737-700</a>, <a href="/fleet/737-800">-800</a>, <a href="/fleet/737-900">-900</a>, <a href="/fleet/737-900er">-900ER</a>, <a href="/fleet/737-max-8">MAX 8</a>, <a href="/fleet/737-max-9">MAX 9</a></td><td style="font-weight:700">581</td><td>Domestic / Short-haul</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Airbus A320 Family</td><td><a href="/fleet/a319">A319</a>, <a href="/fleet/a320">A320</a>, <a href="/fleet/a321neo">A321neo</a></td><td style="font-weight:700">206</td><td>Domestic / Medium-haul</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 777</td><td><a href="/fleet/777-200">777-200</a>, <a href="/fleet/777-200er">-200ER</a>, <a href="/fleet/777-300er">-300ER</a></td><td style="font-weight:700">96</td><td>Long-haul International</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 787 Dreamliner</td><td><a href="/fleet/787-8-dreamliner">787-8</a>, <a href="/fleet/787-9-dreamliner">-9</a>, <a href="/fleet/787-10-dreamliner">-10</a></td><td style="font-weight:700">81</td><td>Long-haul International</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 757</td><td><a href="/fleet/757-200">757-200</a>, <a href="/fleet/757-300">-300</a></td><td style="font-weight:700">61</td><td>Transcon / Hawaii</td></tr>
+        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 767</td><td><a href="/fleet/767-300er">767-300ER</a>, <a href="/fleet/767-400er">-400ER</a></td><td style="font-weight:700">53</td><td>Transatlantic / Medium-haul</td></tr>
+      </tbody>
+    </table>
   </div>
+
+  <!-- AIRCRAFT TYPE GUIDES — grouped by family -->
+  {fleetFamilies.map((fam) => (
+    <div class="family-section">
+      <div class="family-header">
+        <span class="family-count">{fam.count}</span>
+        <h3>{fam.name}</h3>
+        <span class="family-role">{fam.role}</span>
+      </div>
+      <div class="type-grid">
+        {fam.types.map((key) => {
+          const t = typeSummaries[key];
+          return (
+            <div class="type-card">
+              <div class="type-count">{t.count}</div>
+              <div class="type-name">{t.displayName}</div>
+              <div class="type-info">
+                <span class={`type-badge ${t.bodyType === 'widebody' ? 'badge-wide' : 'badge-narrow'}`}>
+                  {t.bodyType === 'widebody' ? 'Widebody' : 'Narrowbody'}
+                </span>
+                {t.seatTotal} seats · {t.role}
+              </div>
+              <a class="type-link" href={`/fleet/${t.slug}`}>View {t.displayName} &rarr;</a>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ))}
 
   <!-- SEAT CONFIGURATIONS -->
   <h3>Seat Configurations & Cabin Classes</h3>
@@ -327,22 +371,6 @@ p{margin-bottom:12px}
     </table>
   </div>
 
-  <!-- FLEET BY FAMILY -->
-  <h3>Fleet by Family</h3>
-  <p>United Airlines operates one of the world's largest and most diverse fleets, with 1,078 mainline aircraft spanning narrowbody and widebody types from Boeing and Airbus.</p>
-  <div class="card">
-    <table class="fleet-table">
-      <thead><tr><th>Family</th><th>Types</th><th>Aircraft</th><th>Role</th></tr></thead>
-      <tbody>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 737</td><td><a href="/fleet/737-700">737-700</a>, <a href="/fleet/737-800">-800</a>, <a href="/fleet/737-900">-900</a>, <a href="/fleet/737-900er">-900ER</a>, <a href="/fleet/737-max-8">MAX 8</a>, <a href="/fleet/737-max-9">MAX 9</a></td><td style="font-weight:700">581</td><td>Domestic / Short-haul</td></tr>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Airbus A320 Family</td><td><a href="/fleet/a319">A319</a>, <a href="/fleet/a320">A320</a>, <a href="/fleet/a321neo">A321neo</a></td><td style="font-weight:700">206</td><td>Domestic / Medium-haul</td></tr>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 777</td><td><a href="/fleet/777-200">777-200</a>, <a href="/fleet/777-200er">-200ER</a>, <a href="/fleet/777-300er">-300ER</a></td><td style="font-weight:700">96</td><td>Long-haul International</td></tr>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 787 Dreamliner</td><td><a href="/fleet/787-8-dreamliner">787-8</a>, <a href="/fleet/787-9-dreamliner">-9</a>, <a href="/fleet/787-10-dreamliner">-10</a></td><td style="font-weight:700">81</td><td>Long-haul International</td></tr>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 757</td><td><a href="/fleet/757-200">757-200</a>, <a href="/fleet/757-300">-300</a></td><td style="font-weight:700">61</td><td>Transcon / Hawaii</td></tr>
-        <tr><td style="font-weight:700;color:var(--ua-accent)">Boeing 767</td><td><a href="/fleet/767-300er">767-300ER</a>, <a href="/fleet/767-400er">-400ER</a></td><td style="font-weight:700">53</td><td>Transatlantic / Medium-haul</td></tr>
-      </tbody>
-    </table>
-  </div>
 
   <!-- FAQ -->
   <h3>Frequently Asked Questions</h3>
