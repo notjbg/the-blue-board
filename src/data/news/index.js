@@ -86,6 +86,25 @@ export function resolveTag(tag) {
 
 export const articles = [
   {
+    slug: 'kirby-playbook-for-175-oil-invest-more',
+    title: 'Scott Kirby\'s Playbook for $175 Oil: Invest More, Not Less',
+    date: '2026-03-20',
+    category: 'Operations',
+    sources: [
+      { name: 'United Airlines Newsroom', url: 'https://www.united.com/en/us/newsroom/announcements/cision-125448' },
+    ],
+    summary: 'CEO Scott Kirby tells employees United is prepared for jet fuel prices that have more than doubled — planning for $175/barrel oil through 2027 while trimming ~5 points of near-term capacity and accelerating investments in new clubs, hub infrastructure, and all 120+ aircraft deliveries for 2026.',
+    body: `<p>In a memo to employees, United CEO Scott Kirby laid out the airline's response to jet fuel prices that have more than doubled in three weeks following the war in Iran. Rather than the industry's typical playbook of cost cuts, furloughs, and deferred aircraft orders, Kirby says United will do the opposite: invest more.</p>
+
+<p>The math is sobering — at current prices, United faces an extra $11 billion in annual fuel expense, more than double the airline's best-ever annual profit. But Kirby points to three pillars of preparation: roughly triple the cash reserves United had entering COVID, industry-leading profit margins (United and Delta represented ~100% of total U.S. industry profitability in 2025), and the highest credit rating in 30+ years.</p>
+
+<p>In the near term, United is trimming about 5 points of capacity: canceling off-peak flying (redeyes, Tuesday/Wednesday/Saturday) in Q2 and Q3, pulling a point of capacity at O'Hare, and suspending Tel Aviv and Dubai service. All cuts are planned to restore this fall. Meanwhile, the airline will continue full speed on ~120 new aircraft deliveries this year, including 20 new 787s, and is accelerating investments in new United Clubs, hub infrastructure, and an expansion at Newark targeting 100 widebody departures per day.</p>
+
+<p>The subtext is clear: Kirby sees high oil as a competitive weapon. With weaker carriers describing "hope" as their strategy, United is positioning to acquire assets and absorb network changes if the environment persists — much as it did during COVID.</p>`,
+    tags: ['ewr', 'ord'],
+    ogImage: null,
+  },
+  {
     slug: 'united-opens-tickets-for-787-9-elevated-interior',
     title: 'United\'s First 787-9 with Polaris Studio Suites Enters Fleet April 22',
     date: '2026-03-19',
