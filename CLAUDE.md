@@ -36,10 +36,21 @@ Bun's built-in test runner reports ~28 false failures and silently drops ~33 tes
 the suite is written for vitest's API (vi.stubEnv, fake timers, vi.mock). The canonical, green
 command is `bun run test`. This note overrides the global "use `bun test`" default for this repo.
 
-Tests live flat in `tests/*.test.js` with fixtures in `tests/fixtures/`. Several tests are
-deliberate pins that fail when data/facts drift (e.g. `tests/tracker-data.test.js` pins the
-FAA's 89-airport count) — a failure there usually means the data needs a verified update, not
-that the test is wrong.
+Tests live flat in `tests/*.test.js` with fixtures in `tests/fixtures/`. Conventions:
+
+- **API handler tests** import the Vercel handlers directly (`import handler from
+  '../api/x.js'`) with hand-rolled `req`/`res` mocks — no HTTP server. Handlers keep
+  module-level state (rate limiters, caches, spend counters), which suites reset via
+  exported `__reset*ForTests()` functions; add one when introducing module state
+  (named as the repo convention in `api/fr24-feed.ts` and `api/delay-explain.ts`).
+- **Many tests are regression pins**, each guarding a documented past incident or audit:
+  `csp.test.js` (CSP directives in vercel.json), `compliance.test.js` (data-source
+  attribution: schedules credit AeroDataBox not FR24, Leaflet attribution control must
+  stay), `vercel-build-compat.test.js` (a TypeScript upgrade once passed all three gates
+  yet broke production deploys — preview builds are skipped, so the gates don't cover
+  Vercel's own build), `agent-readiness.test.js`, and `tracker-data.test.js` (pins the
+  FAA's 89-airport count). When a pin fails, read the comment block at the top of the
+  test first — the fix is usually a verified data/config update, not editing the test.
 
 ## Dev-server gotcha
 
@@ -102,6 +113,23 @@ new upstream calls without going through the existing cache/rate-limit/budget he
 
 ## Key conventions
 
+- **Releases** — every user-facing change bumps the semver version in `package.json` and adds
+  a `CHANGELOG.md` entry (Keep a Changelog format; entries here are narrative — what broke or
+  changed, why, and the affected file list — not one-liners). PR titles carry the version
+  (`(v1.7.x)`), and commit subjects use conventional prefixes with a scope
+  (`fix(schedule):`, `feat(trackers):`, `docs(handoff):`).
+
+- **New pages** — a new route must fall under the canonical route surface in
+  `src/lib/site-routes.js` (pinned against the sitemap by `tests/agent-readiness.test.js`),
+  and typically needs entries in `sitemap.xml.ts`, the lastmod path arrays in
+  `src/lib/buildMetadata.js`, `public/llms*.txt`, and the `ui-audit` PAGES list.
+  MAINTENANCE.md ends with the full checklist (written for trackers, applies generally).
+
+- **CSP changes** — any new external script/style/img/connect origin must be added to both
+  the CSP in `vercel.json` and the pin in `tests/csp.test.js`. No inline `<script>` in
+  `public/index.html` — the CSP has no `unsafe-inline` for scripts and the test enforces
+  extraction.
+
 - **Facts discipline** — every page-level factual number (hub counts, fleet database size,
   Starlink counts, etc.) imports from `src/data/facts.js`, the single source of truth. Static
   files that can't import it (`public/index.html`, `public/llms*.txt`, `README.md`) carry
@@ -127,5 +155,6 @@ new upstream calls without going through the existing cache/rate-limit/budget he
 
 - **Docs worth reading before larger work** — `DESIGN.md` (design system + decisions log),
   `MAINTENANCE.md` (tracker data updates), `docs/HANDOFF.md` (v2.0 program history, known
-  gotchas, deferred work), `.env.example` (documents every environment variable and the
-  schedule-source routing), `CHANGELOG.md` (release history; version in package.json).
+  gotchas, deferred work), `TODOS.md` (live backlog, including compliance blockers that gate
+  monetization), `.env.example` (documents every environment variable and the
+  schedule-source routing), `CHANGELOG.md` (release history).
