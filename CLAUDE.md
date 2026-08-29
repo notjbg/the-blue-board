@@ -22,7 +22,12 @@ bun run ui-audit      # Playwright + axe accessibility/screenshot audit against 
 ```
 
 CI (`.github/workflows/test.yml`) gates on typecheck + test + build; all three must pass
-before any PR.
+before any PR. There is no separate lint/format step — those three commands are the whole gate.
+
+Note: the first step of `bun run build` fetches the live Starlink count and, on success,
+rewrites `src/data/starlink-live.json` (a committed file). A failed fetch never fails the
+build, but a successful one can dirty the tree — don't commit that data bump into an
+unrelated change.
 
 ## Testing
 
