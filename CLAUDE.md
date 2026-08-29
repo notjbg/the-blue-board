@@ -111,6 +111,44 @@ live-feed fallback. Spend is guarded by a cross-instance daily unit budget
 (`api/_cost-state.ts`) and warmed by the hourly `api/cron/warm-schedules.ts` cron. Don't add
 new upstream calls without going through the existing cache/rate-limit/budget helpers.
 
+## Supabase
+
+- **Migrations are applied manually** (Supabase SQL editor or MCP), then committed to `sql/`
+  as numbered files for repo parity. This repo does NOT use `supabase/migrations/` —
+  `supabase db push` would apply nothing while looking successful (warned in `sql/014`), and
+  the live `supabase_migrations` history is incomplete because some DDL was applied without
+  recording. Treat `sql/*.sql` as the source of truth, write new DDL idempotently
+  (`IF NOT EXISTS` guards, catalog-checked policies) so re-runs are safe, and follow the
+  `sql/015` pattern of noting in the file when it was applied to prod.
+- **RLS house pattern** for server-only tables: enable RLS, default-deny, one `service_role`
+  full-access policy, no anon/authenticated policies or grants (`sql/013`, `sql/014`).
+- **The live database is shared with unrelated projects** — it contains tables that belong
+  to other work (`cep_review_comments`, `rg_survey_responses`, `nrmr_*`, plus dormant
+  `profiles`/`usage_daily`). Never drop or alter a table that has no migration in `sql/`.
+- Server code gets its client from `getSupabase()` (`api/_supabase.ts`): lazy (so
+  misconfiguration only breaks routes that need it), and strict in production —
+  `SUPABASE_SERVICE_ROLE_KEY` is required when `VERCEL_ENV === 'production'` (deliberately
+  not `NODE_ENV`, which Vercel sets to production on previews too). Hot-path helpers like
+  `api/_cost-state.ts` treat every Supabase failure as degradable: fall back to in-memory
+  state, never let persistence break a data response.
+
+## Vercel
+
+- **The production project is `united-noc-vercel`** (it serves theblueboard.co). The team
+  also contains a stale, unlinked project literally named `the-blue-board` — when using
+  Vercel tooling, do not pick by name.
+- **Merge to main deploys production immediately; there are no preview deploys** (the
+  Ignored Build Step cancels them). So the three CI gates never exercise Vercel's own
+  build — that gap has bitten before (see `tests/vercel-build-compat.test.js`), and
+  `.github/workflows/post-deploy-smoke.yml` (curl of three load-bearing URLs after a
+  ~150s wait) is the only automated post-deploy signal. Recovery is `vercel rollback`.
+- `vercel.json` is the single home for headers/CSP, cache rules, crons, redirects, and
+  per-function `maxDuration`. Long-running endpoints must have a `functions` entry there,
+  and handlers budget their upstream timeouts to land inside it (see the comments in
+  `api/fr24-feed.ts` and `api/schedule.ts`) — the platform kill lands before `catch` does.
+- GitHub automation: `@claude` mentions in issues/PRs trigger `.github/workflows/claude.yml`,
+  and every PR gets an automated review via `claude-code-review.yml`.
+
 ## Key conventions
 
 - **Releases** — every user-facing change bumps the semver version in `package.json` and adds
