@@ -4,6 +4,11 @@ All notable changes to The Blue Board are documented here.
 
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioned per [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.21] - 2026-09-02
+
+### Fixed
+- **Every map tile was stamped "API KEY REQUIRED".** CARTO began requiring a free API key on its raster basemaps, and a request with no key now returns each dark tile with a diagonal "API KEY REQUIRED — carto.com/basemaps/apikey" watermark. Both Leaflet maps (Live Ops and the NEXRAD radar) hit that path. The tile template now comes from one helper that appends `?key=` when a key is present, and the key is inlined at build time from `VITE_CARTO_BASEMAP_KEY` (set in Vercel Production + Preview) so it never sits in this public repo — it is a public, per-domain tile key rather than a secret, but it is not referer-locked, so it stays out of git. A missing key falls back to the bare template — the map still draws, just watermarked — with a loud build warning rather than a failed build, because a failed production build on this project fails no visible check. The `@2x` retina variant, the `{s}` subdomain rotation, the preconnect hints, and the `img-src` CSP allowance are unchanged; the keyed tile was verified byte-for-byte different from the watermarked one on both the legacy `dark_all` and `rastertiles/dark_all` paths. CARTO is retiring raster basemaps and the same key covers its vector service, so that migration is the follow-up. (`src/lib/basemap.js`, `src/dashboard/main.js`, `vite.dashboard.config.js`, `.env.example`, `README.md`, `tests/basemap.test.js`)
+
 ## [1.7.20] - 2026-08-21
 
 ### Fixed

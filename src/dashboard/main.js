@@ -27,6 +27,7 @@ import { matchAircraft as matchAircraftInFleet } from '../lib/fleet-match.js';
 import { matchesScheduleFilters } from '../lib/schedule-board-filters.js';
 import { analyzeSwapImpact as classifySwapImpact, CABIN_RANK } from '../lib/swap-impact.js';
 import { escapeHtml } from '../lib/escape.js';
+import { cartoBasemapUrl } from '../lib/basemap.js';
 import { atcAirports, atcMeta, unitedHubsMeta, unitedProjects } from '../data/trackers/index.js';
 
 injectSpeedInsights();
@@ -543,6 +544,12 @@ function getBasemapTileOptions() {
   };
 }
 
+// CARTO requires a key on its raster basemaps (Sep 2026) — without one every tile carries an
+// "API KEY REQUIRED" watermark. Vite inlines VITE_CARTO_BASEMAP_KEY here at build time (set in
+// Vercel; see .env.example) so the key never sits in this public repo. Empty key → bare template:
+// the map still draws, just watermarked. Both maps below share this one URL. (src/lib/basemap.js)
+const CARTO_DARK_TILES = cartoBasemapUrl(import.meta.env.VITE_CARTO_BASEMAP_KEY);
+
 // ═══ TAB SWITCHING ═══
 const TAB_HASHES = {'tab-myflight':'#myflight','tab-live':'#live','tab-schedule':'#schedule','tab-fleet':'#fleet','tab-starlink':'#starlink','tab-weather':'#weather','tab-analytics':'#stats','tab-sources':'#sources'};
 const HASH_TABS = Object.fromEntries(Object.entries(TAB_HASHES).map(([k,v])=>[v,k]));
@@ -1034,7 +1041,7 @@ function initMap() {
   // getBasemapTileOptions). Drop the "Leaflet" prefix: micro-text, dark-theme styled in style.css.
   map.attributionControl.setPrefix('');
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', basemapTileOptions).addTo(map);
+  L.tileLayer(CARTO_DARK_TILES, basemapTileOptions).addTo(map);
 
   // Clear route on popup close and remove flight URL param
   map.on('popupclose', () => {
@@ -3801,7 +3808,7 @@ async function initWeatherTab() {
   radarMap = L.map('radar-map', {center:[39,-97],zoom:4,zoomControl:false});
   radarMap.attributionControl.setPrefix(''); // OSM/CARTO credit from tile options (ODbL)
   L.control.zoom({ position: 'bottomleft' }).addTo(radarMap);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', basemapTileOptions).addTo(radarMap);
+  L.tileLayer(CARTO_DARK_TILES, basemapTileOptions).addTo(radarMap);
   L.tileLayer('https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png',{opacity:0.6}).addTo(radarMap);
   setTimeout(() => radarMap.invalidateSize(), 200);
   document.getElementById('radar-title').textContent = `🌧 NEXRAD Radar — ${new Date().toUTCString().slice(17,25)}Z`;

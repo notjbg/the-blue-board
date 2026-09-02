@@ -145,7 +145,7 @@ Living, data-driven pages that follow aviation's long-running stories — each w
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS — single-file dashboard, Astro-templated content pages
-- **Map:** [Leaflet](https://leafletjs.com) + CartoDB dark tiles
+- **Map:** [Leaflet](https://leafletjs.com) + CARTO dark tiles (needs a free [CARTO basemaps key](https://carto.com/basemaps/apikey) in `VITE_CARTO_BASEMAP_KEY` — see `.env.example`)
 - **Radar:** Iowa State NEXRAD WMS tiles
 - **Fonts:** Satoshi (headings) + DM Sans (body) + [JetBrains Mono](https://www.jetbrains.com/lp/mono/) (data) — self-hosted WOFF2 (see [DESIGN.md](DESIGN.md))
 - **Build:** [Astro](https://astro.build) (static pages) + [Vite](https://vite.dev) (dashboard bundle)
